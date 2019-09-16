@@ -23,7 +23,7 @@ exit(1);}
 
 typedef unsigned long long U64;
 
-#define NAME "PayFleens 1.0"
+#define NAME "PayFleens 1.8"
 #define BRD_SQ_NUM 120
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
@@ -176,6 +176,32 @@ typedef struct {
 0001 0000 0000 0000 0000 0000 0000 -> Castle 0x1000000
 */
 
+/*		2	C
+0000 0000 0000 0000 0000 0011 1111 -> From 0x6F
+0000 0000 0000 0000 1111 1100 0000 -> To >> 6, 0x6F
+0000 0000 0000 1111 0000 0000 0000 -> Captured >> 9, 0xF
+0000 0000 0001 0000 0000 0000 0000 -> EP 0x10000
+0000 0000 0010 0000 0000 0000 0000 -> Pawn Start 0x20000
+0000 0011 1100 0000 0000 0000 0000 -> Promoted Piece >> 14, 0xF
+0000 0100 0000 0000 0000 0000 0000 -> Castle 0x400000
+*/
+
+
+/*#define FROMSQ(m) (((m)>>0) & 0x6F)
+#define TOSQ(m) (((m)>>6) & 0x6F) //(((m)>>7) & 0x7F)
+#define CAPTURED(m) (((m)>>9) & 0xF)
+#define PROMOTED(m) (((m)>>14)& 0xF)
+
+#define MFLAGEP 0x10000
+#define MFLAGPS 0x20000
+#define MFLAGCA 0x400000
+
+#define MFLAGCAP 0x2F000
+#define MFLAGPROM 0x2C0000*/
+
+#define MFLAGCAP 0x7C000
+#define MFLAGPROM 0xF00000
+
 #define FROMSQ(m) ((m) & 0x7F)
 #define TOSQ(m) (((m)>>7) & 0x7F)
 #define CAPTURED(m) (((m)>>14) & 0xF)
@@ -275,6 +301,10 @@ extern int MobilityCountWhiteKn(const S_BOARD *pos,int pce);
 extern int MobilityCountBlackKn(const S_BOARD *pos,int pce);
 extern int MobilityCountWhiteBi(const S_BOARD *pos,int pce);
 extern int SqAttackedByPawn(const int sq, const int side, const S_BOARD *pos);
+extern int SqAttackedByBishopQueen(const int sq, const int side, const S_BOARD *pos);
+extern int SqAttackedByRookQueen(const int sq, const int side, const S_BOARD *pos);
+extern int SqAttackedByKnight(const int sq, const int side, const S_BOARD *pos);
+
 
 // io.c
 extern char *PrMove(const int move);
@@ -300,6 +330,14 @@ extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
 extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
 extern int MoveExists(S_BOARD *pos, const int move);
 extern void InitMvvLva();
+extern int KingSqAttackedbyPawnB(const S_BOARD *pos);
+extern int KingSqAttackedbyPawnW(const S_BOARD *pos);
+extern int KingSqAttackedbyKnightB(const S_BOARD *pos);
+extern int KingSqAttackedbyKnightW(const S_BOARD *pos);
+extern int KingSqAttackedbyRookQueenB(const S_BOARD *pos);
+extern int KingSqAttackedbyRookQueenW(const S_BOARD *pos);
+extern int KingSqAttackedbyBishopQueenB(const S_BOARD *pos);
+extern int KingSqAttackedbyBishopQueenW(const S_BOARD *pos);
 
 // makemove.c
 extern int MakeMove(S_BOARD *pos, int move);

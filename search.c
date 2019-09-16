@@ -176,6 +176,8 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 	info->nodes++;
 
+	MAX(0, depth);
+	
 	if((IsRepetition(pos) || pos->fiftyMove >= 100) && pos->ply) {
 		return 0;
 	}
@@ -212,6 +214,12 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		}
 	}
 
+	int eval = EvalPosition(pos);
+
+	if( PvMove == NOMOVE && !InCheck && depth <= RazorDepth && eval + RazorDepth < alpha) {
+		return Quiescence(alpha, beta, pos, info);
+	}
+
 	S_MOVELIST list[1];
     GenerateAllMoves(pos,list);
 
@@ -232,11 +240,6 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 				break;
 			}
 		}
-	}
-	int eval = EvalPosition(pos);
-
-	if( PvMove == NOMOVE && !InCheck && depth <= RazorDepth && eval + RazorDepth < alpha) {
-		return Quiescence(alpha, beta, pos, info);
 	}
 
 	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
@@ -284,7 +287,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 	if(Legal == 0) {
 		if(InCheck) {
-			return -INFINITE + pos->ply;
+			return -MATE + pos->ply;
 		} else {
 			return 0;
 		}

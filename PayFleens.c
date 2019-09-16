@@ -44,7 +44,7 @@ int main() {
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);
 	
-	printf("Welcome to Vice! Type 'vice' for console mode...\n");
+	printf("Welcome to PayFleens! Type 'pay' for console mode...\n");
 
 	char line[256];
 	while (TRUE) {
@@ -63,7 +63,7 @@ int main() {
 			XBoard_Loop(pos, info);
 			if(info->quit == TRUE) break;
 			continue;
-		} else if (!strncmp(line, "vice",4))	{
+		} else if (!strncmp(line, "pay",3))	{
 			Console_Loop(pos, info);
 			if(info->quit == TRUE) break;
 			continue;

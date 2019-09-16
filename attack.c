@@ -108,3 +108,86 @@ int SqAttackedByPawn(const int sq, const int side, const S_BOARD *pos) {
 
 	return FALSE;
 }
+
+int SqAttackedByBishopQueen(const int sq, const int side, const S_BOARD *pos) {
+
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SideValid(side));
+	ASSERT(CheckBoard(pos));
+
+	int index;
+	int t_sq;
+	int dir;
+	int pce;
+	// bishops, queens
+	for(index = 0; index < 4; ++index) {		
+		dir = BiDir[index];
+		t_sq = sq + dir;
+		ASSERT(SqIs120(t_sq));
+		pce = pos->pieces[t_sq];
+		ASSERT(PceValidEmptyOffbrd(pce));
+		while(pce != OFFBOARD) {
+			if(pce != EMPTY) {
+				if(IsBQ(pce) && PieceCol[pce] == side) {
+					return TRUE;
+				}
+				break;
+			}
+			t_sq += dir;
+			ASSERT(SqIs120(t_sq));
+			pce = pos->pieces[t_sq];
+		}
+	}
+	return FALSE;
+}
+
+int SqAttackedByKnight(const int sq, const int side, const S_BOARD *pos) {
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SideValid(side));
+	ASSERT(CheckBoard(pos));
+	int index;
+	int t_sq;
+	int dir;
+	int pce;
+	// knights
+	for(index = 0; index < 8; ++index) {		
+		pce = pos->pieces[sq + KnDir[index]];
+		ASSERT(PceValidEmptyOffbrd(pce));
+		if(pce != OFFBOARD && IsKn(pce) && PieceCol[pce]==side) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+int SqAttackedByRookQueen(const int sq, const int side, const S_BOARD *pos) {
+
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SideValid(side));
+	ASSERT(CheckBoard(pos));
+	
+	int index;
+	int t_sq;
+	int dir;
+	int pce;
+	// rooks, queens
+	for(index = 0; index < 4; ++index) {		
+		dir = RkDir[index];
+		t_sq = sq + dir;
+		ASSERT(SqIs120(t_sq));
+		pce = pos->pieces[t_sq];
+		ASSERT(PceValidEmptyOffbrd(pce));
+		while(pce != OFFBOARD) {
+			if(pce != EMPTY) {
+				if(IsRQ(pce) && PieceCol[pce] == side) {
+					return TRUE;
+				}
+				break;
+			}
+			t_sq += dir;
+			ASSERT(SqIs120(t_sq));
+			pce = pos->pieces[t_sq];
+		}
+	}
+	return FALSE;
+}

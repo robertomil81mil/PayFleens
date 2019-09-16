@@ -248,7 +248,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
-	printf("Welcome to Vice In Console Mode!\n");
+	printf("Welcome to PayFleens In Console Mode!\n");
 	printf("Type help for commands\n\n");
 
 	info->GAME_MODE = CONSOLEMODE;
@@ -280,7 +280,7 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			SearchPosition(pos, info);
 		}
 
-		printf("\nVice > ");
+		printf("\nPayFleens > ");
 
 		fflush(stdout);
 

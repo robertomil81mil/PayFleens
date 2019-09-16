@@ -503,8 +503,9 @@ int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {
 			dir = PceDir[pce][index];
 			t_sq = sq + dir;
 			if(!SQOFFBOARD(t_sq)) {
-				SqAttackedbyThem = SqAttackedByPawn(t_sq,BLACK,pos);
-				if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != WHITE) {
+				//SqAttackedbyThem = SqAttackedByPawn(t_sq,BLACK,pos);
+				//if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != WHITE) {
+				if(PieceCol[pos->pieces[t_sq]] != WHITE) {
 					MobilityCount++;
 				}
 			}
@@ -516,6 +517,202 @@ int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {
 	return MobilityCount;
 }
 
+int KingSqAttackedbyPawnB(const S_BOARD *pos) {
+
+	int t_sq;;
+	//int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+
+	t_sq = SqKIngB - 9; // sq infront left right back to the king
+	int SqAttacked = SqAttackedByPawn(t_sq,BLACK,pos);
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+	
+	t_sq = SqKIngB - 11; // sq infront left right back to the king 
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+
+	t_sq = SqKIngB - 10; // sq infront left right back to the king
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+int KingSqAttackedbyPawnW(const S_BOARD *pos) {
+
+	int t_sq;;
+	//int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+
+	t_sq = SqKIngB + 9; // sq infront left right back to the king
+	int SqAttacked = SqAttackedByPawn(t_sq,WHITE,pos);
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+	
+	t_sq = SqKIngB + 11; // sq infront left right back to the king 
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+
+	t_sq = SqKIngB + 10; // sq infront left right back to the king
+	if(SqAttacked == TRUE) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+int KingSqAttackedbyKnightB(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = bK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngW + dir;
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByKnight(t_sq,BLACK,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
+	return FALSE;
+}
+
+int KingSqAttackedbyKnightW(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = wK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngB + dir; // sq infront left right back to the king
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByKnight(t_sq,WHITE,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
+
+int KingSqAttackedbyRookQueenB(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = bK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngW + dir; // sq infront left right back to the king
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByRookQueen(t_sq,BLACK,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	
+	return FALSE;
+}
+
+int KingSqAttackedbyRookQueenW(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = wK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngB + dir; // sq infront left right back to the king
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByRookQueen(t_sq,WHITE,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
+	return FALSE;
+}
+
+int KingSqAttackedbyBishopQueenB(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = bK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngW + dir; // sq infront left right back to the king
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByBishopQueen(t_sq,BLACK,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
+	return FALSE;
+}
+
+int KingSqAttackedbyBishopQueenW(const S_BOARD *pos) {
+
+	int pceNum;
+	int sq;
+	int index;
+	int t_sq;;
+	int dir;
+	int SqKIngW = pos->KingSq[WHITE];
+	int SqKIngB = pos->KingSq[BLACK];
+	int pce = wK;
+	
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = SqKIngB + dir; // sq infront left right back to the king
+		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
+			int SqAttacked = SqAttackedByBishopQueen(t_sq,WHITE,pos);
+			if(SqAttacked == TRUE) {
+				return TRUE;
+			}
+		}
+	}
+	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
+	return FALSE;
+}
 int MobilityCountBlackKn(const S_BOARD *pos,int pce) {
 
 	int pceNum;
@@ -533,10 +730,12 @@ int MobilityCountBlackKn(const S_BOARD *pos,int pce) {
 			dir = PceDir[pce][index];
 			t_sq = sq + dir;
 			if(!SQOFFBOARD(t_sq)) {
-				SqAttackedbyThem = SqAttackedByPawn(t_sq,WHITE,pos);
-				if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != BLACK) {
+				//SqAttackedbyThem = SqAttackedByPawn(t_sq,WHITE,pos);
+				//if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != BLACK)
+				if(PieceCol[pos->pieces[t_sq]] != BLACK) {
 					MobilityCount++;
 				}
+				//}
 			}
 		
 		}
