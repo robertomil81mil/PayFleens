@@ -3,6 +3,8 @@
 #include "stdio.h"
 #include "defs.h"
 
+#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
+
 const int PawnIsolated = -20;
 const int PawnPassed[8] = { 0, 10, 17, 15, 62, 168, 276, 0};
 const int PawnPassedNoProtected[8] = { 0, 0, 5, 5, 30, 80, 130, 0};
