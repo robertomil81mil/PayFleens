@@ -320,11 +320,11 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		}
     }
 
-    alpha = MAX(MATED_IN(pos->ply), alpha);
+    /*alpha = MAX(MATED_IN(pos->ply), alpha);
     beta = MIN(MATE_IN(pos->ply+1), beta);
     if (alpha >= beta) {
         return alpha;
-    }
+    }*/
 
 	if(Legal == 0) {
 		if(InCheck) {

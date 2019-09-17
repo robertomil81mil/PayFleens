@@ -176,6 +176,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if((RankBBMask[RanksBrd[sq]] == RANK_6)) {
 			score += 6;
 		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_5)) {
+			score += 4;
+		}
 		/*if(pos->pieces[sq+19] == bN && pos->pieces[sq+9] != bP && pos->pieces[sq+10] != bP || pos->pieces[sq+21] == bN && pos->pieces[sq+11] != bP && pos->pieces[sq+10] != bP) {
 			score += 6;
 		}
@@ -231,6 +234,9 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if((RankBBMask[RanksBrd[sq]] == RANK_3)) {
 			score -= 6;
+		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_4)) {
+			score -= 4;
 		}
 		/*if(pos->pieces[sq-19] == wN && pos->pieces[sq-9] != wP && pos->pieces[sq-10] != wP  || pos->pieces[sq-21] == wN && pos->pieces[sq-11] != wP && pos->pieces[sq-10] != wP) {
 			score -= 6;
