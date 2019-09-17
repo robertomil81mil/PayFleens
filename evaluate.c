@@ -169,6 +169,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq-20] == wP) {
 			score -= 10;
 		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_6)) {
+			score += 6;
+		}
 		/*if(pos->pieces[sq+19] == bN && pos->pieces[sq+9] != bP && pos->pieces[sq+10] != bP || pos->pieces[sq+21] == bN && pos->pieces[sq+11] != bP && pos->pieces[sq+10] != bP) {
 			score += 6;
 		}
@@ -221,6 +224,9 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if(pos->pieces[sq+20] == bP) {
 			score += 10;
+		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_3)) {
+			score -= 6;
 		}
 		/*if(pos->pieces[sq-19] == wN && pos->pieces[sq-9] != wP && pos->pieces[sq-10] != wP  || pos->pieces[sq-21] == wN && pos->pieces[sq-11] != wP && pos->pieces[sq-10] != wP) {
 			score -= 6;
@@ -471,7 +477,14 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 6;
-		} //else if(KingSqC == TRUE) {
+		}
+		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
+			score -= 15;
+		}
+		if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
+			score -= 10;
+		}
+		//else if(KingSqC == TRUE) {
 			//score += 5;
 		//} /*else if(InCheck == TRUE) {
 			//score += 5;
@@ -530,6 +543,12 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 6;
+		}
+		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
+			score += 15;
+		}
+		if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
+			score += 10;
 		}//else if(KingSqC == TRUE) {
 			//score -= 5;
 		//} /*else if(InCheck == TRUE) {
@@ -593,6 +612,9 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 4;
+		}
+		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //queen semi traped
+			score -= 4;
 		}//else if(KingSqC == TRUE) {
 			//score += 2;
 		//} //else if(KingSqC2 == TRUE) {
@@ -659,6 +681,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 4;
 		}
+		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //queen semi traped
+			score += 4;
+		}
 		 //else if(KingSqC == TRUE) {
 			//score -= 2;
 		//} //else if(KingSqC2 == TRUE) {
@@ -706,6 +731,16 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+11] == wP) { //safe castle
 			score += 8;
 		}
+		if(pos->pieces[sq+20] == bP) { //fawn pawn
+			score -= 10;
+		}
+		if(pos->pieces[sq+19] == bP || pos->pieces[sq+21] == bP) { //fawn pawn
+			score -= 10;
+		}
+		if(pos->pieces[sq+18] == bP || pos->pieces[sq+22] == bP) { //fawn pawn
+			score -= 10;
+		}
+
 
 	} else {
 		score += KingO[SQ64(sq)];
@@ -760,6 +795,15 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-11] == bP) { //safe castle
 			score -= 8;
+		}
+		if(pos->pieces[sq-20] == wP) { //fawn pawn
+			score += 10;
+		}
+		if(pos->pieces[sq-19] == wP || pos->pieces[sq-21] == wP) { //fawn pawn
+			score += 10;
+		}
+		if(pos->pieces[sq-18] == wP || pos->pieces[sq-22] == wP) { //fawn pawn
+			score += 10;
 		}
 
 	} else {
