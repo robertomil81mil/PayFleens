@@ -479,10 +479,10 @@ int EvalPosition(const S_BOARD *pos) {
 			score += 6;
 		}
 		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
-			score -= 15;
+			score -= 25;
 		}
 		if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
-			score -= 10;
+			score -= 20;
 		}
 		//else if(KingSqC == TRUE) {
 			//score += 5;
@@ -545,10 +545,10 @@ int EvalPosition(const S_BOARD *pos) {
 			score -= 6;
 		}
 		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
-			score += 15;
+			score += 25;
 		}
 		if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
-			score += 10;
+			score += 20;
 		}//else if(KingSqC == TRUE) {
 			//score -= 5;
 		//} /*else if(InCheck == TRUE) {
