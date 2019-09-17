@@ -16,6 +16,14 @@ const int ProbCutMargin = 100;
 const int FutilityMargin = 9;
 const int FutilityPruningDepth = 8;
 
+static int MATE_IN(int ply) {
+  return MATE - ply;
+}
+               
+static int MATED_IN(int ply) {
+  return -MATE + ply;
+}
+
 static void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
 	if(info->timeset == TRUE && GetTimeMs() > info->stoptime) {
@@ -108,8 +116,27 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 	}
 
 	int Score = EvalPosition(pos);
+	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
 	ASSERT(Score>-INFINITE && Score<INFINITE);
+
+	// Initialize "stand pat score", and return it immediately if it is
+    // at least beta.
+    int bestValue;
+
+    if(InCheck == TRUE) {
+    	bestValue = -INFINITE;
+    } else {
+    	bestValue = EvalPosition(pos);
+    }
+
+    if (bestValue >= beta) {
+        return bestValue;
+    }
+
+    if (bestValue > alpha) {
+        alpha = bestValue;
+    }
 
 	if(Score >= beta) {
 		return beta;
@@ -124,6 +151,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 
     int MoveNum = 0;
 	int Legal = 0;
+	int OldAlpha = alpha;
 	Score = -INFINITE;
 
 	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
@@ -155,6 +183,12 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
     }
 
 	ASSERT(alpha >= OldAlpha);
+
+	/*if(alpha != OldAlpha) {
+		StoreHashEntry(pos, BestMove, BestScore, HFEXACT, depth);
+	} else {
+		StoreHashEntry(pos, BestMove, alpha, HFALPHA, depth);
+	}*/
 
 	return alpha;
 }
@@ -230,6 +264,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 	int BestScore = -INFINITE;
 
+
 	Score = -INFINITE;
 
 	if( PvMove != NOMOVE) {
@@ -285,9 +320,15 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		}
     }
 
+    alpha = MAX(MATED_IN(pos->ply), alpha);
+    beta = MIN(MATE_IN(pos->ply+1), beta);
+    if (alpha >= beta) {
+        return alpha;
+    }
+
 	if(Legal == 0) {
 		if(InCheck) {
-			return -MATE + pos->ply;
+			return -INFINITE + pos->ply;
 		} else {
 			return 0;
 		}

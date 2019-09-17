@@ -10,7 +10,7 @@
 void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 	int depth = -1, movestogo = 30,movetime = -1;
-	int time = -1, inc = 0;
+	int time = -1, inc = 0, myTime = 0;
     char *ptr = NULL;
 	info->timeset = FALSE;
 
@@ -55,11 +55,13 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 	info->depth = depth;
 
 	if(time != -1) {
+		
 		info->timeset = TRUE;
 		time /= movestogo;
-		time -= 50;
-		info->stoptime = info->starttime + time + inc;
-	}
+		time -= 100;
+		myTime = info->starttime + time + inc;
+		info->stoptime = MAX(myTime, inc - 100);
+	} 
 
 	if(depth == -1) {
 		info->depth = MAXDEPTH;
