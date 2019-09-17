@@ -478,10 +478,10 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 6;
 		}
-		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
+		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && SQOFFBOARD(sq+1) || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && SQOFFBOARD(sq-1)) { //rook traped
 			score -= 25;
 		}
-		if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && pos->pieces[sq-1] != EMPTY) { //rook traped
+		if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && SQOFFBOARD(sq+1) || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && SQOFFBOARD(sq-1)) { //rook traped
 			score -= 20;
 		}
 		//else if(KingSqC == TRUE) {
@@ -544,10 +544,10 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 6;
 		}
-		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
+		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && SQOFFBOARD(sq+1) || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && SQOFFBOARD(sq-1)) { //rook traped
 			score += 25;
 		}
-		if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && pos->pieces[sq+1] != EMPTY || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && pos->pieces[sq-1] != EMPTY) { //rook traped
+		if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && SQOFFBOARD(sq+1) || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && SQOFFBOARD(sq-1)) { //rook traped
 			score += 20;
 		}//else if(KingSqC == TRUE) {
 			//score -= 5;
@@ -613,9 +613,11 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 4;
 		}
-		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //queen semi traped
-			score -= 4;
-		}//else if(KingSqC == TRUE) {
+		/*if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //queen semi traped
+			score -= 1;
+			// 1 1 0
+			//   Q
+		}*///else if(KingSqC == TRUE) {
 			//score += 2;
 		//} //else if(KingSqC2 == TRUE) {
 			//score += 2;
@@ -681,9 +683,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 4;
 		}
-		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //queen semi traped
-			score += 4;
-		}
+		/*if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //queen semi traped
+			score += 1;
+		}*/
 		 //else if(KingSqC == TRUE) {
 			//score -= 2;
 		//} //else if(KingSqC2 == TRUE) {
