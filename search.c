@@ -116,13 +116,13 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 	}
 
 	int Score = EvalPosition(pos);
-	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
+	//int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
 	ASSERT(Score>-INFINITE && Score<INFINITE);
 
 	// Initialize "stand pat score", and return it immediately if it is
     // at least beta.
-    int bestValue;
+    /*int bestValue;
 
     if(InCheck == TRUE) {
     	bestValue = -INFINITE;
@@ -136,7 +136,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 
     if (bestValue > alpha) {
         alpha = bestValue;
-    }
+    }*/
 
 	if(Score >= beta) {
 		return beta;
@@ -151,7 +151,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info) {
 
     int MoveNum = 0;
 	int Legal = 0;
-	int OldAlpha = alpha;
+	//int OldAlpha = alpha;
 	Score = -INFINITE;
 
 	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
