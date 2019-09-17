@@ -14,8 +14,10 @@ const int RookOnPawn = 10;
 const int QueenOpenFile = 5;
 const int QueenSemiOpenFile = 3;
 const int QueenNonOpenFile = 5;
-const int KingOpenFile = 20;
-const int KingSemiOpenFile = 10;
+const int KingOpenFile = 30;
+const int KingAlmostOpenFile = 28;
+const int KingSemiOpenFile = 15;
+const int KingAlmostSemiOpenFile = 13;
 const int BishopPair = 30;
 const int Mobility[16] = { -30, -20, -10, -4, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
 const int QueenCheck = 3;
@@ -709,22 +711,28 @@ int EvalPosition(const S_BOARD *pos) {
 			score -= KingSemiOpenFile;
 		}
 		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+1]])) {
-			score -= KingSemiOpenFile;
+			score -= KingAlmostSemiOpenFile;
 		}
 		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-1]])) {
-			score -= KingSemiOpenFile;
+			score -= KingAlmostSemiOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
 			score -= KingOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
-			score -= KingOpenFile;
+			score -= KingAlmostOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
-			score -= KingOpenFile;
+			score -= KingAlmostOpenFile;
+		}
+		if(!(pos->castlePerm & WQCA)) {
+			score -= 15;
+		}
+		if(!(pos->castlePerm & WKCA)) {
+			score -= 15;
 		}
 		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
-			score += 8;
+			score += 10;
 		}
 		if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
 			score += 8;
@@ -732,8 +740,8 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP) { //safe castle
 			score += 8;
 		}
-		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+11] == wP) { //safe castle
-			score += 8;
+		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
+			score += 10;
 		}
 		if(pos->pieces[sq+20] == bP) { //fawn pawn
 			score -= 10;
@@ -774,22 +782,28 @@ int EvalPosition(const S_BOARD *pos) {
 			score += KingSemiOpenFile;
 		}
 		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+1]])) {
-			score += KingSemiOpenFile;
+			score += KingAlmostSemiOpenFile;
 		}
 		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-1]])) {
-			score += KingSemiOpenFile;
+			score += KingAlmostSemiOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
 			score += KingOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
-			score += KingOpenFile;
+			score += KingAlmostOpenFile;
 		}
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
-			score += KingOpenFile;
+			score += KingAlmostOpenFile;
+		}
+		if(!(pos->castlePerm & BQCA)) {
+			score += 15;
+		}
+		if(!(pos->castlePerm & BKCA)) {
+			score += 15;
 		}
 		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 8;
+			score -= 10;
 		}
 		if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
 			score -= 8;
@@ -797,8 +811,8 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP) { //safe castle
 			score -= 8;
 		}
-		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 8;
+		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
+			score -= 10;
 		}
 		if(pos->pieces[sq-20] == wP) { //fawn pawn
 			score += 10;
