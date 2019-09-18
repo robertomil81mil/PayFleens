@@ -749,6 +749,12 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
 			score += 10;
 		}
+		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+21] == wP) { //safe castle
+			score += 10;
+		}
+		if(pos->pieces[sq+19] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
+			score += 8;
+		}
 		if(pos->pieces[sq+20] == bP) { //fawn pawn
 			score -= 10;
 		}
@@ -819,6 +825,12 @@ int EvalPosition(const S_BOARD *pos) {
 		}
 		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
 			score -= 10;
+		}
+		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-21] == bP) { //safe castle
+			score -= 10;
+		}
+		if(pos->pieces[sq-19] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
+			score -= 8;
 		}
 		if(pos->pieces[sq-20] == wP) { //fawn pawn
 			score += 10;
