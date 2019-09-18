@@ -756,13 +756,13 @@ int EvalPosition(const S_BOARD *pos) {
 			score += 8;
 		}
 		if(pos->pieces[sq+20] == bP) { //fawn pawn
-			score -= 10;
+			score -= 15;
 		}
 		if(pos->pieces[sq+19] == bP || pos->pieces[sq+21] == bP) { //fawn pawn
-			score -= 10;
+			score -= 15;
 		}
 		if(pos->pieces[sq+18] == bP || pos->pieces[sq+22] == bP) { //fawn pawn
-			score -= 10;
+			score -= 15;
 		}
 
 
@@ -833,13 +833,13 @@ int EvalPosition(const S_BOARD *pos) {
 			score -= 8;
 		}
 		if(pos->pieces[sq-20] == wP) { //fawn pawn
-			score += 10;
+			score += 15;
 		}
 		if(pos->pieces[sq-19] == wP || pos->pieces[sq-21] == wP) { //fawn pawn
-			score += 10;
+			score += 15;
 		}
 		if(pos->pieces[sq-18] == wP || pos->pieces[sq-22] == wP) { //fawn pawn
-			score += 10;
+			score += 15;
 		}
 
 	} else {
