@@ -154,7 +154,7 @@ int MakeMove(S_BOARD *pos, int move) {
     ASSERT(SideValid(side));
     ASSERT(PieceValid(pos->pieces[from]));
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	ASSERT(pos->ply >= 0 && pos->ply < MAXDEPTH);
+	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 	
 	pos->history[pos->hisPly].posKey = pos->posKey;
 	
@@ -209,7 +209,7 @@ int MakeMove(S_BOARD *pos, int move) {
 	pos->ply++;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	ASSERT(pos->ply >= 0 && pos->ply < MAXDEPTH);
+	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 	
 	if(PiecePawn[pos->pieces[from]]) {
         pos->fiftyMove = 0;
@@ -261,7 +261,7 @@ void TakeMove(S_BOARD *pos) {
     pos->ply--;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	ASSERT(pos->ply >= 0 && pos->ply < MAXDEPTH);
+	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 	
     int move = pos->history[pos->hisPly].move;
     int from = FROMSQ(move);
@@ -344,7 +344,7 @@ void MakeNullMove(S_BOARD *pos) {
    
     ASSERT(CheckBoard(pos));
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	ASSERT(pos->ply >= 0 && pos->ply < MAXDEPTH);
+	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 
     return;
 } // MakeNullMove
@@ -367,5 +367,5 @@ void TakeNullMove(S_BOARD *pos) {
   
     ASSERT(CheckBoard(pos));
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	ASSERT(pos->ply >= 0 && pos->ply < MAXDEPTH);
+	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 }

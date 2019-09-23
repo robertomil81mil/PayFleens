@@ -23,7 +23,7 @@ exit(1);}
 
 typedef unsigned long long U64;
 
-#define NAME "PayFleens 1.8"
+#define NAME "PayFleens 2.0"
 #define BRD_SQ_NUM 120
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
@@ -31,8 +31,8 @@ typedef unsigned long long U64;
 
 #define MAXGAMEMOVES 2048
 #define MAXPOSITIONMOVES 256
-#define MAXPLY 128
-#define MAXDEPTH 64
+#define MAXPLY 256
+#define MAXDEPTH 128
 
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -45,6 +45,7 @@ typedef unsigned long long U64;
 
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
+enum { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NONE };
 enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NONE };
 
@@ -68,11 +69,13 @@ enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 typedef struct {
 	int move;
 	int score;
+	int mobility;
 } S_MOVE;
 
 typedef struct {
 	S_MOVE moves[MAXPOSITIONMOVES];
 	int count;
+	int quiets;
 } S_MOVELIST;
 
 enum {  HFNONE, HFALPHA, HFBETA, HFEXACT};
@@ -147,6 +150,8 @@ typedef struct {
 	int starttime;
 	int stoptime;
 	int depth;
+	int seldepth;
+	int Value[MAXDEPTH];
 	int timeset;
 	int movestogo;
 
@@ -274,6 +279,8 @@ extern U64 WhitePassedMask[64];
 extern U64 IsolatedMask[64];
 extern U64 SqBlocker[64];
 
+extern int LMRTable[64][64]; // Init LMR Table 
+
 /* FUNCTIONS */
 
 // init.c
@@ -350,6 +357,7 @@ extern void PerftTest(int depth, S_BOARD *pos);
 
 // search.c
 extern void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info);
+extern void initLMRTable();
 
 // misc.c
 extern int GetTimeMs();

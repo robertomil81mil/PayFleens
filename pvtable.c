@@ -71,11 +71,11 @@ int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int alpha, int beta, int
 	int index = pos->posKey % pos->HashTable->numEntries;
 	
 	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
-    ASSERT(depth>=1&&depth<MAXDEPTH);
+    ASSERT(depth>=1&&depth<=MAXDEPTH);
     ASSERT(alpha<beta);
     ASSERT(alpha>=-INFINITE&&alpha<=INFINITE);
-    ASSERT(beta>=-INFINITE&&beta<=INFINITE);
-    ASSERT(pos->ply>=0&&pos->ply<MAXDEPTH);
+   	ASSERT(beta>=-INFINITE&&beta<=INFINITE);
+    ASSERT(pos->ply>=0&&pos->ply<MAXPLY);
 	
 	if( pos->HashTable->pTable[index].posKey == pos->posKey ) {
 		*move = pos->HashTable->pTable[index].move;
@@ -122,7 +122,7 @@ void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, co
 	ASSERT(depth>=1&&depth<MAXDEPTH);
     ASSERT(flags>=HFALPHA&&flags<=HFEXACT);
     ASSERT(score>=-INFINITE&&score<=INFINITE);
-    ASSERT(pos->ply>=0&&pos->ply<MAXDEPTH);
+    ASSERT(pos->ply>=0&&pos->ply<MAXPLY);
 	
 	if( pos->HashTable->pTable[index].posKey == 0) {
 		pos->HashTable->newWrite++;

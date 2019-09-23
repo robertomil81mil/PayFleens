@@ -84,6 +84,7 @@ static void AddQuietMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
 	ASSERT(pos->ply >=0 && pos->ply < MAXDEPTH);
 
 	list->moves[list->count].move = move;
+	//list->moves[list->count].mobility = list->count;
 
 	if(pos->searchKillers[0][pos->ply] == move) {
 		list->moves[list->count].score = 900000;
@@ -93,6 +94,7 @@ static void AddQuietMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
 		list->moves[list->count].score = pos->searchHistory[pos->pieces[FROMSQ(move)]][TOSQ(move)];
 	}
 	list->count++;
+	list->quiets++;
 }
 
 static void AddCaptureMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
@@ -190,6 +192,7 @@ void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list) {
 	ASSERT(CheckBoard(pos));
 
 	list->count = 0;
+	list->quiets = 0;
 
 	int pce = EMPTY;
 	int side = pos->side;
@@ -484,6 +487,45 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
 		pce = LoopNonSlidePce[pceIndex++];
 	}
     ASSERT(MoveListOk(list,pos));
+}
+static const int SEEPruningDepth = 8;
+static const int SEEQuietMargin = -80;
+static const int SEENoisyMargin = -18;
+static const int SEEPieceValues[] = {
+    0, 100,  450,  450,  675,
+    1300, 10000, 100, 450, 450, 675, 1300, 10000
+};
+
+int moveBestCaseValue(const S_BOARD *pos) {
+
+    // Assume the opponent has at least a pawn
+    int value = SEEPieceValues[wP];
+    int sq;
+    int piece;
+
+    // Check for a higher value target
+    for (piece = bQ; piece > wP; piece--)
+    	for(int pceNum = 0; pceNum < pos->pceNum[piece]; ++pceNum) {
+			sq = pos->pList[piece][pceNum];
+		}
+        while (PieceCol[pos->pieces[piece]] == (pos->side ^ 1)) // pos->pieces[piece] && pos->side[!pos->turn] 
+          { value = SEEPieceValues[piece];
+           break; }
+
+    // Check for a potential pawn promotion
+    if (   pos->pieces[wP]
+        &&  PieceCol[pos->pieces[wP]] == (pos->side)
+        &&  pos->side == WHITE
+        &&  RanksBrd[sq] == RANK_7)
+        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
+
+    if (   pos->pieces[bP]
+        &&  PieceCol[pos->pieces[bP]] == (pos->side)
+        && pos->side == BLACK
+        && RanksBrd[sq] == RANK_2)
+        value += SEEPieceValues[bQ] - SEEPieceValues[bP];
+
+    return value;
 }
 
 int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {

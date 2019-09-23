@@ -192,4 +192,5 @@ void AllInit() {
 	InitFilesRanksBrd();
 	InitEvalMasks();
 	InitMvvLva();
+	initLMRTable();
 }

@@ -7,17 +7,19 @@
 
 const int PawnIsolated = -20;
 const int PawnPassed[8] = { 0, 10, 17, 15, 62, 168, 276, 0};
-const int PawnPassedNoProtected[8] = { 0, 0, 5, 5, 30, 80, 130, 0};
+const int PawnPassedNoProtected[8] = { 0, 0, 0, 0, 10, 50, 100, 0};
 const int RookOpenFile = 10;
 const int RookSemiOpenFile = 5;
 const int RookOnPawn = 10;
 const int QueenOpenFile = 5;
 const int QueenSemiOpenFile = 3;
 const int QueenNonOpenFile = 5;
-const int KingOpenFile = 30;
-const int KingAlmostOpenFile = 28;
-const int KingSemiOpenFile = 15;
-const int KingAlmostSemiOpenFile = 13;
+const int KingOpenFile = 20;
+const int KingAlmostOpenFile = 15;
+const int KingThirdOpenFile = 13;
+const int KingSemiOpenFile = 10;
+const int KingAlmostSemiOpenFile = 8;
+const int KingThirdSemiOpenFile = 6;
 const int BishopPair = 30;
 const int Mobility[16] = { -30, -20, -10, -4, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
 const int QueenCheck = 3;
@@ -25,11 +27,11 @@ const int RookCheck = 5;
 const int BishopCheck = 6;  //  Q     R     B   KN|     5     4    4    3
 const int KnightCheck = 7;  // 780  1080  635 790 rook 10, kn 7, q 7, b 6
 
-const int PawnTable[64] = {
+/*const int PawnTable[64] = {
 0	,	0	,	0	,	0	,	0	,	0	,	0	,	0	,
-10	,	10	,   -10	,	-10	,   -10	,   0	,	10	,	10	,
-5	,	0	,	0	,	0	,	0	,	0	,	0	,	5	,
-5	,	0	,	15	,	20	,	20	,	15	,	0	,	5	,
+10	,	10	,   -5	,	-10	,   -10	,   0	,	10	,	10	,
+5	,	0	,	10	,	0	,	0	,	0	,	0	,	5	,
+5	,	5	,	15	,	20	,	20	,	10	,	5	,	5	,
 10	,	5	,	15	,	25	,	25	,	15	,	5	,	10	,
 20	,	20	,	20	,	30	,	30	,	20	,	20	,	20	,
 30	,	30	,	30	,	35	,	35	,	30	,	30	,	30	,
@@ -39,7 +41,7 @@ const int PawnTable[64] = {
 const int KnightTable[64] = {
 -30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-10	,	-30	,
 -6	,	0	,	0	,	5	,	5	,	0	,	0	,	-6	,
--4	,	5	,	10	,	10	,	10	,	10	,	5	,	-4  ,
+-4	,	10	,	10	,	10	,	10	,	10	,	10	,	-4  ,
 0	,	5	,	10	,	20	,	20	,	10	,	5	,	0	,
 0	,	10	,	15	,	20	,	20	,	15	,	10	,	0	,
 -4	,	10	,	15	,	20	,	20	,	15	,	10	,	-4	,
@@ -51,12 +53,46 @@ const int BishopTable[64] = {
 -30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-10	,	-30	,
 -4	,	10	,	5	,	10	,	10	,	5	,	10	,	-4	,
 -4	,	5	,	10	,	15	,	15	,	10	,	5	,	-4	,
-0	,	10	,	15	,	20	,	20	,	15	,	10	,	0	,
-0	,	10	,	15	,	20	,	20	,	15	,	10	,	0	,
+5	,	10	,	15	,	20	,	20	,	15	,	10	,	5	,
+5	,	10	,	15	,	20	,	20	,	15	,	10	,	5	,
+-4	,	0	,	10	,	15	,	15	,	10	,	0	,	-4	,
+-4	,	10	,	5	,	10	,	10	,	5	,	10	,	-4	,
+-30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-10	,	-30	
+};*/
+
+const int PawnTable[64] = {
+0	,	0	,	0	,	0	,	0	,	0	,	0	,	0	,
+10	,	10	,   0	,	-12	,   -12	,   0	,	10	,	10	,
+5	,	0	,	10	,	0	,	0	,	0	,	0	,	5	,
+5	,	5	,	15	,	20	,	20	,	10	,	5	,	5	,
+10	,	5	,	15	,	25	,	25	,	15	,	5	,	10	,
+20	,	20	,	20	,	30	,	30	,	20	,	20	,	20	,
+30	,	30	,	30	,	35	,	35	,	30	,	30	,	30	,
+0	,	0	,	0	,	0	,	0	,	0	,	0	,	0	
+};
+
+const int KnightTable[64] = {
+-30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-11	,	-30	,
+-6	,	0	,	0	,	5	,	5	,	0	,	0	,	-6	,
+-4	,	10	,	10	,	10	,	10	,	12	,	10	,	-4  ,
+0	,	5	,	12	,	20	,	20	,	12	,	5	,	0	,
+0	,	12	,	15	,	20	,	20	,	15	,	12	,	0	,
+-4	,	12	,	15	,	20	,	20	,	15	,	12	,	-4	,
+-6	,	5	,	14	,	15	,	15	,	14	,	5	,	-6	,
+-30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-10	,	-30		
+};
+
+const int BishopTable[64] = {
+-30	,	-10	,	-11	,	-10	,	-10	,	-11	,	-10	,	-30	,
+-4	,	12	,	5	,	10	,	10	,	5	,	12	,	-4	,
+-4	,	5	,	10	,	15	,	15	,	10	,	5	,	-4	,
+5	,	10	,	15	,	20	,	20	,	15	,	10	,	5	,
+5	,	12	,	15	,	20	,	20	,	15	,	12	,	5	,
 -4	,	0	,	10	,	15	,	15	,	10	,	0	,	-4	,
 -4	,	10	,	5	,	10	,	10	,	5	,	10	,	-4	,
 -30	,	-10	,	-10	,	-10	,	-10	,	-10	,	-10	,	-30	
 };
+
 
 const int RookTable[64] = {
 0	,	0	,	5	,	10	,	10	,	5	,	0	,	0	,
@@ -65,35 +101,35 @@ const int RookTable[64] = {
 0	,	0	,	5	,	10	,	10	,	5	,	0	,	0	,
 0	,	0	,	5	,	10	,	10	,	5	,	0	,	0	,
 0	,	5	,	5	,	10	,	10	,	5	,	5	,	0	,
-25	,	35	,	35	,	25	,	35	,	35	,	35	,	25	,
+25	,	35	,	35	,	35	,	35	,	35	,	35	,	25	,
 0	,	0	,	5	,	10	,	10	,	5	,	0	,	0		
 };
 
 const int QueenTable[64] = {
--15	,	-5	,	-5	,	-5	,	0	,	-5	,	-5	,	-15	,
-0	,	0	,	0	,	3	,	3	,	0	,	0	,	0	,
-0	,	3	,	3	,	3	,	3	,	3	,	3	,	0	,
-0	,	3	,	5	,	5	,	5	,	5	,	3	,	0	,
-0	,	3	,	5	,	5	,	5	,	5	,	3	,	0	,
-0	,	5	,	5	,	5	,	5	,	5	,	5	,	0	,
-3	,	5	,	5	,	5	,	5	,	5	,	5	,	3	,
--10	,	0	,	0	,	0	,	0	,	0	,	0	,	-10		
+-30	,	-5	,	-5	,	0	,	0	,	-5	,	-5	,	-30	,
+-10	,	0	,	0	,	0	,	0	,	0	,	0	,	-10	,
+-5	,	0	,	0	,	0	,	0	,	0	,	0	,	-5	,
+0	,	0	,	0	,	0	,	0	,	0	,	0	,	0	,
+0	,	0	,	0	,	0	,	0	,	0	,	0	,	0	,
+-5	,	0	,	0	,	0	,	0	,	0	,	0	,	-5	,
+-10	,	0	,	0	,	0	,	0	,	0	,	0	,	-10	,
+-30	,	0	,	0	,	0	,	0	,	0	,	0	,	-30		
 };
 
 const int KingE[64] = {	
-	-50 ,	-10	,	-5	,	0	,	0	,	-5	,	-10	,	-50	,
-	-10 ,	0	,	10	,	10	,	10	,	10	,	0	,	-10	,
-	0	,	10	,	20	,	20	,	20	,	20	,	10	,	0	,
-	0	,	10	,	20	,	40	,	40	,	20	,	10	,	0	,
-	0	,	10	,	20	,	40	,	40	,	20	,	10	,	0	,
-	0	,	10	,	20	,	20	,	20	,	20	,	10	,	0	,
-	-10 ,	0	,	10	,	10	,	10	,	10	,	0	,	-10	,
-	-50	,	-10	,	0	,	0	,	0	,	0	,	-10	,	-50	
+	-50 ,	-20	,	-10	,	0	,	0	,	-10	,	-20	,	-50	,
+	-20 ,	0	,	20	,	20	,	20	,	20	,	0	,	-20	,
+	0	,	20	,	40	,	40	,	40	,	40	,	20	,	0	,
+	0	,	20	,	40	,	80	,	80	,	40	,	20	,	0	,
+	0	,	20	,	40	,	80	,	80	,	40	,	20	,	0	,
+	0	,	20	,	40	,	40	,	40	,	40	,	20	,	0	,
+	-20 ,	0	,	20	,	20	,	20	,	20	,	0	,	-20	,
+	-50	,	-20	,	0	,	0	,	0	,	0	,	-20	,	-50	
 };
 
 const int KingO[64] = {	
 	5	,	5	,	 0	,	-10	,	-10	,	-10	,	5	,	0	,
-	5	,	5	,	-30	,	-30	,	-30	,	-30	,	5	,	5	,
+	5	,	5	,	 0	,	-30	,	-30	,	-30	,	5	,	5	,
 	-50	,	-50	,	-50	,	-50	,	-50	,	-50	,	-50	,	-50	,
 	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,
 	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,	-70	,
@@ -162,10 +198,10 @@ int EvalPosition(const S_BOARD *pos) {
 			//printf("wP Passed:%s\n",PrSq(sq));
 			score += PawnPassed[RanksBrd[sq]];
 		}
-		if( (WhitePassedMask[SQ64(sq)] && pos->pieces[sq-11] != wP && pos->pieces[sq-9] != wP & pos->pawns[BLACK]) == 0) {
+		/*if( (pos->material[BLACK] <= ENDGAME_MAT && WhitePassedMask[SQ64(sq)] && pos->pieces[sq-11] != wP && pos->pieces[sq-9] != wP & pos->pawns[BLACK]) == 0) {
 			//printf("wP Passed:%s\n",PrSq(sq));
 			score -= PawnPassedNoProtected[RanksBrd[sq]];
-		}
+		}*/
 
 		if(pos->pieces[sq-10] == wP) {
 			score -= 10;
@@ -173,12 +209,46 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq-20] == wP) {
 			score -= 10;
 		}
-		if((RankBBMask[RanksBrd[sq]] == RANK_6)) {
-			score += 6;
-		}
-		if((RankBBMask[RanksBrd[sq]] == RANK_5)) {
+		if(pos->pieces[sq+10] == bP) {
 			score += 4;
 		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_6)) {
+			score += 10;
+		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_5)) {
+			score += 8;
+		}
+		/*if(SQ64(sq) == E4) {
+			score += 8;
+		}*/
+		/*if(SQ64(sq) == D4) {
+			score += 10;
+		}
+		if(SQ64(sq) == C4) {
+			score += 10;
+		}*/
+		if(SQ64(sq) == E5) {
+			score += 2;
+		}
+		if(SQ64(sq) == D5) {
+			score += 2;
+		}
+		if(SQ64(sq) == F6) {
+			score += 10;
+		}
+		if(SQ64(sq) == H6) {
+			score += 10;
+		}
+		/*
+		if((RankBBMask[RanksBrd[sq]] == RANK_4)) {
+			score += 6;
+		}
+		if((RankBBMask[RanksBrd[sq]] >= RANK_5) && (pos->pieces[sq-11] == wP || pos->pieces[sq-9] == wP)) {
+			score += 8;
+		}
+		if((RankBBMask[RanksBrd[sq]] >= RANK_6) && (pos->pieces[sq-11] == wP || pos->pieces[sq-9] == wP)) {
+			score += 10;
+		}*/
 		/*if(pos->pieces[sq+19] == bN && pos->pieces[sq+9] != bP && pos->pieces[sq+10] != bP || pos->pieces[sq+21] == bN && pos->pieces[sq+11] != bP && pos->pieces[sq+10] != bP) {
 			score += 6;
 		}
@@ -221,10 +291,10 @@ int EvalPosition(const S_BOARD *pos) {
 			//printf("bP Passed:%s\n",PrSq(sq));
 			score -= PawnPassed[7 - RanksBrd[sq]];
 		}
-		if( (BlackPassedMask[SQ64(sq)] && pos->pieces[sq+11] != bP && pos->pieces[sq+9] != bP & pos->pawns[WHITE]) == 0) {
+		/*if( ( pos->material[WHITE] <= ENDGAME_MAT && BlackPassedMask[SQ64(sq)] && pos->pieces[sq+11] != bP && pos->pieces[sq+9] != bP & pos->pawns[WHITE]) == 0) {
 			//printf("bP Passed:%s\n",PrSq(sq));
 			score += PawnPassedNoProtected[7 - RanksBrd[sq]];
-		}  
+		}*/ 
 
 		if(pos->pieces[sq+10] == bP) {
 			score += 10;
@@ -232,12 +302,48 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+20] == bP) {
 			score += 10;
 		}
-		if((RankBBMask[RanksBrd[sq]] == RANK_3)) {
-			score -= 6;
-		}
-		if((RankBBMask[RanksBrd[sq]] == RANK_4)) {
+		if(pos->pieces[sq-10] == bP) {
 			score -= 4;
 		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_3)) {
+			score -= 10;
+		}
+		if((RankBBMask[RanksBrd[sq]] == RANK_4)) {
+			score -= 8;
+		}
+		if(SQ64(sq) == E4) {
+			score -= 8;
+		}
+		if(SQ64(sq) == D4) {
+			score -= 8;
+		}
+		if(SQ64(sq) == H3) {
+			score -= 10;
+		}
+		if(SQ64(sq) == F3) {
+			score -= 10;
+		}
+		/*if((RankBBMask[RanksBrd[sq]] <= RANK_4) && (pos->pieces[sq+11] == bP || pos->pieces[sq+9] == bP)) {
+			score -= 10;
+		}
+		if((RankBBMask[RanksBrd[sq]] <= RANK_3) && (pos->pieces[sq+11] == bP || pos->pieces[sq+9] == bP)) {
+			score -= 15;
+		}*/
+		/*if(SQ64(sq) == E5) {
+			score -= 8;
+		}*/
+		/*if(SQ64(sq) == E6) {
+			score -= 8;
+		}
+		if(SQ64(sq) == C6) {
+			score -= 8;
+		}
+		if(SQ64(sq) == C5) {
+			score -= 8;
+		}
+		if(SQ64(sq) == D5) {
+			score -= 6;
+		}*/
 		/*if(pos->pieces[sq-19] == wN && pos->pieces[sq-9] != wP && pos->pieces[sq-10] != wP  || pos->pieces[sq-21] == wN && pos->pieces[sq-11] != wP && pos->pieces[sq-10] != wP) {
 			score -= 6;
 		}
@@ -283,13 +389,24 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+10] == wP && RankBBMask[RanksBrd[sq]] != RANK_2) {
 			score += 2;
 		}
+		if(pos->pieces[sq+30] == bP) {
+			score -= 8;
+		}
 		if(pos->pieces[sq+10] == bP && pos->pieces[sq+9] != bP && pos->pieces[sq+11] != bP) {
 			score += 8;
 		}
 		if(pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP && RankBBMask[RanksBrd[sq]] >= RANK_4) {
 			score += 4;
 		}
-		
+		if(pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP && RankBBMask[RanksBrd[sq]] >= RANK_6) {
+			score += 15;
+		}
+		/*if(SQ64(sq) == F3) {
+			score += 8;
+		}
+		if(SQ64(sq) == C3) {
+			score -= 4;
+		}*/
 		//int InCheck = SqAttacked(pos->KingSq[BLACK], WHITE, pos);
 		//int KingSqC = KingSqAttackedbyKnightW(pos);
 
@@ -326,6 +443,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if((RankBBMask[RanksBrd[sq]] == RANK_8)) {
 			score += 2;
 		}
+		if(pos->pieces[sq-30] == wP) {
+			score += 8;
+		}
 		if(pos->pieces[sq-10] == bP && RankBBMask[RanksBrd[sq]] != RANK_7) {
 			score -= 2;
 		}
@@ -335,7 +455,15 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+9] == bP || pos->pieces[sq+11] == bP && RankBBMask[RanksBrd[sq]] <= RANK_5) {
 			score -= 4;
 		}
-		
+		if(pos->pieces[sq+9] == bP || pos->pieces[sq+11] == bP && RankBBMask[RanksBrd[sq]] <= RANK_3) {
+			score -= 15;
+		}
+		/*if(SQ64(sq) == C6) {
+			score -= 3;
+		}*/
+		/*if(SQ64(sq) == F6) {
+			score -= 8;
+		}*/
 		//int InCheck = SqAttacked(pos->KingSq[WHITE], BLACK, pos);
 		//int KingSqC = KingSqAttackedbyKnightB(pos);
 		/*if(InCheck == TRUE) {
@@ -379,6 +507,36 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_4) {
 			score += 4;
 		}
+		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_6) {
+			score += 10;
+		}
+		/*if(SQ64(sq) == B5) {
+			score += 4;
+		}
+		if(SQ64(sq) == C4) {
+			score += 4;
+		}
+		/*if(SQ64(sq) == B3) {
+			score += 3;
+		}
+		if(SQ64(sq) == C2) {
+			score += 3;
+		}
+		if(SQ64(sq) == G2) {
+			score += 4;
+		}
+		if(SQ64(sq) == F4) {
+			score += 4;
+		}
+		/*if(SQ64(sq) == D3) {
+			score += 3;
+		}
+		if(SQ64(sq) == G5) {
+			score += 4;
+		}*/
+		/*if((pos->pieces[sq-2] == wR || pos->pieces[sq+2] == wR) && RankBBMask[RanksBrd[sq]] == RANK_1) { //safe castle
+			score += 25;
+		}*/
 		//int InCheck = SqAttacked(pos->KingSq[BLACK], WHITE, pos);
 		//int KingSqC = KingSqAttackedbyBishopQueenW(pos);
 		/*if(InCheck == TRUE) {
@@ -420,6 +578,36 @@ int EvalPosition(const S_BOARD *pos) {
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_5) {
 			score -= 4;
 		}
+		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_3) {
+			score -= 10;
+		}
+		/*if(SQ64(sq) == B6) {
+			score -= 3;
+		}*/
+		/*if(SQ64(sq) == C5) {
+			score -= 4;
+		}
+		if(SQ64(sq) == B4) {
+			score -= 4;
+		}
+		if(SQ64(sq) == G4) {
+			score -= 4;
+		}
+		if(SQ64(sq) == G7) {
+			score -= 4;
+		}
+		if(SQ64(sq) == B7) {
+			score -= 4;
+		}*/
+		/*if(SQ64(sq) == A6) {
+			score -= 4;
+		}*/
+		/*if(SQ64(sq) == D6) {
+			score -= 3;
+		}*/
+		/*if((pos->pieces[sq-2] == bR || pos->pieces[sq+2] == bR) && RankBBMask[RanksBrd[sq]] == RANK_8) { //safe castle
+			score += 25;
+		}*/
 		//int InCheck = SqAttacked(pos->KingSq[WHITE], BLACK, pos);
 		//int KingSqC = KingSqAttackedbyBishopQueenB(pos);
 		/*if(InCheck == TRUE) {
@@ -461,8 +649,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 3;
 		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 2;
+		}
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 3;
+		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 2;
 		}
 		if(!(pos->pawns[WHITE]) && (pos->pawns[BLACK]) & FileBBMask[FilesBrd[sq]]) {
 			score += 6;
@@ -473,8 +667,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 7;
 		}
+		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 6;
+		}
 		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 7;
+		}
+		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 6;
 		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq]])) {
 			score += 10;
@@ -482,8 +682,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 9;
 		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 8;
+		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 9;
+		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 8;
 		}
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 6;
@@ -491,9 +697,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+10] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && SQOFFBOARD(sq+1) || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && SQOFFBOARD(sq-1)) { //rook traped
 			score -= 25;
 		}
-		if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && SQOFFBOARD(sq+1) || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && SQOFFBOARD(sq-1)) { //rook traped
+		/*if(pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP && pos->pieces[sq-1] == wK && SQOFFBOARD(sq+1) || pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP && pos->pieces[sq+1] == wK && SQOFFBOARD(sq-1)) { //rook traped
 			score -= 20;
-		}
+		}*/
 		//else if(KingSqC == TRUE) {
 			//score += 5;
 		//} /*else if(InCheck == TRUE) {
@@ -527,8 +733,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 3;
 		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 2;
+		}
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 3;
+		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 2;
 		}
 		if(!(pos->pawns[BLACK]) && (pos->pawns[WHITE]) & FileBBMask[FilesBrd[sq]]) {
 			score -= 6;
@@ -539,8 +751,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 7;
 		}
+		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 6;
+		}
 		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 7;
+		}
+		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 6;
 		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq]])) {
 			score -= 10;
@@ -548,8 +766,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 9;
 		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 8;
+		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 9;
+		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 8;
 		}
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 6;
@@ -557,9 +781,9 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq-10] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && SQOFFBOARD(sq+1) || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && SQOFFBOARD(sq-1)) { //rook traped
 			score += 25;
 		}
-		if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && SQOFFBOARD(sq+1) || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && SQOFFBOARD(sq-1)) { //rook traped
+		/*if(pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP && pos->pieces[sq-1] == bK && SQOFFBOARD(sq+1) || pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP && pos->pieces[sq+1] == bK && SQOFFBOARD(sq-1)) { //rook traped
 			score += 20;
-		}//else if(KingSqC == TRUE) {
+		}*///else if(KingSqC == TRUE) {
 			//score -= 5;
 		//} /*else if(InCheck == TRUE) {
 			//score -= 5;
@@ -574,7 +798,7 @@ int EvalPosition(const S_BOARD *pos) {
 		ASSERT(SqOnBoard(sq));
 		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 		ASSERT(FileRankValid(FilesBrd[sq]));
-		//score += QueenTable[SQ64(sq)];
+		score += QueenTable[SQ64(sq)];
 		//int InCheck = SqAttacked(pos->KingSq[BLACK], WHITE, pos);
 		KingSq = pos->KingSq[BLACK];
 		
@@ -596,8 +820,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 3;
 		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 2;
+		}
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 3;
+		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 2;
 		}
 		if(!(pos->pawns[WHITE]) && (pos->pawns[BLACK]) & FileBBMask[FilesBrd[sq]]) {
 			score += 4;
@@ -608,8 +838,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 5;
 		}
+		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 4;
+		}
 		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 5;
+		}
+		if(!(pos->pawns[WHITE]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 4;
 		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq]])) {
 			score += 8;
@@ -617,8 +853,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score += 7;
 		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score += 6;
+		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score += 7;
+		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score += 6;
 		}
 		if((pos->pieces[sq-9] == wP) || (pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_5) {
 			score += 4;
@@ -645,7 +887,7 @@ int EvalPosition(const S_BOARD *pos) {
 		ASSERT(SqOnBoard(sq));
 		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 		ASSERT(FileRankValid(FilesBrd[sq]));
-		//score -= QueenTable[MIRROR64(SQ64(sq))];
+		score -= QueenTable[MIRROR64(SQ64(sq))];
 		KingSq = pos->KingSq[WHITE];
 
 		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
@@ -666,8 +908,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 3;
 		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 2;
+		}
 		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 3;
+		}
+		if((FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 2;
 		}
 		if(!(pos->pawns[BLACK]) && (pos->pawns[WHITE]) & FileBBMask[FilesBrd[sq]]) {
 			score -= 4;
@@ -678,8 +926,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 5;
 		}
+		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 4;
+		}
 		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 5;
+		}
+		if(!(pos->pawns[BLACK]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 4;
 		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq]])) {
 			score -= 8;
@@ -687,8 +941,14 @@ int EvalPosition(const S_BOARD *pos) {
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-1]])) {
 			score -= 7;
 		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq-2]])) {
+			score -= 6;
+		}
 		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+1]])) {
 			score -= 7;
+		}
+		if(!(pos->pawns[BOTH]) && (FileBBMask[FilesBrd[sq]] == FileBBMask[FilesBrd[KingSq+2]])) {
+			score -= 6;
 		}
 		if((pos->pieces[sq+9] == bP) || (pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_4) {
 			score -= 4;
@@ -712,49 +972,110 @@ int EvalPosition(const S_BOARD *pos) {
 	
 	if( (pos->material[BLACK] <= ENDGAME_MAT) ) {
 		score += KingE[SQ64(sq)];
+		if(pos->side == BLACK) {
+			if(pos->pieces[sq-20] == bK || pos->pieces[sq+20] == bK || pos->pieces[sq-2] == bK || pos->pieces[sq+2] == bK) { //safe castle
+				score += 100;
+			}
+			if(pos->pieces[sq-30] == bK || pos->pieces[sq+30] == bK || pos->pieces[sq-3] == bK || pos->pieces[sq+3] == bK) { //safe castle
+				score += 80;
+			}
+			if(pos->pieces[sq-40] == bK || pos->pieces[sq+40] == bK || pos->pieces[sq-4] == bK || pos->pieces[sq+4] == bK) { //safe castle
+				score += 60;
+			}
+			if(pos->pieces[sq-50] == bK || pos->pieces[sq+50] == bK || pos->pieces[sq-5] == bK || pos->pieces[sq+5] == bK) { //safe castle
+				score += 40;
+			}
+			if(pos->pieces[sq-60] == bK || pos->pieces[sq+60] == bK || pos->pieces[sq-6] == bK || pos->pieces[sq+6] == bK) { //safe castle
+				score += 20;
+			}
+			if(pos->pieces[sq-70] == bK || pos->pieces[sq+70] == bK || pos->pieces[sq-7] == bK || pos->pieces[sq+7] == bK) { //safe castle
+				score += 10;
+			}
+		}
 		
-		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
-			score -= KingSemiOpenFile;
+	} else {
+		score += KingO[SQ64(sq)];
+
+		if(pos->pceNum[bR] || pos->pceNum[bQ]) {
+			if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
+				score -= KingSemiOpenFile;
+			}
+			if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+1]])) {
+				score -= KingAlmostSemiOpenFile;
+			}
+			if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+2]])) {
+				score -= KingThirdSemiOpenFile;
+			}
+			if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-1]])) {
+				score -= KingAlmostSemiOpenFile;
+			}
+			if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-2]])) {
+				score -= KingThirdSemiOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+				score -= KingOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
+				score -= KingAlmostOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+2]])) {
+				score -= KingThirdOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
+				score -= KingAlmostOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-2]])) {
+				score -= KingThirdOpenFile;
+			}
+			if(!(pos->castlePerm & WQCA)) {
+				score -= 15;
+			}
+			if(!(pos->castlePerm & WKCA)) {
+				score -= 20;
+			}
+			if(pos->side == BLACK) {
+				if(pos->pieces[sq-20] == bK || pos->pieces[sq+20] == bK || pos->pieces[sq-2] == bK || pos->pieces[sq+2] == bK) { //safe castle
+					score += 100;
+				}
+				if(pos->pieces[sq-30] == bK || pos->pieces[sq+30] == bK || pos->pieces[sq-3] == bK || pos->pieces[sq+3] == bK) { //safe castle
+					score += 80;
+				}
+				if(pos->pieces[sq-40] == bK || pos->pieces[sq+40] == bK || pos->pieces[sq-4] == bK || pos->pieces[sq+4] == bK) { //safe castle
+					score += 60;
+				}
+				if(pos->pieces[sq-50] == bK || pos->pieces[sq+50] == bK || pos->pieces[sq-5] == bK || pos->pieces[sq+5] == bK) { //safe castle
+					score += 40;
+				}
+				if(pos->pieces[sq-60] == bK || pos->pieces[sq+60] == bK || pos->pieces[sq-6] == bK || pos->pieces[sq+6] == bK) { //safe castle
+					score += 20;
+				}
+				if(pos->pieces[sq-70] == bK || pos->pieces[sq+70] == bK || pos->pieces[sq-7] == bK || pos->pieces[sq+7] == bK) { //safe castle
+					score += 10;
+				}
+			}
+			if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
+				score += 10;
+			}
+			if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP || pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
+				score += 10;
+			}
+			if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
+				score += 8;
+			}
+			if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP) { //safe castle
+				score += 8;
+			}
+			if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
+				score += 10;
+			}
+			if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+21] == wP) { //safe castle
+				score += 10;
+			}
+			if(pos->pieces[sq+19] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
+				score += 8;
+			}
 		}
-		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+1]])) {
-			score -= KingAlmostSemiOpenFile;
-		}
-		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-1]])) {
-			score -= KingAlmostSemiOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score -= KingOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
-			score -= KingAlmostOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
-			score -= KingAlmostOpenFile;
-		}
-		if(!(pos->castlePerm & WQCA)) {
-			score -= 15;
-		}
-		if(!(pos->castlePerm & WKCA)) {
-			score -= 15;
-		}
-		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
-			score += 10;
-		}
-		if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
-			score += 8;
-		}
-		if(pos->pieces[sq+10] == wP && pos->pieces[sq+20] == wP && pos->pieces[sq+9] == wP) { //safe castle
-			score += 8;
-		}
-		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wB && pos->pieces[sq+20] == wP && pos->pieces[sq+11] == wP) { //safe castle
-			score += 10;
-		}
-		if(pos->pieces[sq+9] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+21] == wP) { //safe castle
-			score += 10;
-		}
-		if(pos->pieces[sq+19] == wP && pos->pieces[sq+10] == wP && pos->pieces[sq+11] == wP) { //safe castle
-			score += 8;
-		}
+		
 		if(pos->pieces[sq+20] == bP) { //fawn pawn
 			score -= 15;
 		}
@@ -764,21 +1085,35 @@ int EvalPosition(const S_BOARD *pos) {
 		if(pos->pieces[sq+18] == bP || pos->pieces[sq+22] == bP) { //fawn pawn
 			score -= 15;
 		}
-
-
-	} else {
-		score += KingO[SQ64(sq)];
 		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
 			score += KingOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
+			score += KingAlmostOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-2]])) {
+			score += KingThirdOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
+			score += KingAlmostOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+2]])) {
+			score += KingThirdOpenFile;
 		}
 		if((pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
 			score += KingSemiOpenFile;
 		}
 		if((pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-1]])) {
-			score += KingSemiOpenFile;
+			score += KingAlmostSemiOpenFile;
+		}
+		if((pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-2]])) {
+			score += KingThirdSemiOpenFile;
 		}
 		if((pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+1]])) {
-			score += KingSemiOpenFile;
+			score += KingAlmostSemiOpenFile;
+		}
+		if((pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+2]])) {
+			score += KingThirdSemiOpenFile;
 		}
 	}
 	
@@ -789,49 +1124,112 @@ int EvalPosition(const S_BOARD *pos) {
 	
 	if( (pos->material[WHITE] <= ENDGAME_MAT) ) {
 		score -= KingE[MIRROR64(SQ64(sq))];
+		if(pos->side == WHITE) {
+			if(pos->pieces[sq-20] == wK || pos->pieces[sq+20] == wK || pos->pieces[sq-2] == wK || pos->pieces[sq+2] == wK) { //safe castle
+				score -= 100;
+			}
+			if(pos->pieces[sq-30] == wK || pos->pieces[sq+30] == wK || pos->pieces[sq-3] == wK || pos->pieces[sq+3] == wK) { //safe castle
+				score -= 80;
+			}
+			if(pos->pieces[sq-40] == wK || pos->pieces[sq+40] == wK || pos->pieces[sq-4] == wK || pos->pieces[sq+4] == wK) { //safe castle
+				score -= 60;
+			}
+			if(pos->pieces[sq-50] == wK || pos->pieces[sq+50] == wK || pos->pieces[sq-5] == wK || pos->pieces[sq+5] == wK) { //safe castle
+				score -= 40;
+			}
+			if(pos->pieces[sq-60] == wK || pos->pieces[sq+60] == wK || pos->pieces[sq-6] == wK || pos->pieces[sq+6] == wK) { //safe castle
+				score -= 20;
+			}
+			if(pos->pieces[sq-70] == wK || pos->pieces[sq+70] == wK || pos->pieces[sq-7] == wK || pos->pieces[sq+7] == wK) { //safe castle
+				score -= 10;
+			}
+		}
 		
-		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
-			score += KingSemiOpenFile;
+
+	} else {
+		score -= KingO[MIRROR64(SQ64(sq))];
+
+		if(pos->pceNum[wR] || pos->pceNum[wQ]) {
+			if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
+				score += KingSemiOpenFile;
+			}
+			if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+1]])) {
+				score += KingAlmostSemiOpenFile;
+			}
+			if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+2]])) {
+				score += KingThirdSemiOpenFile;
+			}
+			if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-1]])) {
+				score += KingAlmostSemiOpenFile;
+			}
+			if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-2]])) {
+				score += KingThirdSemiOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+				score += KingOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
+				score += KingAlmostOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+2]])) {
+				score += KingThirdOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
+				score += KingAlmostOpenFile;
+			}
+			if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-2]])) {
+				score += KingThirdOpenFile;
+			}
+			if(!(pos->castlePerm & BQCA)) {
+				score += 15;
+			}
+			if(!(pos->castlePerm & BKCA)) {
+				score += 20;
+			}
+			if(pos->side == WHITE) {
+				if(pos->pieces[sq-20] == wK || pos->pieces[sq+20] == wK || pos->pieces[sq-2] == wK || pos->pieces[sq+2] == wK) { //safe castle
+					score -= 100;
+				}
+				if(pos->pieces[sq-30] == wK || pos->pieces[sq+30] == wK || pos->pieces[sq-3] == wK || pos->pieces[sq+3] == wK) { //safe castle
+					score -= 80;
+				}
+				if(pos->pieces[sq-40] == wK || pos->pieces[sq+40] == wK || pos->pieces[sq-4] == wK || pos->pieces[sq+4] == wK) { //safe castle
+					score -= 60;
+				}
+				if(pos->pieces[sq-50] == wK || pos->pieces[sq+50] == wK || pos->pieces[sq-5] == wK || pos->pieces[sq+5] == wK) { //safe castle
+					score -= 40;
+				}
+				if(pos->pieces[sq-60] == wK || pos->pieces[sq+60] == wK || pos->pieces[sq-6] == wK || pos->pieces[sq+6] == wK) { //safe castle
+					score -= 20;
+				}
+				if(pos->pieces[sq-70] == wK || pos->pieces[sq+70] == wK || pos->pieces[sq-7] == wK || pos->pieces[sq+7] == wK) { //safe castle
+					score -= 10;
+				}
+			}
+			
+			if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
+				score -= 10;
+			}
+			if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP || pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
+				score -= 10;
+			}
+			if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
+				score -= 8;
+			}
+			if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP) { //safe castle
+				score -= 8;
+			}
+			if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
+				score -= 10;
+			}
+			if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-21] == bP) { //safe castle
+				score -= 10;
+			}
+			if(pos->pieces[sq-19] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
+				score -= 8;
+			}
 		}
-		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq+1]])) {
-			score += KingAlmostSemiOpenFile;
-		}
-		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq-1]])) {
-			score += KingAlmostSemiOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			score += KingOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
-			score += KingAlmostOpenFile;
-		}
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
-			score += KingAlmostOpenFile;
-		}
-		if(!(pos->castlePerm & BQCA)) {
-			score += 15;
-		}
-		if(!(pos->castlePerm & BKCA)) {
-			score += 15;
-		}
-		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 10;
-		}
-		if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 8;
-		}
-		if(pos->pieces[sq-10] == bP && pos->pieces[sq-20] == bP && pos->pieces[sq-9] == bP) { //safe castle
-			score -= 8;
-		}
-		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bB && pos->pieces[sq-20] == bP && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 10;
-		}
-		if(pos->pieces[sq-9] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-21] == bP) { //safe castle
-			score -= 10;
-		}
-		if(pos->pieces[sq-19] == bP && pos->pieces[sq-10] == bP && pos->pieces[sq-11] == bP) { //safe castle
-			score -= 8;
-		}
+		
 		if(pos->pieces[sq-20] == wP) { //fawn pawn
 			score += 15;
 		}
@@ -842,20 +1240,35 @@ int EvalPosition(const S_BOARD *pos) {
 			score += 15;
 		}
 
-	} else {
-		score -= KingO[MIRROR64(SQ64(sq))];
-
 		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
 			score -= KingOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-1]])) {
+			score -= KingAlmostOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq-2]])) {
+			score -= KingThirdOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+1]])) {
+			score -= KingAlmostOpenFile;
+		}
+		if((pos->pawns[BOTH] & FileBBMask[FilesBrd[sq+2]])) {
+			score -= KingThirdOpenFile;
 		}
 		if((pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
 			score -= KingSemiOpenFile;
 		}
 		if((pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-1]])) {
-			score -= KingSemiOpenFile;
+			score -= KingAlmostSemiOpenFile;
+		}
+		if((pos->pawns[BLACK] & FileBBMask[FilesBrd[sq-2]])) {
+			score -= KingThirdSemiOpenFile;
 		}
 		if((pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+1]])) {
-			score -= KingSemiOpenFile;
+			score -= KingAlmostSemiOpenFile;
+		}
+		if((pos->pawns[BLACK] & FileBBMask[FilesBrd[sq+2]])) {
+			score -= KingThirdSemiOpenFile;
 		}
 	}
 	
