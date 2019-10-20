@@ -68,7 +68,7 @@ int checkresult(S_BOARD *pos) {
 	    if(pos->side == WHITE) {
 	      printf("0-1 {black mates (claimed by Vice)}\n");return TRUE;
         } else {
-	      printf("0-1 {white mates (claimed by Vice)}\n");return TRUE;
+	      printf("1-0 {white mates (claimed by Vice)}\n");return TRUE;
         }
     } else {
       printf("\n1/2-1/2 {stalemate (claimed by Vice)}\n");return TRUE;
@@ -95,6 +95,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 	int timeLeft;
 	int sec;
 	int mps;
+	int idealUsage, MoveOverhead = 200;
 	int move = NOMOVE;
 	char inBuf[80], command[80];
 	int MB;
@@ -114,9 +115,17 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 			if(time != -1) {
 				info->timeset = TRUE;
-				time /= movestogo[pos->side];
-				time -= 50;
-				info->stoptime = info->starttime + time + inc;
+				
+				if(inc != 0) {
+					idealUsage = time / movestogo[pos->side] + inc;
+				} else {
+					idealUsage = (time + 1000 ) / 40;
+				}
+
+				idealUsage = MIN(idealUsage, time - MoveOverhead);
+				//time /= movestogo[pos->side];
+				//time -= 50;
+				info->stoptime = info->starttime + idealUsage;
 			}
 
 			if(depth == -1 || depth > MAXDEPTH) {
@@ -230,6 +239,11 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			continue;
 		}
 
+		/*if (!strcmp(command, "Book")) {
+			
+			EngineOptions->UseBook = TRUE;
+		}*/
+
 		if(!strcmp(command, "go")) {
 			engineSide = pos->side;
 			continue;
@@ -317,10 +331,16 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 		if(!strcmp(command, "eval")) {
 			PrintBoard(pos);
-			printf("Eval:%d",EvalPosition(pos));
+			//printf("Eval:%d",EvalPosition(pos));
+			printEval(pos);
+			//EvaluateKnights(pos);
+			//EvaluateBishops(pos);
+			//EvaluateRooks(pos);
+			//EvaluateQueens(pos);
+			//EvalPosition(pos);
 			//BishopMobilityCount(pos);
-			MobilityCountWhiteKn(pos,wN);
-			MobilityCountWhiteBi(pos,wB);
+			//MobilityCountWhiteKn(pos,wN);
+			//MobilityCountWhiteBi(pos,wB);
 			//MirrorBoard(pos);
 			//PrintBoard(pos);
 			//printf("Eval:%d",EvalPosition(pos));
@@ -330,6 +350,18 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(!strcmp(command, "setboard")){
 			engineSide = BOTH;
 			ParseFen(inBuf+9, pos);
+			continue;
+		}
+
+		if(!strcmp(command, "fen3")){
+			engineSide = BOTH;
+			ParseFen(FEN3, pos);
+			continue;
+		}
+
+		if(!strcmp(command, "fen4")){
+			engineSide = BOTH;
+			ParseFen(FEN4, pos);
 			continue;
 		}
 

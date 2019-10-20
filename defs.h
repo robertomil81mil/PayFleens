@@ -23,7 +23,7 @@ exit(1);}
 
 typedef unsigned long long U64;
 
-#define NAME "PayFleens 2.0"
+#define NAME "PayFleens 1.0.1"
 #define BRD_SQ_NUM 120
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
@@ -31,16 +31,15 @@ typedef unsigned long long U64;
 
 #define MAXGAMEMOVES 2048
 #define MAXPOSITIONMOVES 256
-#define MAXPLY 256
-#define MAXDEPTH 128
+#define MAXPLY 128
+#define MAXDEPTH 64
 
 #define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-#define INFINITE 32001
+#define INFINITE 32000
 #define ISMATE (INFINITE - 2 * MAXPLY)
-#define MATE 32000
-#define MATE_IN_MAX (MATE - MAXPLY)
-#define MATED_IN_MAX (MAXPLY - MATE)
+#define MATE_IN_MAX (INFINITE - MAXPLY)
+#define MATED_IN_MAX (-INFINITE + MAXPLY)
 #define SUREWIN 10000
 
 
@@ -111,6 +110,9 @@ typedef struct {
 
 	int pieces[BRD_SQ_NUM];
 	U64 pawns[3];
+	int pawn_ctrl[2][120];
+	int pawns_on_file[2][8];
+	int pawns_on_rank[2][8];
 
 	int KingSq[2];
 
@@ -131,11 +133,15 @@ typedef struct {
 	int majPce[2];
 	int minPce[2];
 	int material[2];
+	int materialeg[2];
 
 	S_UNDO history[MAXGAMEMOVES];
 
 	// piece list
 	int pList[13][10];
+
+	int pcsq_mg[2];
+	int pcsq_eg[2];
 
 	S_HASHTABLE HashTable[1];
 	int PvArray[MAXDEPTH];
@@ -151,7 +157,11 @@ typedef struct {
 	int stoptime;
 	int depth;
 	int seldepth;
+
 	int Value[MAXDEPTH];
+	int currentMove[MAXDEPTH];
+	int staticEval[MAXDEPTH];
+
 	int timeset;
 	int movestogo;
 
@@ -169,6 +179,36 @@ typedef struct {
 
 } S_SEARCHINFO;
 
+typedef struct {
+	int UseBook;
+} S_OPTIONS;
+
+typedef struct {
+	int gamePhase;
+	int mgMob[2];
+	int egMob[2];
+	int mob[2];
+	int attCnt[2];
+	int attWeight[2];
+	int mgTropism[2];
+	int egTropism[2];
+	int kingShield[2];
+	int adjustMaterial[2];
+	int blockages[2];
+	int positionalThemes[2];
+	int pkeval[2];
+	int pawnsMG[2];
+	int pawnsEG[2];
+	int PSQTMG[2];
+	int PSQTEG[2];
+
+} eval_info;
+
+typedef struct {
+	int sqNearK [2][120][120];
+	int mgPst[13][64];
+	int egPst[13][64];
+} EVAL_DATA;
 /* GAME MOVE */
 
 /*
@@ -239,6 +279,15 @@ typedef struct {
 
 #define MIRROR64(sq) (Mirror64[(sq)])
 
+#define NORTH 10
+#define SOUTH -10
+#define EAST  1
+#define WEST  -1
+#define NE    11
+#define SW    -11
+#define NW    9
+#define SE    -9
+
 /* GLOBALS */
 
 extern int Sq120ToSq64[BRD_SQ_NUM];
@@ -257,19 +306,27 @@ extern int PieceBig[13];
 extern int PieceMaj[13];
 extern int PieceMin[13];
 extern int PieceVal[13];
+extern int PieceValEG[13];
 extern int PieceCol[13];
 extern int PiecePawn[13];
+extern int PiecePawnW[13];
+extern int PiecePawnB[13];
 
 extern int FilesBrd[BRD_SQ_NUM];
 extern int RanksBrd[BRD_SQ_NUM];
 
+extern int SquareDistance[120][120];
+
 extern int PieceKnight[13];
+extern int PieceBishop[13];
+extern int PieceRook[13];
 extern int PieceKing[13];
 extern int PieceRookQueen[13];
 extern int PieceBishopQueen[13];
 extern int PieceSlides[13];
 
 extern int Mirror64[64];
+extern int Mirror120[64];
 
 extern U64 FileBBMask[8];
 extern U64 RankBBMask[8];
@@ -280,6 +337,13 @@ extern U64 IsolatedMask[64];
 extern U64 SqBlocker[64];
 
 extern int LMRTable[64][64]; // Init LMR Table 
+
+extern S_OPTIONS EngineOptions[1];
+extern EVAL_DATA e[1];
+extern eval_info ei[1];
+
+#define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
+#define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
 /* FUNCTIONS */
 
@@ -337,6 +401,7 @@ extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
 extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
 extern int MoveExists(S_BOARD *pos, const int move);
 extern void InitMvvLva();
+extern void setSquaresNearKing();
 extern int KingSqAttackedbyPawnB(const S_BOARD *pos);
 extern int KingSqAttackedbyPawnW(const S_BOARD *pos);
 extern int KingSqAttackedbyKnightB(const S_BOARD *pos);
@@ -345,6 +410,8 @@ extern int KingSqAttackedbyRookQueenB(const S_BOARD *pos);
 extern int KingSqAttackedbyRookQueenW(const S_BOARD *pos);
 extern int KingSqAttackedbyBishopQueenB(const S_BOARD *pos);
 extern int KingSqAttackedbyBishopQueenW(const S_BOARD *pos);
+extern void fillSq(const int sq, S_BOARD *pos);
+extern void clearSq(const int sq, S_BOARD *pos);
 
 // makemove.c
 extern int MakeMove(S_BOARD *pos, int move);
@@ -358,6 +425,7 @@ extern void PerftTest(int depth, S_BOARD *pos);
 // search.c
 extern void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info);
 extern void initLMRTable();
+extern void printLMR();
 
 // misc.c
 extern int GetTimeMs();
@@ -372,8 +440,15 @@ extern int GetPvLine(const int depth, S_BOARD *pos);
 extern void ClearHashTable(S_HASHTABLE *table);
 
 // evaluate.c
-extern int EvalPosition(const S_BOARD *pos);
-extern void MirrorEvalTest(S_BOARD *pos) ;
+extern int EvalPosition(S_BOARD *pos);
+extern void printEval(S_BOARD *pos);
+extern void EvaluateKnights(const S_BOARD *pos);
+extern void EvaluateBishops(const S_BOARD *pos);
+extern void EvaluateRooks(const S_BOARD *pos);
+extern void EvaluateQueens(const S_BOARD *pos);
+extern void EvaluateKings(const S_BOARD *pos);
+extern void MirrorEvalTest(S_BOARD *pos);
+extern int REL_SQ(int sq120, int side);
 
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
@@ -383,5 +458,11 @@ extern void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern int ThreeFoldRep(const S_BOARD *pos);
 extern int DrawMaterial(const S_BOARD *pos);
+const int Tempo = 0;
+
+// polybook.c
+extern int GetBookMove(S_BOARD *board);
+extern void CleanPolyBook();
+extern void InitPolyBook();
 
 #endif

@@ -125,6 +125,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 		    if( PieceMaj[piece] == TRUE) pos->majPce[colour]++;
 
 			pos->material[colour] += PieceVal[piece];
+			pos->materialeg[colour] += PieceValEG[piece];
 
 			ASSERT(pos->pceNum[piece] < 10 && pos->pceNum[piece] >= 0);
 

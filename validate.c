@@ -87,7 +87,7 @@ void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info) {
 
 void MirrorEvalTest(S_BOARD *pos) {
     FILE *file;
-    file = fopen("mirror.epd","r");
+    file = fopen("perftsuite.epd","r");
     char lineIn [1024];
     int ev1 = 0; int ev2 = 0;
     int positions = 0;

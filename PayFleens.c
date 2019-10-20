@@ -43,7 +43,16 @@ int main() {
     InitHashTable(pos->HashTable, 64);
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);
-	
+
+	/*int ArgNum = 0;
+    
+    for(ArgNum = 0; ArgNum < argc; ++ArgNum) {
+    	if(strncmp(argv[ArgNum], "Book", 4) == 0) {
+    		EngineOptions->UseBook = TRUE;
+    		printf("Book On\n");
+    	}
+    }*/
+
 	printf("Welcome to PayFleens! Type 'pay' for console mode...\n");
 
 	char line[256];
@@ -73,6 +82,7 @@ int main() {
 	}
 
 	free(pos->HashTable->pTable);
+	//CleanPolyBook();
 	
 	return 0;
 }

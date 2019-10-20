@@ -10,7 +10,7 @@
 void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 	int depth = -1, movestogo = 30,movetime = -1;
-	int time = -1, inc = 0, myTime = 0;
+	int time = -1, inc = 0, myTime = 0, idealUsage = 0, MoveOverhead = 200;
     char *ptr = NULL;
 	info->timeset = FALSE;
 
@@ -55,11 +55,29 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 	info->depth = depth;
 
 	if(time != -1) {
+
+		/*
+		// Playing using X / Y + Z time control
+        if (limits->mtg >= 0) {
+            info->idealUsage =  1.00 * (limits->time + 25 * limits->inc) / 50;
+            info->maxAlloc   =  5.00 * (limits->time + 25 * limits->inc) / 50;
+            info->maxUsage   = 10.00 * (limits->time + 25 * limits->inc) / 50;
+        }
+        */
 		
 		info->timeset = TRUE;
-		time /= movestogo;
-		time -= 500;
-		myTime = info->starttime + time + inc;
+		
+		if(inc != 0) {
+			idealUsage =  time / movestogo + inc;
+		} else {
+			idealUsage = (time + 100 ) / 40;
+		}
+
+		idealUsage = MIN(idealUsage, time - MoveOverhead);
+		
+		//time /= movestogo;
+		//time -= 500;
+		myTime = info->starttime + idealUsage;
 		info->stoptime = MAX(myTime, inc - 100);
 	} 
 
@@ -112,6 +130,7 @@ void ParsePosition(char* lineIn, S_BOARD *pos) {
 void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 	info->GAME_MODE = UCIMODE;
+	//S_OPTIONS EngineOptions[1];
 
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -120,6 +139,7 @@ void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
     printf("id name %s\n",NAME);
     printf("id author Roberto M\n");
 	printf("option name Hash type spin default 64 min 4 max %d\n",MAX_HASH);
+	printf("option name Book type check default false\n");
     printf("uciok\n");
 	
 	int MB = 64;
@@ -159,7 +179,18 @@ void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			if(MB > MAX_HASH) MB = MAX_HASH;
 			printf("Set Hash to %d MB\n",MB);
 			InitHashTable(pos->HashTable, MB);
+		} else if (!strncmp(line, "setoption name Book value ", 26)) {
+			char *ptrTrue = NULL;
+			ptrTrue = strstr(line, "true");
+			if(ptrTrue != NULL) {
+				// book on
+				EngineOptions->UseBook = TRUE;
+			} else {
+				// book off
+				EngineOptions->UseBook = FALSE;
+			}
 		}
+
 		if(info->quit) break;
     }
 }

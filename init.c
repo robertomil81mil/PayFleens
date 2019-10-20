@@ -3,12 +3,35 @@
 #include "defs.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "evaluate.h"
 
 #define RAND_64 	((U64)rand() | \
 					(U64)rand() << 15 | \
 					(U64)rand() << 30 | \
 					(U64)rand() << 45 | \
 					((U64)rand() & 0xf) << 60 )
+
+int index_black[64] = {
+    A8, B8, C8, D8, E8, F8, G8, H8,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A1, B1, C1, D1, E1, F1, G1, H1
+};
+
+int index_white[64] = {
+    A1, B1, C1, D1, E1, F1, G1, H1,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A8, B8, C8, D8, E8, F8, G8, H8
+};
 
 int Sq120ToSq64[BRD_SQ_NUM];
 int Sq64ToSq120[64];
@@ -30,6 +53,10 @@ U64 BlackPassedMask[64];
 U64 WhitePassedMask[64];
 U64 IsolatedMask[64];
 U64 SqBlocker[64];
+
+int SquareDistance[120][120];
+S_OPTIONS EngineOptions[1];
+//EVAL_DATA e[1];
 
 void InitEvalMasks() {
 
@@ -114,6 +141,7 @@ void InitFilesRanksBrd() {
 	int file = FILE_A;
 	int rank = RANK_1;
 	int sq = A1;
+	int s1,s2;
 
 	for(index = 0; index < BRD_SQ_NUM; ++index) {
 		FilesBrd[index] = OFFBOARD;
@@ -126,6 +154,12 @@ void InitFilesRanksBrd() {
 			FilesBrd[sq] = file;
 			RanksBrd[sq] = rank;
 		}
+	}
+
+	for (s1 = 0; s1 < 120; ++s1) {
+      	for (s2 = 0; s2 < 120; ++s2) { 
+            SquareDistance[s1][s2] = MAX(abs(FilesBrd[s1] - FilesBrd[s2]), abs(RanksBrd[s1] - RanksBrd[s2]));
+      	}
 	}
 }
 
@@ -185,6 +219,43 @@ void InitSq120To64() {
 	}
 }
 
+void setPcsq() {
+
+    for (int i = 0; i < 120; ++i) {
+
+    	if(!SQOFFBOARD(i)) {
+	    	/* set the piece/square tables for each piece type */
+
+	        e->mgPst[wP][i] = PawnTableMG[SQ64(i)];
+	        e->mgPst[bP][i] = PawnTableMG[MIRROR64(SQ64(i))];
+	        e->mgPst[wN][i] = KnightTableMG[SQ64(i)];
+	        e->mgPst[bN][i] = KnightTableMG[MIRROR64(SQ64(i))];
+	        e->mgPst[wB][i] = BishopTableMG[SQ64(i)];
+	        e->mgPst[bB][i] = BishopTableMG[MIRROR64(SQ64(i))];
+	        e->mgPst[wR][i] = RookTableMG[SQ64(i)];
+	        e->mgPst[bR][i] = RookTableMG[MIRROR64(SQ64(i))];
+	        e->mgPst[wQ][i] = QueenTableMG[SQ64(i)];
+	        e->mgPst[bQ][i] = QueenTableMG[MIRROR64(SQ64(i))];
+	        e->mgPst[wK][i] = KingMG[SQ64(i)];
+	        e->mgPst[bK][i] = KingMG[MIRROR64(SQ64(i))];
+
+	        e->egPst[wP][i] = PawnTableEG[SQ64(i)];
+	        e->egPst[bP][i] = PawnTableEG[MIRROR64(SQ64(i))];
+	        e->egPst[wN][i] = KnightTableEG[SQ64(i)];
+	        e->egPst[bN][i] = KnightTableEG[MIRROR64(SQ64(i))];
+	        e->egPst[wB][i] = BishopTableEG[SQ64(i)];
+	        e->egPst[bB][i] = BishopTableEG[MIRROR64(SQ64(i))];
+	        e->egPst[wR][i] = RookTableEG[SQ64(i)];
+	        e->egPst[bR][i] = RookTableEG[MIRROR64(SQ64(i))];
+	        e->egPst[wQ][i] = QueenTableEG[SQ64(i)];
+	        e->egPst[bQ][i] = QueenTableEG[MIRROR64(SQ64(i))];
+	        e->egPst[wK][i] = KingEG[SQ64(i)];
+	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];
+    	}
+        
+    }
+}
+
 void AllInit() {
 	InitSq120To64();
 	InitBitMasks();
@@ -193,4 +264,7 @@ void AllInit() {
 	InitEvalMasks();
 	InitMvvLva();
 	initLMRTable();
+	//InitPolyBook();
+	setSquaresNearKing();
+	setPcsq();
 }

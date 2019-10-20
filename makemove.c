@@ -7,6 +7,7 @@
 #define HASH_CA (pos->posKey ^= (CastleKeys[(pos->castlePerm)]))
 #define HASH_SIDE (pos->posKey ^= (SideKey))
 #define HASH_EP (pos->posKey ^= (PieceKeys[EMPTY][(pos->enPas)]))
+#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
 
 const int CastlePerm[120] = {
     15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
@@ -54,6 +55,23 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 		CLRBIT(pos->pawns[col],SQ64(sq));
 		CLRBIT(pos->pawns[BOTH],SQ64(sq));
 	}
+
+	/*if ( PiecePawn[pce] ) {
+		// update squares controlled by pawns
+		if (col == WHITE) {
+			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]--;
+			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]--;
+		} else {
+			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]--;
+			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]--;
+		}
+
+		--pos->pawns_on_file[col][FilesBrd[sq]];
+		--pos->pawns_on_rank[col][RanksBrd[sq]];
+    }
+
+    pos->pcsq_mg[col] -= e->mgPst[pce][sq];
+    pos->pcsq_eg[col] -= e->egPst[pce][sq];*/
 	
 	for(index = 0; index < pos->pceNum[pce]; ++index) {
 		if(pos->pList[pce][index] == sq) {
@@ -95,6 +113,26 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 		SETBIT(pos->pawns[col],SQ64(sq));
 		SETBIT(pos->pawns[BOTH],SQ64(sq));
 	}
+
+	/*if ( PiecePawn[pce] ) {
+      
+		// update counter of pawns on a given rank and file
+		++pos->pawns_on_file[col][FilesBrd[sq]];
+		++pos->pawns_on_rank[col][RanksBrd[sq]];
+
+		// update squares controlled by pawns
+		if (col == WHITE) {
+			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]++;
+			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]++;
+		} else {
+			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]++;
+			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]++;
+		}
+    }
+
+    // update piece-square value
+    pos->pcsq_mg[col] += e->mgPst[pce][sq];
+    pos->pcsq_eg[col] += e->egPst[pce][sq];*/
 	
 	pos->material[col] += PieceVal[pce];
 	pos->pList[pce][pos->pceNum[pce]++] = sq;
@@ -118,9 +156,56 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 
 	HASH_PCE(pce,from);
 	pos->pieces[from] = EMPTY;
-	
+	//clearSq(from, pos);
+	/*int piece, color;
+
+    piece = pos->pieces[from];
+    color = PieceCol[piece];
+
+    if ( PiecePawn[piece] ) {
+		// update squares controlled by pawns
+		if (color == WHITE) {
+			if (!SQOFFBOARD(from + NE)) pos->pawn_ctrl[WHITE][from + NE]--;
+			if (!SQOFFBOARD(from + NW)) pos->pawn_ctrl[WHITE][from + NW]--;
+		} else {
+			if (!SQOFFBOARD(from + SE)) pos->pawn_ctrl[BLACK][from + SE]--;
+			if (!SQOFFBOARD(from + SW)) pos->pawn_ctrl[BLACK][from + SW]--;
+		}
+
+		--pos->pawns_on_file[color][FilesBrd[from]];
+		--pos->pawns_on_rank[color][RanksBrd[from]];
+    }
+
+    pos->pcsq_mg[color] -= e->mgPst[piece][from];
+    pos->pcsq_eg[color] -= e->egPst[piece][from];*/
+
 	HASH_PCE(pce,to);
 	pos->pieces[to] = pce;
+	//fillSq(to, pos);
+
+	// place a piece on the board
+    /*piece = pos->pieces[from];
+    color = PieceCol[piece];
+
+    if ( PiecePawn[piece] ) {
+      
+		// update counter of pawns on a given rank and file
+		++pos->pawns_on_file[color][FilesBrd[to]];
+		++pos->pawns_on_rank[color][RanksBrd[to]];
+
+		// update squares controlled by pawns
+		if (color == WHITE) {
+			if (!SQOFFBOARD(to + NE)) pos->pawn_ctrl[WHITE][to + NE]++;
+			if (!SQOFFBOARD(to + NW)) pos->pawn_ctrl[WHITE][to + NW]++;
+		} else {
+			if (!SQOFFBOARD(to + SE)) pos->pawn_ctrl[BLACK][to + SE]++;
+			if (!SQOFFBOARD(to + SW)) pos->pawn_ctrl[BLACK][to + SW]++;
+		}
+    }
+
+    // update piece-square value
+    pos->pcsq_mg[color] += e->mgPst[piece][to];
+    pos->pcsq_eg[color] += e->egPst[piece][to];*/
 	
 	if(!PieceBig[pce]) {
 		CLRBIT(pos->pawns[col],SQ64(from));
@@ -161,22 +246,32 @@ int MakeMove(S_BOARD *pos, int move) {
 	if(move & MFLAGEP) {
         if(side == WHITE) {
             ClearPiece(to-10,pos);
+            //clearSq(to - 10, pos);
         } else {
             ClearPiece(to+10,pos);
+            //clearSq(to + 10, pos);
         }
     } else if (move & MFLAGCA) {
         switch(to) {
             case C1:
                 MovePiece(A1, D1, pos);
+                //clearSq(A1, pos);
+            	//fillSq(D1, pos);
 			break;
             case C8:
                 MovePiece(A8, D8, pos);
+                //clearSq(A8, pos);
+            	//fillSq(D8, pos);
 			break;
             case G1:
                 MovePiece(H1, F1, pos);
+                //clearSq(H1, pos);
+            	//fillSq(F1, pos);
 			break;
             case G8:
                 MovePiece(H8, F8, pos);
+                //clearSq(H8, pos);
+            	//fillSq(F8, pos);
 			break;
             default: ASSERT(FALSE); break;
         }
@@ -202,9 +297,10 @@ int MakeMove(S_BOARD *pos, int move) {
 	if(captured != EMPTY) {
         ASSERT(PieceValid(captured));
         ClearPiece(to, pos);
+        //clearSq(to, pos);
         pos->fiftyMove = 0;
     }
-	
+
 	pos->hisPly++;
 	pos->ply++;
 	
@@ -231,7 +327,9 @@ int MakeMove(S_BOARD *pos, int move) {
     if(prPce != EMPTY)   {
         ASSERT(PieceValid(prPce) && !PiecePawn[prPce]);
         ClearPiece(to, pos);
+        //clearSq(to, pos);
         AddPiece(to, pos, prPce);
+        //fillSq(to, pos);
     }
 	
 	if(PieceKing[pos->pieces[to]]) {
@@ -242,7 +340,12 @@ int MakeMove(S_BOARD *pos, int move) {
     HASH_SIDE;
 
     ASSERT(CheckBoard(pos));
-	
+
+	/* a piece vacates its initial square */
+	//clearSq(from, pos);
+
+	/* a piece arrives to its destination square */
+    //fillSq(to, pos);
 		
 	if(SqAttacked(pos->KingSq[side],pos->side,pos))  {
         TakeMove(pos);
@@ -286,15 +389,29 @@ void TakeMove(S_BOARD *pos) {
 	if(MFLAGEP & move) {
         if(pos->side == WHITE) {
             AddPiece(to-10, pos, bP);
+            //fillSq(to - 10, pos);
         } else {
             AddPiece(to+10, pos, wP);
+            //fillSq(to + 10, pos);
         }
     } else if(MFLAGCA & move) {
         switch(to) {
-            case C1: MovePiece(D1, A1, pos); break;
-            case C8: MovePiece(D8, A8, pos); break;
-            case G1: MovePiece(F1, H1, pos); break;
-            case G8: MovePiece(F8, H8, pos); break;
+            case C1: 
+            	MovePiece(D1, A1, pos); 
+            	//fillSq(A1, pos);
+            break;
+            case C8:
+            	MovePiece(D8, A8, pos); 
+            	//fillSq(A8, pos);
+            break;
+            case G1:
+            	MovePiece(F1, H1, pos); 
+            	//fillSq(H1, pos);
+            break;
+            case G8: 
+            	MovePiece(F8, H8, pos); 
+            	//fillSq(H8, pos);
+            	break;
             default: ASSERT(FALSE); break;
         }
     }
@@ -309,16 +426,22 @@ void TakeMove(S_BOARD *pos) {
     if(captured != EMPTY) {
         ASSERT(PieceValid(captured));
         AddPiece(to, pos, captured);
+        //fillSq(to, pos);
     }
 	
 	if(PROMOTED(move) != EMPTY)   {
         ASSERT(PieceValid(PROMOTED(move)) && !PiecePawn[PROMOTED(move)]);
         ClearPiece(from, pos);
+        //clearSq(from, pos);
         AddPiece(from, pos, (PieceCol[PROMOTED(move)] == WHITE ? wP : bP));
+        //fillSq(from, pos);
     }
+
+    /* Move the piece back */
+	//clearSq(to, pos);
+    //fillSq(from, pos);
 	
     ASSERT(CheckBoard(pos));
-
 }
 
 

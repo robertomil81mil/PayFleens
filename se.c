@@ -75,27 +75,6 @@ static int IsRepetition(const S_BOARD *pos) {
 	return FALSE;
 }
 
-int boardDrawnByRepetition(S_BOARD *board, int height) {
-
-    int reps = 0;
-
-    // Look through hash histories for our moves
-    for (int i = board->hisPly - 2; i >= 0; i -= 2) {
-
-        // No draw can occur before a zeroing move
-        if (i < board->hisPly - board->fiftyMove)
-            break;
-
-        // Check for matching hash with a two fold after the root,
-        // or a three fold which occurs in part before the root move
-        if ( board->posKey == board->history[i].posKey
-            && (i > board->hisPly - height || ++reps == 2))
-            return 1;
-    }
-
-    return 0;
-}
-
 static void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
 	int index = 0;
@@ -373,7 +352,9 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 			info->nullCut++;
 			return beta;
 		}
-	}	
+	}
+
+	
 
 	if( !PvNode && !InCheck && depth <= RazorDepth && eval + RazorDepth < alpha) {
 		return Quiescence(alpha, beta, pos, info, height);
@@ -710,7 +691,7 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 		printf("move %s\n",PrMove(bestMove));
 		MakeMove(pos, bestMove);
 	} else {
-		printf("\n\n***!! PayFleens makes move %s !!***\n\n",PrMove(bestMove));
+		printf("\n\n***!! Vice makes move %s !!***\n\n",PrMove(bestMove));
 		printEval(pos);
 		MakeMove(pos, bestMove);
 		PrintBoard(pos);

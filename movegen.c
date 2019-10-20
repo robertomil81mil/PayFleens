@@ -6,6 +6,8 @@
 #define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
 #define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
 
+EVAL_DATA e[1];
+
 const int LoopSlidePce[8] = {
  wB, wR, wQ, 0, bB, bR, bQ, 0
 };
@@ -488,12 +490,79 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
 	}
     ASSERT(MoveListOk(list,pos));
 }
+
+void fillSq(const int sq, S_BOARD *pos) {
+
+	int piece, color;
+
+    // place a piece on the board
+    piece = pos->pieces[sq];
+    color = PieceCol[piece];
+
+    ASSERT(color>=WHITE&&color<=BOTH);
+
+    if ( PiecePawn[piece] ) {
+      
+		// update counter of pawns on a given rank and file
+		++pos->pawns_on_file[color][FilesBrd[sq]];
+		++pos->pawns_on_rank[color][RanksBrd[sq]];
+
+		// update squares controlled by pawns
+		if (color == WHITE) {
+			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]++;
+			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]++;
+		} else {
+			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]++;
+			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]++;
+		}
+    }
+
+    if(piece != EMPTY) {
+    	// update piece-square value
+	    pos->pcsq_mg[color] += e->mgPst[piece][sq];
+	    pos->pcsq_eg[color] += e->egPst[piece][sq];
+    }
+}
+
+void clearSq(const int sq, S_BOARD *pos) {
+
+    // set intermediate variables, then do the same
+    // as in fillSq(), only backwards
+
+	int piece, color;
+
+    piece = pos->pieces[sq];
+    color = PieceCol[piece];
+    //ASSERT(PieceValid(piece));
+    ASSERT(color>=WHITE&&color<=BOTH);
+
+    if ( PiecePawn[piece] ) {
+		// update squares controlled by pawns
+		if (color == WHITE) {
+			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]--;
+			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]--;
+		} else {
+			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]--;
+			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]--;
+		}
+
+		--pos->pawns_on_file[color][FilesBrd[sq]];
+		--pos->pawns_on_rank[color][RanksBrd[sq]];
+    }
+
+    if(piece != EMPTY) {
+    	pos->pcsq_mg[color] -= e->mgPst[piece][sq];
+    	pos->pcsq_eg[color] -= e->egPst[piece][sq];
+    }
+    
+}
+
 static const int SEEPruningDepth = 8;
 static const int SEEQuietMargin = -80;
 static const int SEENoisyMargin = -18;
 static const int SEEPieceValues[] = {
     0, 100,  450,  450,  675,
-    1300, 10000, 100, 450, 450, 675, 1300, 10000
+    1300, 0, 100, 450, 450, 675, 1300, 0
 };
 
 int moveBestCaseValue(const S_BOARD *pos) {
@@ -504,28 +573,66 @@ int moveBestCaseValue(const S_BOARD *pos) {
     int piece;
 
     // Check for a higher value target
-    for (piece = bQ; piece > wP; piece--)
+    for (piece = bQ; piece >= wP; piece--) { 
     	for(int pceNum = 0; pceNum < pos->pceNum[piece]; ++pceNum) {
 			sq = pos->pList[piece][pceNum];
-		}
-        while (PieceCol[pos->pieces[piece]] == (pos->side ^ 1)) // pos->pieces[piece] && pos->side[!pos->turn] 
-          { value = SEEPieceValues[piece];
-           break; }
+			ASSERT(SqOnBoard(sq))
+			// Check for a potential pawn promotion
+			if (   pos->pieces[piece] == wP
+		        &&  PieceCol[piece] == (pos->side)
+		        &&  pos->side == WHITE
+		        &&  RanksBrd[sq] == RANK_7)
+		        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
 
-    // Check for a potential pawn promotion
-    if (   pos->pieces[wP]
-        &&  PieceCol[pos->pieces[wP]] == (pos->side)
-        &&  pos->side == WHITE
-        &&  RanksBrd[sq] == RANK_7)
-        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
+		    if (   pos->pieces[piece] == bP
+		        &&  PieceCol[piece] == (pos->side)
+		        && pos->side == BLACK
+		        && RanksBrd[sq] == RANK_2)
+		        value += SEEPieceValues[bQ] - SEEPieceValues[bP];
 
-    if (   pos->pieces[bP]
-        &&  PieceCol[pos->pieces[bP]] == (pos->side)
-        && pos->side == BLACK
-        && RanksBrd[sq] == RANK_2)
-        value += SEEPieceValues[bQ] - SEEPieceValues[bP];
-
+			while (PieceCol[piece] == (pos->side ^ 1)) {// pos->pieces[piece] && pos->side[!pos->turn] 
+            	value = SEEPieceValues[piece];
+            	break;
+           	}	
+		}    
+    }
     return value;
+}
+
+void setSquaresNearKing() {
+    for (int i = 0; i < 120; ++i)
+        for (int j = 0; j < 120; ++j)
+        {
+
+            e->sqNearK[WHITE][i][j] = 0;
+            e->sqNearK[BLACK][i][j] = 0;
+            // e->sqNearK[side^1] [ KingSq[side^1] ] [t_sq] 
+
+            if ( !SQOFFBOARD(i) && !SQOFFBOARD(j) ) {
+
+                /* squares constituting the ring around both kings */
+                if (j == i + NORTH || j == i + SOUTH 
+				||  j == i + EAST  || j == i + WEST 
+				||  j == i + NW    || j == i + NE 
+				||  j == i + SW    || j == i + SE) {
+
+                    e->sqNearK[WHITE][i][j] = 1;
+                    e->sqNearK[BLACK][i][j] = 1;
+                }
+
+                /* squares in front of the white king ring */
+                if (j == i + NORTH + NORTH 
+				||  j == i + NORTH + NE 
+				||  j == i + NORTH + NW)
+                    e->sqNearK[WHITE][i][j] = 1;
+
+                /* squares in front of the black king ring */
+                if (j == i + SOUTH + SOUTH 
+				||  j == i + SOUTH + SE 
+				||  j == i + SOUTH + SW)
+                    e->sqNearK[BLACK][i][j] = 1;
+            }
+        }
 }
 
 int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {
