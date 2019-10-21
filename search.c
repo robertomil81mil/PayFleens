@@ -32,7 +32,7 @@ static int MATED_IN(int ply) {
 
 static void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
-	if(info->timeset == TRUE && GetTimeMs() > info->stoptime) {
+	if(info->timeset == TRUE && GetTimeMs() - info->startTime; > info->stoptime) {
 		info->stopped = TRUE;
 	}
 
