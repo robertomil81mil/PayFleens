@@ -58,12 +58,12 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		info->timeset = TRUE;
 				
 		if(inc != 0) {
-			idealUsage = time / movestogo + inc;
+			idealUsage = time / movestogo + inc - 25;
 		} else {
-			idealUsage = (time + 1000 ) / 40;
+			idealUsage = (time + 100 ) / 40;
 		}
 
-		idealUsage = MIN(idealUsage, time - MoveOverhead);
+		idealUsage = MIN(idealUsage, inc - 250);
 		//time /= movestogo[pos->side];
 		//time -= 50;
 		info->stoptime = info->starttime + idealUsage;
