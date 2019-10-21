@@ -23,11 +23,11 @@ const int WindowSize    = 14;
 const int WindowTimerMS = 2500;
 
 static int MATE_IN(int ply) {
-  return MATE - ply;
+  return INFINITE - ply;
 }
                
 static int MATED_IN(int ply) {
-  return -MATE + ply;
+  return -INFINITE + ply;
 }
 
 static void CheckUp(S_SEARCHINFO *info) {
