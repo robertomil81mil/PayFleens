@@ -22,6 +22,14 @@ const int WindowDepth   = 5;
 const int WindowSize    = 14;
 const int WindowTimerMS = 2500;
 
+static int MATE_IN(int ply) {
+  return INFINITE - ply;
+}
+               
+static int MATED_IN(int ply) {
+  return -INFINITE + ply;
+}
+
 static void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
 	if(info->timeset == TRUE && GetTimeMs() > info->stoptime) {
@@ -330,8 +338,8 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		if(pos->ply > MAXDEPTH - 1) {
 			return eval;
 		}
-		rAlpha = alpha > -INFINITE + height     ? alpha : -INFINITE + height;
-        rBeta  =  beta <  INFINITE - height - 1 ?  beta :  INFINITE - height - 1;
+		rAlpha = alpha > -MATE + height     ? alpha : -MATE + height;
+        rBeta  =  beta <  MATE - height - 1 ?  beta :  MATE - height - 1;
         if (rAlpha >= rBeta) return rAlpha;
 	}
 
