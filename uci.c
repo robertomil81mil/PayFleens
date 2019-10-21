@@ -9,8 +9,6 @@
 // go depth 6 wtime 180000 btime 100000 binc 1000 winc 1000 movetime 1000 movestogo 40
 void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
-	info->starttime = GetTimeMs();
-
 	int depth = -1, movestogo = 30,movetime = -1;
 	int time = -1, inc = 0, myTime = 0, idealUsage = 0, MoveOverhead = 200;
     char *ptr = NULL;
@@ -53,24 +51,22 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		movestogo = 1;
 	}
 
+	info->starttime = GetTimeMs();
 	info->depth = depth;
 
 	if(time != -1) {
-		
 		info->timeset = TRUE;
-		
+				
 		if(inc != 0) {
-			idealUsage =  time / movestogo + inc;
+			idealUsage = time / movestogo[pos->side] + inc;
 		} else {
-			idealUsage = (time + 100 ) / 40;
+			idealUsage = (time + 1000 ) / 40;
 		}
 
 		idealUsage = MIN(idealUsage, time - MoveOverhead);
-		
-		//time /= movestogo;
-		//time -= 500;
-		//myTime = info->starttime + idealUsage;
-		info->stoptime = MAX(idealUsage, inc - 100);
+		//time /= movestogo[pos->side];
+		//time -= 50;
+		info->stoptime = info->starttime + idealUsage;
 	} 
 
 	if(depth == -1) {
