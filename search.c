@@ -331,7 +331,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 			return eval;
 		}
 		rAlpha = alpha > -MATE + height     ? alpha : -MATE + height;
-        rBeta  =  beta <  MATE - height - 1 ?  beta :  MATE - height - 1;
+        rBeta  =  beta <  INFINITE - height - 1 ?  beta :  INFINITE - height - 1;
         if (rAlpha >= rBeta) return rAlpha;
 	}
 
