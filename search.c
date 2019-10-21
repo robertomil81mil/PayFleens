@@ -338,8 +338,8 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		if(pos->ply > MAXDEPTH - 1) {
 			return eval;
 		}
-		rAlpha = alpha > -MATE + height     ? alpha : -MATE + height;
-        rBeta  =  beta <  MATE - height - 1 ?  beta :  MATE - height - 1;
+		rAlpha = alpha > -INFINITE + height     ? alpha : -INFINITE + height;
+        rBeta  =  beta <  INFINITE - height - 1 ?  beta :  INFINITE - height - 1;
         if (rAlpha >= rBeta) return rAlpha;
 	}
 
@@ -568,8 +568,8 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	//int rAlpha;
 	//int rBeta;
 
- 	//rAlpha = alpha > -MATE + pos->ply     ? alpha : -MATE + pos->ply;
-	//rBeta  = beta  <  MATE - pos->ply - 1 ?  beta :  MATE - pos->ply - 1;
+ 	//rAlpha = alpha > -INFINITE+ pos->ply     ? alpha : -INFINITE+ pos->ply;
+	//rBeta  = beta  <  INFINITE- pos->ply - 1 ?  beta :  INFINITE- pos->ply - 1;
 	//if (rAlpha >= rBeta) return rAlpha;
 
 	ASSERT(alpha>=OldAlpha);
@@ -653,7 +653,7 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 			bestScore = info->Value[currentDepth];
 			int thisValue = info->Value[currentDepth];
 	    	int stopValue = info->Value[currentDepth-4];
-	    	int stopSearchingMate = info->Value[currentDepth-2];
+	    	int stopSearchingINFINITE= info->Value[currentDepth-2];
 
 	    	/*if(currentDepth >= 24) {
 	    		if(stopValue == thisValue) {
@@ -661,7 +661,7 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 	    		}
 	    	}*/
 	    	if(currentDepth >= 12 && bestScore >= 31900 || bestScore <= -31900) {
-	    		if(stopSearchingMate == thisValue) {
+	    		if(stopSearchingINFINITE== thisValue) {
 	    			info->stopped = TRUE;
 	    		}	
 	    	}

@@ -9,6 +9,8 @@
 // go depth 6 wtime 180000 btime 100000 binc 1000 winc 1000 movetime 1000 movestogo 40
 void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
+	info->starttime = GetTimeMs();
+
 	int depth = -1, movestogo = 30,movetime = -1;
 	int time = -1, inc = 0, myTime = 0, idealUsage = 0, MoveOverhead = 200;
     char *ptr = NULL;
@@ -51,19 +53,9 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		movestogo = 1;
 	}
 
-	info->starttime = GetTimeMs();
 	info->depth = depth;
 
 	if(time != -1) {
-
-		/*
-		// Playing using X / Y + Z time control
-        if (limits->mtg >= 0) {
-            info->idealUsage =  1.00 * (limits->time + 25 * limits->inc) / 50;
-            info->maxAlloc   =  5.00 * (limits->time + 25 * limits->inc) / 50;
-            info->maxUsage   = 10.00 * (limits->time + 25 * limits->inc) / 50;
-        }
-        */
 		
 		info->timeset = TRUE;
 		
@@ -78,7 +70,7 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		//time /= movestogo;
 		//time -= 500;
 		myTime = info->starttime + idealUsage;
-		info->stoptime = MAX(myTime, inc - 100);
+		//info->stoptime = MAX(myTime, inc - 100);
 	} 
 
 	if(depth == -1) {
