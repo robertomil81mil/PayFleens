@@ -1,3 +1,4 @@
+#include "defs.h"
 #ifndef POLYKEYS_H
 #define POLYKEYS_H
 
