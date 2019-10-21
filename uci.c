@@ -69,8 +69,8 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		
 		//time /= movestogo;
 		//time -= 500;
-		myTime = info->starttime + idealUsage;
-		//info->stoptime = MAX(myTime, inc - 100);
+		//myTime = info->starttime + idealUsage;
+		info->stoptime = MAX(idealUsage, inc - 100);
 	} 
 
 	if(depth == -1) {
