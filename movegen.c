@@ -624,16 +624,16 @@ void setSquaresNearKing() {
                 }
 
                 /* squares in front of the white king ring */
-                /*if (j == i + NORTH + NORTH 
+                if (j == i + NORTH + NORTH 
 				||  j == i + NORTH + NE 
 				||  j == i + NORTH + NW)
                     e->sqNearK[WHITE][i][j] = 1;
 
-                /* squares in front of the black king ring 
+                /* squares in front of the black king ring */
                 if (j == i + SOUTH + SOUTH 
 				||  j == i + SOUTH + SE 
 				||  j == i + SOUTH + SW)
-                    e->sqNearK[BLACK][i][j] = 1;*/
+                    e->sqNearK[BLACK][i][j] = 1;
             }
         }
 }
