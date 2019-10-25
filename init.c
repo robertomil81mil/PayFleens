@@ -219,6 +219,12 @@ void InitSq120To64() {
 	}
 }
 
+U64 kingAreaMasks(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < OFFBOARD);
+    return KingAreaMasks[colour][sq];
+}
+
 void setPcsq() {
 
     for (int i = 0; i < 120; ++i) {
@@ -266,5 +272,6 @@ void AllInit() {
 	initLMRTable();
 	//InitPolyBook();
 	setSquaresNearKing();
+	KingAreaMask();
 	setPcsq();
 }

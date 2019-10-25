@@ -269,6 +269,7 @@ void ResetBoard(S_BOARD *pos) {
 		pos->majPce[index] = 0;
 		pos->minPce[index] = 0;
 		pos->material[index] = 0;
+		pos->materialeg[index] = 0;
 	}
 
 	for(index = 0; index < 3; ++index) {

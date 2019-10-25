@@ -117,7 +117,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 				info->timeset = TRUE;
 				
 				if(inc != 0) {
-					idealUsage = time / movestogo[pos->side] + inc;
+					idealUsage = time / movestogo[pos->side] + inc - 1;
 				} else {
 					idealUsage = (time + 1000 ) / 40;
 				}

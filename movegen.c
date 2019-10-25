@@ -574,23 +574,26 @@ int moveBestCaseValue(const S_BOARD *pos) {
 
     // Check for a higher value target
     for (piece = bQ; piece >= wP; piece--) { 
+    	if(piece == bK || piece == wK) {
+    		continue;
+    	}
     	for(int pceNum = 0; pceNum < pos->pceNum[piece]; ++pceNum) {
 			sq = pos->pList[piece][pceNum];
 			ASSERT(SqOnBoard(sq))
 			// Check for a potential pawn promotion
-			if (   pos->pieces[piece] == wP
-		        &&  PieceCol[piece] == (pos->side)
+			if (   pos->pieces[sq] == wP
+		        &&  PieceCol[pos->pieces[sq]] == (pos->side)
 		        &&  pos->side == WHITE
 		        &&  RanksBrd[sq] == RANK_7)
 		        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
 
-		    if (   pos->pieces[piece] == bP
-		        &&  PieceCol[piece] == (pos->side)
+		    if (   pos->pieces[sq] == bP
+		        &&  PieceCol[pos->pieces[sq]] == (pos->side)
 		        && pos->side == BLACK
 		        && RanksBrd[sq] == RANK_2)
 		        value += SEEPieceValues[bQ] - SEEPieceValues[bP];
 
-			while (PieceCol[piece] == (pos->side ^ 1)) {// pos->pieces[piece] && pos->side[!pos->turn] 
+			while (PieceCol[pos->pieces[sq]] == (pos->side ^ 1)) {// pos->pieces[piece] && pos->side[!pos->turn] 
             	value = SEEPieceValues[piece];
             	break;
            	}	
@@ -621,18 +624,48 @@ void setSquaresNearKing() {
                 }
 
                 /* squares in front of the white king ring */
-                if (j == i + NORTH + NORTH 
+                /*if (j == i + NORTH + NORTH 
 				||  j == i + NORTH + NE 
 				||  j == i + NORTH + NW)
                     e->sqNearK[WHITE][i][j] = 1;
 
-                /* squares in front of the black king ring */
+                /* squares in front of the black king ring 
                 if (j == i + SOUTH + SOUTH 
 				||  j == i + SOUTH + SE 
 				||  j == i + SOUTH + SW)
-                    e->sqNearK[BLACK][i][j] = 1;
+                    e->sqNearK[BLACK][i][j] = 1;*/
             }
         }
+}
+
+U64 KingAreaMasks[BOTH][64];
+
+void KingAreaMask() {
+	int sq;
+	int index;
+	int MobilityCount = 0;
+	int t_sq;
+	int SqAttackedbyThem;
+	int dir;
+	int pce;
+
+	for(sq = 0; sq < 64; ++sq) {
+		KingAreaMasks[WHITE][sq] = 0ULL;
+		KingAreaMasks[BLACK][sq] = 0ULL;
+	}
+	pce = wK;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				dir = PceDir[pce][index];
+				t_sq = sq + dir;
+				if(!SQOFFBOARD(t_sq)) {
+					KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+					KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+			}
+		}	
+	}
 }
 
 int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {

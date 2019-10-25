@@ -8,6 +8,8 @@
 int rootDepth;
 int LMRTable[64][64]; // Init LMR Table 
 
+const int TEMPO = 10;
+
 const int RazorDepth = 1;
 const int RazorMargin = 325;
 
@@ -86,7 +88,7 @@ int boardDrawnByRepetition(S_BOARD *board, int height) {
         if (i < board->hisPly - board->fiftyMove)
             break;
 
-        // Check for matching hash with a two fold after the root,
+        // Check for matching hash with a fold after the root,
         // or a three fold which occurs in part before the root move
         if ( board->posKey == board->history[i].posKey
             && (i > board->hisPly - height || ++reps == 2))
@@ -180,16 +182,16 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 	}
 
 	info->nodes++;
-	info->seldepth = MAX(info->seldepth, height);
+	info->seldepth = MAX(info->seldepth, pos->ply);
 
 	//printf("pos-ply in QS %d\n",pos->ply );
-	int eval = EvalPosition(pos); // Score
+	int eval; // Score
 
-	/*if (info->currentMove[pos->ply-1] != NOMOVE) {
-        info->staticEval[pos->ply] = eval = EvalPosition(pos);
+	if (info->currentMove[height-1] != NOMOVE) {
+        info->staticEval[height] = eval = EvalPosition(pos);
     } else {
-    	info->staticEval[pos->ply] = eval = info->staticEval[pos->ply-1] + 2 * Tempo;
-    }*/
+    	info->staticEval[height] = eval = -info->staticEval[height-1] + 2 * TEMPO;
+    }
 
 	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
@@ -235,7 +237,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
         }
 
 		Legal++;
-		info->currentMove[pos->ply] = list->moves[MoveNum].move;
+		info->currentMove[height] = list->moves[MoveNum].move;
 
 		value = -Quiescence( -beta, -alpha, pos, info, height+1);
         TakeMove(pos);
@@ -307,13 +309,13 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	int RootNode = (pos->ply == 0);
 	//int starttime = GetTimeMs();
 	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
-	int eval = EvalPosition(pos);
+	int eval;
 
-	/*if (info->currentMove[pos->ply-1] != NOMOVE) {
-        info->staticEval[pos->ply] = eval = EvalPosition(pos);
+	if (info->currentMove[height-1] != NOMOVE) {
+        info->staticEval[height] = eval = EvalPosition(pos);
     } else {
-    	info->staticEval[pos->ply] = eval = info->staticEval[pos->ply-1] + 2 * Tempo;
-    }*/
+    	info->staticEval[height] = eval = -info->staticEval[height-1] + 2 * TEMPO;
+    }
 
 	//printf("pos-ply %d\n",pos->ply );
 
@@ -327,7 +329,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	}
 
 	info->nodes++;
-	info->seldepth = RootNode ? 0 : MAX(info->seldepth, height);
+	info->seldepth = RootNode ? 0 : MAX(info->seldepth, pos->ply);
 
 	MAX(0, depth);
 
@@ -355,13 +357,13 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 		return Score;
 	}
 
-	improving = height >= 2 && eval > info->Value[height-2];
+	improving = height >= 2 && eval > info->staticEval[height-2];
 
 	if( DoNull && !InCheck && pos->ply && (pos->bigPce[pos->side] > 0) && depth >= 4) {
 		//int R = 4 + depth / 6 + MIN(3, (eval - beta) / 200);
 		MakeNullMove(pos);
 
-		info->currentMove[pos->ply] = NOMOVE;
+		info->currentMove[height] = NOMOVE;
 
 		Score = -AlphaBeta( -beta, -beta + 1, depth-4, pos, info, FALSE, height+1);
 		TakeNullMove(pos);
@@ -420,9 +422,9 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 		Legal++;
 		played += 1;
-		info->currentMove[pos->ply] = list->moves[MoveNum].move;
+		info->currentMove[height] = list->moves[MoveNum].move;
 
-		elapsed = GetTimeMs()-info->starttime;
+		//elapsed = GetTimeMs()-info->starttime;
 
 		/*if(RootNode && elapsed >= 2500) {
 			printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(list->moves[MoveNum].move), MoveNum);
@@ -466,12 +468,12 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 
         //printf(" extension %d\n",extension );
-        newDepth = depth + (ext && !RootNode);
+        //newDepth = depth + (ext && !RootNode);
         //printf(" newDepth %d\n",newDepth );
 		
-		if(ext == 0) {
+		/*if(ext == 0) {
 			lmrRed = lmr(list->moves[MoveNum].move, InCheck, depth, pos);
-		}
+		}*/
 		/*if(RootNode && GetTimeMs() >= 2500 ){
 			printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(list->moves[MoveNum].move), Legal);
 		}*/
@@ -711,8 +713,8 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 		MakeMove(pos, bestMove);
 	} else {
 		printf("\n\n***!! PayFleens makes move %s !!***\n\n",PrMove(bestMove));
-		printEval(pos);
 		MakeMove(pos, bestMove);
+		printEval(pos);
 		PrintBoard(pos);
 	}
 }

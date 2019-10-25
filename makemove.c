@@ -43,6 +43,7 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 	
 	pos->pieces[sq] = EMPTY;
     pos->material[col] -= PieceVal[pce];
+    pos->materialeg[col] -= PieceValEG[pce];
 	
 	if(PieceBig[pce]) {
 			pos->bigPce[col]--;
@@ -135,6 +136,7 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
     pos->pcsq_eg[col] += e->egPst[pce][sq];*/
 	
 	pos->material[col] += PieceVal[pce];
+	pos->materialeg[col] += PieceValEG[pce];
 	pos->pList[pce][pos->pceNum[pce]++] = sq;
 	
 }

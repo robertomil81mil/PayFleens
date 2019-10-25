@@ -34,7 +34,7 @@ typedef unsigned long long U64;
 #define MAXPLY 128
 #define MAXDEPTH 64
 
-#define START_FEN  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define INFINITE 32000
 #define ISMATE (INFINITE - 2 * MAXPLY)
@@ -189,7 +189,11 @@ typedef struct {
 	int egMob[2];
 	int mob[2];
 	int attCnt[2];
+	int attckersCnt[2];
 	int attWeight[2];
+	U64 kingAreas[2];
+	int KD[2];
+	int KDE[2];
 	int mgTropism[2];
 	int egTropism[2];
 	int kingShield[2];
@@ -336,6 +340,10 @@ extern U64 WhitePassedMask[64];
 extern U64 IsolatedMask[64];
 extern U64 SqBlocker[64];
 
+extern U64 KingAreaMasks[BOTH][64];
+extern void KingAreaMask();
+extern U64 kingAreaMasks(int colour, int sq);
+
 extern int LMRTable[64][64]; // Init LMR Table 
 
 extern S_OPTIONS EngineOptions[1];
@@ -352,6 +360,7 @@ extern void AllInit();
 
 // bitboards.c
 extern void PrintBitBoard(U64 bb);
+extern void PrintSNK(U64 bb);
 extern int PopBit(U64 *bb);
 extern int CountBits(U64 b);
 
@@ -402,6 +411,7 @@ extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
 extern int MoveExists(S_BOARD *pos, const int move);
 extern void InitMvvLva();
 extern void setSquaresNearKing();
+extern int moveBestCaseValue(const S_BOARD *pos);
 extern int KingSqAttackedbyPawnB(const S_BOARD *pos);
 extern int KingSqAttackedbyPawnW(const S_BOARD *pos);
 extern int KingSqAttackedbyKnightB(const S_BOARD *pos);
