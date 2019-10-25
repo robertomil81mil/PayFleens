@@ -923,8 +923,8 @@ void EvaluateKings(const S_BOARD *pos) {
 	pce = wK;
 	side = WHITE;
 	sq = pos->pList[pce][0];
-	ei->PSQTMG[WHITE] += KingO[SQ64(sq)];
-	ei->PSQTEG[WHITE] += KingE[SQ64(sq)];
+	ei->PSQTMG[WHITE] += KingMG[SQ64(sq)];
+	ei->PSQTEG[WHITE] += KingEG[SQ64(sq)];
  
 	for (int file = MAX(FILE_A, FilesBrd[pos->KingSq[side]] - 1); file <= MIN(FILE_H, FilesBrd[pos->KingSq[side]] + 1); file++) {
 
@@ -943,8 +943,8 @@ void EvaluateKings(const S_BOARD *pos) {
 	pce = bK;
 	side = BLACK;
 	sq = pos->pList[pce][0];
-	ei->PSQTMG[BLACK] += KingO[MIRROR64(SQ64(sq))];
-	ei->PSQTEG[BLACK] += KingE[MIRROR64(SQ64(sq))];
+	ei->PSQTMG[BLACK] += KingMG[MIRROR64(SQ64(sq))];
+	ei->PSQTEG[BLACK] += KingEG[MIRROR64(SQ64(sq))];
 
 	for (int file = MAX(FILE_A, FilesBrd[pos->KingSq[side]] - 1); file <= MIN(FILE_H, FilesBrd[pos->KingSq[side]] + 1); file++) {
 
@@ -1392,7 +1392,7 @@ int EvalPosition(S_BOARD *pos) {
 	EvaluateKings(pos);
 
 	mgScore = pos->material[WHITE] + ei->PSQTMG[WHITE] - pos->material[BLACK] - ei->PSQTMG[BLACK];
-	egScore = pos->material[WHITE] + ei->PSQTEG[WHITE] - pos->material[BLACK] - ei->PSQTEG[BLACK];
+	egScore = pos->materialeg[WHITE] + ei->PSQTEG[WHITE] - pos->materialeg[BLACK] - ei->PSQTEG[BLACK];
 
 	//ei->kingShield[WHITE] = wKingShield(pos);
     //ei->kingShield[BLACK] = bKingShield(pos);
