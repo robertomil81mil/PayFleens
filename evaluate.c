@@ -32,30 +32,75 @@ int MaterialDraw(const S_BOARD *pos) {
   return FALSE;
 }
 
-int mirrorFile(int file) {
+static int mirrorFile(const int file) {
     static const int Mirror[] = {0,1,2,3,3,2,1,0};
     ASSERT(0 <= file && file < FILE_NONE);
     return Mirror[file];
 }
 
-int getTropism(int sq1, int sq2) {
+static int getTropism(const int sq1, const int sq2) {
 	return 7 - (abs(FilesBrd[(sq1)] - FilesBrd[(sq2)]) + abs(RanksBrd[(sq1)] - RanksBrd[(sq2)]));
 }
 
-int king_proximity(int c, int s, const S_BOARD *pos) {
+static int king_proximity(const int c, const int s, const S_BOARD *pos) {
     return MIN(SquareDistance[pos->KingSq[c]][s], 5);
 };
 
-int map_to_queenside(int f) {
+static int distanceBetween(int s1, int s2) {
+    return SquareDistance[s1][s2];
+}
+
+static int map_to_queenside(const int f) {
 	return MIN(f, FILE_H - f);
 }
 
-int isPiece(int color, int piece, int sq, const S_BOARD *pos) {
+static int clamp(const int v, const int lo, const int hi) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+static int isPiece(const int color, const int piece, const int sq, const S_BOARD *pos) {
     return ( (pos->pieces[sq] == piece) && (PieceCol[pos->pieces[sq]] == color) );
 }
 
-int REL_SQ(int sq120, int side) {
+static int REL_SQ(const int sq120, const int side) {
 	return side == WHITE ? sq120 : Mirror120[SQ64(sq120)];
+}
+
+static int rank_of(int s) {
+	return s / 8;
+}
+
+static int relative_rank2(const int c, const int r) {
+	return c == WHITE ? r : 7 - r;
+}
+
+static int relative_rank(const int c, const int s) {
+	return relative_rank2(c, rank_of(s));
+}
+
+static int relative_rankBB(const int c, const int s) {
+	return c == WHITE ? RankBBMask[RanksBrd[s]] : 7 - RankBBMask[RanksBrd[s]];
+}
+
+int popcount(U64 bb) {
+    return __builtin_popcountll(bb);
+}
+
+int getlsb(U64 bb) {
+    return __builtin_ctzll(bb);
+}
+
+int getmsb(U64 bb) {
+    return __builtin_clzll(bb) ^ 63;
+}
+
+int frontmost(int colour, U64 b) {
+    ASSERT(0 <= colour && colour < BOTH);
+    return colour == WHITE ? getmsb(b) : getlsb(b);
+}
+int backmost(int colour, U64 b) {
+    ASSERT(0 <= colour && colour < BOTH);
+    return colour == WHITE ? getlsb(b) : getmsb(b);
 }
 
 int evaluateScaleFactor(S_BOARD *pos) {
@@ -85,798 +130,440 @@ int evaluateScaleFactor(S_BOARD *pos) {
     return SCALE_NORMAL;
 }
 
-void EvaluatePawns(S_BOARD *pos) {
+void Pawns(S_BOARD *pos, int side, int pce, int pceNum) {
 
-	int pce;
-	int pceNum;
 	int sq;
-	int score;
-	int mobility;
-	int KingSq;
-	int pceNum2, pce2, sq2, QueenSq;
-	int opposed, support, pawnbrothers, connected;
-	int strong, weak;
-	int flag;
-	int side;
-	int blockSq, w, i;
-	int mgScore, egScore;
+	int support, supportCount = 0, pawnbrothers, connected;
+	U64 opposed;
+	U64 PassedMask;
+	U64 PassedMaskFlip;
+	U64 flag;
+	int blockSq, w, i, R;
+	int dist;
 	int bonus;
+	int bonus2;
 	int dir, t_sq, index;
-	int att[10];
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
+	int att = 0;
+
+	int SU, UP, SE1, SW1;
+
+	sq = pos->pList[pce][pceNum];
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	R = (side == WHITE ? RanksBrd[sq] : 7 - RanksBrd[sq]);
+	SU = (side == WHITE ? -10 : 10);
+	UP = (side == WHITE ? 10 : -10);
+	SE1 = (side == WHITE ? -9 : 9);
+	SW1 = (side == WHITE ? -11 : 11);
+
+	PassedMask = (side == WHITE ? WhitePassedMask[SQ64(sq)] : BlackPassedMask[SQ64(sq)]);
+	PassedMaskFlip = (side == WHITE ? BlackPassedMask[SQ64(sq)] : WhitePassedMask[SQ64(sq)]);
+
+	/*if (pos->pieces[sq+SE1] == pce ) {
+		supportCount++;
+	} else if (pos->pieces[sq+SW1] == pce) {
+		supportCount++;
+	}*/
+	opposed = (FileBBMask[FilesBrd[sq]] & pos->pawns[side^1]);
+	support = (pos->pieces[sq+SE1] == pce || pos->pieces[sq+SW1] == pce );
+	pawnbrothers = (pos->pieces[sq-1] == pce || pos->pieces[sq+1] == pce);
+
+	//printf("opposed %d\n",bool(opposed) );
+	//printf("support %d\n",bool(support) );
+	//printf("pawnbrothers %d\n",bool(pawnbrothers) );
+
+	if(pos->pieces[sq+SU] == pce) {
+		//printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
+		ei->pawnsMG[side] -= Doubled;
+		ei->pawnsEG[side] -= DoubledEG;
+	}
+	if(pos->pieces[sq+SU*2] == pce) {
+		//printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
+		ei->pawnsMG[side] -= Doubled;
+		ei->pawnsEG[side] -= DoubledEG;
+	}
+	if(pos->pieces[sq+SU*3] == pce) {
+		//printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
+		ei->pawnsMG[side] -= Doubled;
+		ei->pawnsEG[side] -= DoubledEG;
 	}
 
-	pce = wP;
-	side = WHITE;
+	if( (IsolatedMask[SQ64(sq)] & pos->pawns[side]) == 0) {
+		//printf("%c Iso:%s\n",PceChar[pce], PrSq(sq));
+		//printf("Iso P %d\n",PawnIsolated + WeakUnopposed * !opposed );
+		ei->pawnsMG[side] -= PawnIsolated + WeakUnopposed * !opposed;
+		ei->pawnsEG[side] -= PawnIsolatedEG + WeakUnopposedEG * !opposed;
+	}
 
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		ei->PSQTMG[WHITE] += PawnTable[SQ64(sq)];
-		ei->PSQTEG[WHITE] += PawnTable[SQ64(sq)];
+	if ( !(PassedMaskFlip & pos->pawns[side])
+    	&& SqAttackedByPawn(sq + UP,side^1,pos)) {
+		//printf("%c BackW:%s\n",PceChar[pce], PrSq(sq));
+        flag = !(opposed);
+        ei->pawnsMG[side] += PawnBackwards[flag];
+        ei->pawnsEG[side] += PawnBackwardsEG[flag];
+    }
 
-    	for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq)) {
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-					att[pceNum]++;
-				}    
-			}
-		}
-		
-		if(att[pceNum]) {
-    		ei->attCnt[side] += att[pceNum];
-    		ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];		
-    	}
-    	//printf(" attCnt WHITE %d\n", ei->attCnt[side]);
-    	//printf(" attckersCnt WHITE %d\n", ei->attckersCnt[side]);
-    	//printf(" attWeight WHITE %d\n", ei->attWeight[side]);
+    if( (PassedMask & pos->pawns[side^1]) == 0) {
+		//printf("%c Passed:%s\n",PceChar[pce], PrSq(sq));
+		ei->pawnsMG[side] += PawnPassed[R];
+		ei->pawnsEG[side] += PawnPassedEG[R];
 
-		opposed = pos->pieces[sq+10] == bP;
-
-		if( (IsolatedMask[SQ64(sq)] & pos->pawns[WHITE]) == 0) {
-			//printf("wP Iso:%s\n",PrSq(sq));
-			ei->pawnsMG[side] -= PawnIsolated + WeakUnopposed * !opposed;
-			ei->pawnsEG[side] -= PawnIsolatedEG + WeakUnopposedEG * !opposed;
+		if(support || pawnbrothers) {
+			ei->pawnsMG[side] += Connected[R];
+			ei->pawnsEG[side] += Connected[R];
 		}
 
-		if ( !(BlackPassedMask[SQ64(sq)] & pos->pawns[WHITE])
-            && SqAttackedByPawn(sq + 10,side^1,pos)) {
-			//printf("wP BackW:%s\n",PrSq(sq));
-            flag = !(FileBBMask[FilesBrd[sq]] & pos->pawns[BLACK]);
-            ei->pawnsMG[side] += PawnBackwards[flag];
-            ei->pawnsEG[side] += PawnBackwardsEG[flag];
-        }
-		
-		support = ( pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP);
-		pawnbrothers = (pos->pieces[sq-1] == wP || pos->pieces[sq+1] == wP);
+		if(R > RANK_3) {
 
-		if( (WhitePassedMask[SQ64(sq)] & pos->pawns[BLACK]) == 0) {
-			//printf("wP Passed:%s\n",PrSq(sq));
-			ei->pawnsMG[side] += PawnPassed[RanksBrd[sq]];
-			ei->pawnsEG[side] += PawnPassedEG[RanksBrd[sq]];
+			blockSq = sq + UP;
+			w = 5 * R - 13;
 
-			if(support || pawnbrothers) {
-				ei->pawnsMG[side] += Connected[RanksBrd[sq]];
-				ei->pawnsEG[side] += Connected[RanksBrd[sq]];
-			} 
-			/*if(RanksBrd[sq] > RANK_3) {
-
-				blockSq = sq + 10;
-				w = 2 * RanksBrd[sq] - 5;
-
-				bonus = ((  king_proximity(side^1, blockSq, pos) * 2
-                          - king_proximity(side,   blockSq, pos) * 1) * w);
-           		//printf("w %d\n",w );
-            	//printf("bonus %d\n",bonus );
+			bonus = ((  king_proximity(side^1, blockSq, pos) * 5
+                      - king_proximity(side,   blockSq, pos) * 2) * w);
 			
-            	if (RanksBrd[sq] != RANK_7) {
-                	bonus -= ( king_proximity(side, blockSq + 10, pos) * w);
-            		//printf("new bonus %d\n",bonus );
-            	}
-            	ei->pawnsEG[side] += bonus;//bonus -= 5 * map_to_queenside(FilesBrd[sq]);
-			}*/    
+            if (R != RANK_7) {
+                bonus -= ( king_proximity(side, blockSq + UP, pos) * w);
+            }
+            bonus *= 100;
+            bonus /= 410;
+    
+            ei->pawnsEG[side] += bonus;
 		}
-
-		if(pos->pieces[sq-10] == wP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
-		}
-		if(pos->pieces[sq-20] == wP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
-		}
-		if(pos->pieces[sq-30] == wP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
-		}
-	}	
-
-	pce = bP;
-	side = BLACK;	
-	bonus = 0;
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
 	}
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);	
-		ei->PSQTMG[BLACK] += PawnTable[MIRROR64(SQ64(sq))];
-		ei->PSQTEG[BLACK] += PawnTable[MIRROR64(SQ64(sq))];
 
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq)) {
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-					att[pceNum]++;
-				}    
+	/*if(support || pawnbrothers) {
+
+		int v =  Connected[R] * (2 + bool(pawnbrothers) - bool(opposed))
+				+ 21 * supportCount;
+        v *= 100;
+        v /= 510;
+
+        //printf("supportCount %d v %d v eg %d \n",supportCount, v, v * (R - 2) / 4);
+		ei->pawnsMG[side] += v;
+		ei->pawnsEG[side] += v * (R - 2) / 4;
+	}*/
+
+    for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = sq + dir;
+		if(!SQOFFBOARD(t_sq)) {
+			if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+				att++;
+			}    
+		}
+	}
+	
+	if(att) {
+		//printf("att %d\n", att);
+    	ei->attCnt[side] += att;
+    	ei->attckersCnt[side] += 1;
+        ei->attWeight[side] += Weight[pce];		
+    }
+}
+
+void Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
+	int sq;
+	int index;
+	int t_sq;
+	int dir;
+
+	int att = 0;
+	int mobility = 0;
+	int tropism;
+
+	sq = pos->pList[pce][pceNum];
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+	//ei->PSQTMG[side] += KnightTableMG[SQ64(sq)];
+	//ei->PSQTEG[side] += KnightTableEG[SQ64(sq)];
+
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = sq + dir;
+		if(!SQOFFBOARD(t_sq) && PieceCol[pos->pieces[t_sq]] != side) {
+
+			if(!pos->pawn_ctrl[side^1][t_sq]) {
+				mobility++;
 			}
+			//printf("t_sq %s pawn_ctrl %d\n", PrMove(t_sq),pos->pawn_ctrl[side^1][t_sq]);
+				
+			if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+				att++;
+			}    
 		}
-		
-		if(att[pceNum]) {
-    		ei->attCnt[side] += att[pceNum];
-    		ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-    	//printf(" attCnt BLACK %d\n", ei->attCnt[side]);
-    	//printf(" attckersCnt BLACK %d\n", ei->attckersCnt[side]);
-    	//printf(" attWeight BLACK %d\n", ei->attWeight[side]);
+	}
+	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
-		opposed = pos->pieces[sq-10] == wP;
+    tropism = getTropism(sq, pos->KingSq[side^1]);
+	ei->mgTropism[side] += 3 * tropism;
+	ei->egTropism[side] += 3 * tropism;	
+	ei->mgMob[side] += 4 * (mobility-4);
+    ei->egMob[side] += 4 * (mobility-4);
 
-		if( (IsolatedMask[SQ64(sq)] & pos->pawns[BLACK]) == 0) {
-			//printf("bP Iso:%s\n",PrSq(sq));
-			ei->pawnsMG[side] -= PawnIsolated + WeakUnopposed * !opposed;
-			ei->pawnsEG[side] -= PawnIsolatedEG + WeakUnopposedEG * !opposed;	
-		}
+	if(att) {
+    	ei->attCnt[side] += att;
+        ei->attckersCnt[side] += 1;
+        ei->attWeight[side] += Weight[pce];
+    }	
+}
 
-		if ( !(WhitePassedMask[SQ64(sq)] & pos->pawns[BLACK])
-            && SqAttackedByPawn(sq - 10,side^1,pos)) {
-			//printf("bP BackW:%s\n",PrSq(sq));
-            flag = !(FileBBMask[FilesBrd[sq]] & pos->pawns[WHITE]);
-            ei->pawnsMG[side] += PawnBackwards[flag];
-            ei->pawnsEG[side] += PawnBackwardsEG[flag];
-        }
+void Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
+	int sq;
+	int index;
+	int t_sq;
+	int dir;
 
-		support = (pos->pieces[sq+9] == bP || pos->pieces[sq+11] == bP);
-		pawnbrothers = (pos->pieces[sq-1] == bP || pos->pieces[sq+1] == bP);
-		
-		if( (BlackPassedMask[SQ64(sq)] & pos->pawns[WHITE]) == 0) {
-			//printf("bP Passed:%s\n",PrSq(sq));
-			ei->pawnsMG[side] += PawnPassed[7 - RanksBrd[sq]];
-			ei->pawnsEG[side] += PawnPassedEG[7 - RanksBrd[sq]];
+	int att = 0;
+	int mobility = 0;
+	int tropism;
 
-			if(support || pawnbrothers) {
-				ei->pawnsMG[side] += Connected[7 - RanksBrd[sq]];
-				ei->pawnsEG[side] += Connected[7 - RanksBrd[sq]];
+	sq = pos->pList[pce][pceNum];
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = sq + dir;
+		while(!SQOFFBOARD(t_sq)) {
+
+			if(pos->pieces[t_sq] == EMPTY) {
+				if(!pos->pawn_ctrl[side^1][t_sq]) {
+					mobility++;
+				}
+				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+					att++;
+				}
+			} else { // non empty sq
+				if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
+					if(!pos->pawn_ctrl[side^1][t_sq]) {
+						mobility++;
+					}
+					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+						att++;
+					}
+				}
+				break;
 			} 
-			/*if(RanksBrd[sq] < RANK_6) {
-				blockSq = sq - 10;
-				i = 2 * RanksBrd[sq] - 5;
-
-				bonus = ((  king_proximity(side^1, blockSq, pos) * 2
-                      	  - king_proximity(side,   blockSq, pos) * 1) * i);
-
-	            if (RanksBrd[sq] != RANK_2) {
-	                bonus -= ( king_proximity(side, blockSq - 10, pos) * i);
-	                //printf("new bonus %d\n",bonus );
-	            }
-	            //bonus -= 5 * map_to_queenside(FilesBrd[sq]);
-            	ei->pawnsEG[side] += bonus;
-			} */
-		}
-
-		if(pos->pieces[sq+10] == bP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
-		}
-		if(pos->pieces[sq+20] == bP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
-		}
-		if(pos->pieces[sq+30] == bP) {
-			ei->pawnsMG[side] -= Doubled;
-			ei->pawnsEG[side] -= DoubledEG;
+			t_sq += dir;   
 		}
 	}
+	//printf("%1c mobility %d\n",PceChar[pce],mobility );
+
+	tropism = getTropism(sq, pos->KingSq[side^1]);
+	ei->mgTropism[side] += 2 * tropism;
+	ei->egTropism[side] += 1 * tropism;	
+	ei->mgMob[side] += 3 * (mobility-6);
+    ei->egMob[side] += 3 * (mobility-6);
+
+    if(att) {
+    	ei->attCnt[side] += att;
+        ei->attckersCnt[side] += 1;
+        ei->attWeight[side] += Weight[pce];
+    }
 }
 
-void EvaluateKnights(const S_BOARD *pos) {
-	int pce;
-	int pceNum;
+void Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 	int sq;
-	int score;
-	
-	int KingSq;
-	int pceNum2, pce2, sq2, QueenSq;
-	int opposed, support, pawnbrothers;
-	int strong, weak;
 	int index;
-	int MobilityCount = 0;
 	int t_sq;
-	int SqAttackedbyThem;
 	int dir;
-	int KingSqNum, side;
 
-	int att[10];
+	int att = 0;
 	int mobility = 0;
 	int tropism;
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-	
-	pce = wN;	
-	side = WHITE;
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		ei->PSQTMG[side] += KnightTable[SQ64(sq)];
-		ei->PSQTEG[side] += KnightTable[SQ64(sq)];
 
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq) && PieceCol[pos->pieces[t_sq]] != side) {
+	int REL_R7 = (side == WHITE ? RANK_7 : RANK_2);
+	int REL_R8 = (side == WHITE ? RANK_8 : RANK_1);
 
-				if(!SqAttackedByPawn(t_sq,side^1,pos)) {
+	sq = pos->pList[pce][pceNum];
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = sq + dir;
+		while(!SQOFFBOARD(t_sq)) {
+
+			if(pos->pieces[t_sq] == EMPTY) {
+				if(!pos->pawn_ctrl[side^1][t_sq]) {
 					mobility++;
 				}
 				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-					att[pceNum]++;
-				}    
-			}
-		}
-
-    	tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 3 * tropism;
-		ei->egTropism[side] += 3 * tropism;	
-		ei->mgMob[side] += 4 * (mobility-4);
-    	ei->egMob[side] += 4 * (mobility-4);
-
-		if(att[pceNum]) {
-    		ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-		
-		/*if(pos->pieces[sq+10] == bP) {
-			ei->positionalThemes[side] += 6;
-		}
-		if((pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_4) {
-			ei->positionalThemes[side] += 6;
-		}
-		if((pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_6) {
-			ei->positionalThemes[side] += 12;
-		}*/
-	}	
-
-	pce = bN;
-	side = BLACK;
-	mobility = 0;	
-    for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		ei->PSQTMG[side] += KnightTable[MIRROR64(SQ64(sq))];
-		ei->PSQTEG[side] += KnightTable[MIRROR64(SQ64(sq))];
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq) && PieceCol[pos->pieces[t_sq]] != side) {
-
-				if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-					mobility++;
+					att++;
 				}
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-					att[pceNum]++;
-				}    
-			}
+			} else { // non empty sq
+				if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
+					if(!pos->pawn_ctrl[side^1][t_sq]) {
+						mobility++;
+					}
+					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+						att++;
+					}
+				}
+				break;
+			} 
+			t_sq += dir;   
 		}
+	}
+	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 3 * tropism;
-		ei->egTropism[side] += 3 * tropism;	
-		ei->mgMob[side] += 4 * (mobility-4);
-    	ei->egMob[side] += 4 * (mobility-4);
+	if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+		ei->mgMob[side] += RookOpenFile;
+    	ei->egMob[side] += RookOpenFile;
+	    if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
+			ei->attWeight[side] += 1;
+	}
+	if(!(pos->pawns[side] & FileBBMask[FilesBrd[sq]])) {
+		ei->mgMob[side] += RookSemiOpenFile;
+    	ei->egMob[side] += RookSemiOpenFile;
+    	if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
+			ei->attWeight[side] += 2;
+	}
 
-		if(att[pceNum]) {
-    		ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-		
-		/*if(pos->pieces[sq-10] == wP) {
-			ei->positionalThemes[side] += 6;
-		}
-		if((pos->pieces[sq+9] == bP || pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_5) {
-			ei->positionalThemes[side] += 6;
-		}
-		if((pos->pieces[sq+9] == bP || pos->pieces[sq+11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_3) {
-			ei->positionalThemes[side] += 12;
-		}*/
-	}	
+	if((RankBBMask[RanksBrd[sq]] == REL_R7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == REL_R8)) {
+		ei->mgMob[side] += 20;
+		ei->egMob[side] += 30;
+	}
+
+	tropism = getTropism(sq, pos->KingSq[side^1]);
+	ei->mgTropism[side] += 2 * tropism;
+	ei->egTropism[side] += 1 * tropism;	
+	ei->mgMob[side] += 2 * (mobility-6);
+    ei->egMob[side] += 4 * (mobility-6);
+
+	if (att) {
+		ei->attCnt[side] += att;
+        ei->attckersCnt[side] += 1;
+        ei->attWeight[side] += Weight[pce];
+    }
 }
 
-void EvaluateBishops(const S_BOARD *pos) {
-	int pce;
-	int pceNum;
+void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	int sq;
-	int score;
-	
-	int KingSq;
-	int pceNum2, pce2, sq2, QueenSq;
-	int opposed, support, pawnbrothers;
-	int strong, weak;
 	int index;
-	int MobilityCount = 0;
 	int t_sq;
-	int SqAttackedbyThem;
 	int dir;
-	int KingSqNum, side;
 
-	int att[10];
+	int att = 0;
 	int mobility = 0;
 	int tropism;
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-
-	pce = wB;
-	side = WHITE;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-		ei->PSQTMG[side] += BishopTable[SQ64(sq)];
-		ei->PSQTEG[side] += BishopTable[SQ64(sq)];
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 1 * tropism;	
-		ei->mgMob[side] += 3 * (mobility-7);
-    	ei->egMob[side] += 3 * (mobility-7);
-
-    	if(att[pceNum]) {
-    		ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-
-		/*if((pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_4) {
-			ei->positionalThemes[side] += 4;
-		}
-		if((pos->pieces[sq-9] == wP || pos->pieces[sq-11] == wP) && RankBBMask[RanksBrd[sq]] >= RANK_6) {
-			ei->positionalThemes[side] += 8;
-		}*/		
-	}	
-
-	pce = bB;
-	side = BLACK;	
-    for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-	mobility = 0;
-
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		ei->PSQTMG[side] += BishopTable[MIRROR64(SQ64(sq))];
-		ei->PSQTEG[side] += BishopTable[MIRROR64(SQ64(sq))];
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-    	tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 1 * tropism;	
-		ei->mgMob[side] += 3 * (mobility-7);
-    	ei->egMob[side] += 3 * (mobility-7);
-
-    	if (att[pceNum]) {
-			ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-
-		/*if((pos->pieces[sq+9] == bP || pos->pieces[sq-11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_5) {
-			ei->positionalThemes[side] += 4;
-		}
-		if((pos->pieces[sq+9] == bP || pos->pieces[sq-11] == bP) && RankBBMask[RanksBrd[sq]] <= RANK_3) {
-			ei->positionalThemes[side] += 8;
-		}*/
-	}
-}
-
-void EvaluateRooks(const S_BOARD *pos) {
-	int pce;
-	int pceNum;
-	int sq;
-	int score;
-	
-	int KingSq;
-	int pceNum2, pce2, sq2, QueenSq;
-	int opposed, support, pawnbrothers;
-	int strong, weak;
-	int index;
-	int MobilityCount = 0;
-	int t_sq;
-	int SqAttackedbyThem;
-	int dir;
-	int KingSqNum, side;
-
-	int att[10];
-	int mobility = 0;
-	int tropism;
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-
-	pce = wR;
-	side = WHITE;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		
-		ei->PSQTMG[side] += RookTable[SQ64(sq)];
-		ei->PSQTEG[side] += RookTable[SQ64(sq)];
-
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += RookOpenFile;
-    		ei->egMob[side] += RookOpenFile;
-    		if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			   ei->attWeight[side] += 1;
-		}
-		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += RookSemiOpenFile;
-    		ei->egMob[side] += RookSemiOpenFile;
-    		if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			   ei->attWeight[side] += 2;
-		}
-
-		if((RankBBMask[RanksBrd[sq]] == RANK_7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == RANK_8)) {
-			ei->mgMob[side] += 20;
-			ei->egMob[side] += 30;
-		}
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 1 * tropism;	
-		ei->mgMob[side] += 2 * (mobility-7);
-    	ei->egMob[side] += 4 * (mobility-7);
-
-		if (att[pceNum]) {
-			ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
-	}
-
-    for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-	mobility = 0;
-
-	pce = bR;
-	side = BLACK;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		ei->PSQTMG[side] += RookTable[MIRROR64(SQ64(sq))];
-		ei->PSQTEG[side] += RookTable[MIRROR64(SQ64(sq))];
-
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += RookOpenFile;
-    		ei->egMob[side] += RookOpenFile;
-    		if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			   ei->attWeight[side] += 1;
-		}
-		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += RookSemiOpenFile;
-    		ei->egMob[side] += RookSemiOpenFile;
-    		if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			   ei->attWeight[side] += 2;
-		}
-
-		if((RankBBMask[RanksBrd[sq]] == RANK_2 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == RANK_1)) {
-			ei->mgMob[side] += 20;
-			ei->egMob[side] += 30;
-		}
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 1 * tropism;	
-		ei->mgMob[side] += 2 * (mobility-7);
-    	ei->egMob[side] += 4 * (mobility-7);
-
-		if (att[pceNum]) {
-			ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}	
-	}
-}
-
-void EvaluateQueens(const S_BOARD *pos) {
-	int pce;
-	int pceNum;
-	int sq;
-	int score;
-	
-	int KingSq;
-	int pceNum2, pce2, sq2, QueenSq;
-	int opposed, support, pawnbrothers;
-	int strong, weak;
-	int index;
-	int MobilityCount = 0;
-	int t_sq;
-	int SqAttackedbyThem;
-	int dir;
-	int KingSqNum, side;
-
-	int att[10];
-	int mobility = 0;
-	int tropism;
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
 
 	int KNIGHT, BISHOP;
 
+	int REL_R7 = (side == WHITE ? RANK_7 : RANK_2);
+	int REL_R8 = (side == WHITE ? RANK_8 : RANK_1);
+	int REL_R2 = (side == WHITE ? RANK_2 : RANK_7);
+	KNIGHT = (side == WHITE ? wN : bN);
+	BISHOP = (side == WHITE ? wB : bB);
+
+	sq = pos->pList[pce][pceNum];
+	ASSERT(SqOnBoard(sq));
+	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	for(index = 0; index < NumDir[pce]; ++index) {
+		dir = PceDir[pce][index];
+		t_sq = sq + dir;
+		while(!SQOFFBOARD(t_sq)) {
+
+			if(pos->pieces[t_sq] == EMPTY) {
+				if(!pos->pawn_ctrl[side^1][t_sq]) {
+					mobility++;
+				}
+				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+					att++;
+				}
+			} else { // non empty sq
+				if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
+					if(!pos->pawn_ctrl[side^1][t_sq]) {
+						mobility++;
+					}
+					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+						att++;
+					}
+				}
+				break;
+			} 
+			t_sq += dir;   
+		}
+	}
+	//printf("%1c mobility %d\n",PceChar[pce],mobility );
+
+	if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+		ei->mgMob[side] += QueenOpenFile;
+    	ei->egMob[side] += QueenOpenFile;
+	}
+	if(!(pos->pawns[side] & FileBBMask[FilesBrd[sq]])) {
+		ei->mgMob[side] += QueenSemiOpenFile;
+    	ei->egMob[side] += QueenSemiOpenFile;
+	}
+
+	if((RankBBMask[RanksBrd[sq]] == REL_R7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == REL_R8)) {
+		ei->mgMob[side] += 5;
+		ei->egMob[side] += 10;
+	}
+
+	if (RanksBrd[sq] > REL_R2) {
+		if(isPiece(side, KNIGHT, REL_SQ(side,B1), pos)) ei->positionalThemes[side] -= 2;
+		if(isPiece(side, BISHOP, REL_SQ(side,C1), pos)) ei->positionalThemes[side] -= 2;
+		if(isPiece(side, BISHOP, REL_SQ(side,F1), pos)) ei->positionalThemes[side] -= 2;
+		if(isPiece(side, KNIGHT, REL_SQ(side,G1), pos)) ei->positionalThemes[side] -= 2;
+	}
+
+	tropism = getTropism(sq, pos->KingSq[side^1]);
+	ei->mgTropism[side] += 2 * tropism;
+	ei->egTropism[side] += 4 * tropism;	
+	ei->mgMob[side] += 1 * (mobility-12);
+    ei->egMob[side] += 2 * (mobility-12);
+
+	if (att) {
+		ei->attCnt[side] += att;
+        ei->attckersCnt[side] += 1;
+        ei->attWeight[side] += Weight[pce];
+    }
+}
+
+void pieces(S_BOARD *pos) {
+	int pce;
+	pce = wP;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Pawns(pos, WHITE, pce, pceNum);
+	}
+	pce = bP;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Pawns(pos, BLACK, pce, pceNum);
+	}
+	pce = wN;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Knights(pos, WHITE, pce, pceNum);
+	}
+	pce = bN;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Knights(pos, BLACK, pce, pceNum);
+	}
+	pce = wB;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Bishops(pos, WHITE, pce, pceNum);
+	}
+	pce = bB;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Bishops(pos, BLACK, pce, pceNum);
+	}
+	pce = wR;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Rooks(pos, WHITE, pce, pceNum);
+	}
+	pce = bR;
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Rooks(pos, BLACK, pce, pceNum);
+	}
 	pce = wQ;
-	side = WHITE;
-
-	BISHOP = wB;
-    KNIGHT = wN;
-
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		
-		ei->PSQTMG[WHITE] += QueenTable[SQ64(sq)];
-		ei->PSQTEG[WHITE] += QueenTable[SQ64(sq)];
-
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += QueenOpenFile;
-    		ei->egMob[side] += QueenOpenFile;
-		}
-		if(!(pos->pawns[WHITE] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += QueenSemiOpenFile;
-    		ei->egMob[side] += QueenSemiOpenFile;
-		}
-
-		if((RankBBMask[RanksBrd[sq]] == RANK_7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == RANK_8)) {
-			ei->mgMob[side] += 5;
-			ei->egMob[side] += 10;
-		}
-
-		if (RanksBrd[sq] > RANK_2) {
-			if(isPiece(side, KNIGHT, B1,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, BISHOP, C1,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, BISHOP, F1,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, KNIGHT, G1,pos)) ei->positionalThemes[side] -= 2;
-		}
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 4 * tropism;	
-		ei->mgMob[side] += 1 * (mobility-14);
-    	ei->egMob[side] += 2 * (mobility-14);
-
-		if (att[pceNum]) {
-			ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Queens(pos, WHITE, pce, pceNum);
 	}
-
-	for(int i = 0; i < 10; ++i) {
-		att[i] = 0;
-	}
-	mobility = 0;
-
 	pce = bQ;
-	side = BLACK;
-	BISHOP = bB;
-    KNIGHT = bN;	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		ASSERT(MIRROR64(SQ64(sq))>=0 && MIRROR64(SQ64(sq))<=63);
-		ei->PSQTMG[BLACK] += QueenTable[MIRROR64(SQ64(sq))];
-		ei->PSQTEG[BLACK] += QueenTable[MIRROR64(SQ64(sq))];
-
-		if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += QueenOpenFile;
-    		ei->egMob[side] += QueenOpenFile;
-		}
-		if(!(pos->pawns[BLACK] & FileBBMask[FilesBrd[sq]])) {
-			ei->mgMob[side] += QueenSemiOpenFile;
-    		ei->egMob[side] += QueenSemiOpenFile;
-		}
-
-		if((RankBBMask[RanksBrd[sq]] == RANK_2 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == RANK_1)) {
-			ei->mgMob[side] += 5;
-			ei->egMob[side] += 10;
-		}
-		
-		if (RanksBrd[sq] < RANK_7) {
-			if(isPiece(side, KNIGHT, B8,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, BISHOP, C8,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, BISHOP, F8,pos)) ei->positionalThemes[side] -= 2;
-			if(isPiece(side, KNIGHT, G8,pos)) ei->positionalThemes[side] -= 2;
-		}
-
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			while(!SQOFFBOARD(t_sq)) {
-
-				if(pos->pieces[t_sq] == EMPTY) {
-					if(!SqAttackedByPawn(t_sq,side^1,pos)) {
-						mobility++;
-					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-						att[pceNum]++;
-					}
-				} else { // non empty sq
-					if(PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-						mobility++;
-						if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
-							att[pceNum]++;
-						}
-					}
-					break;
-				} 
-				t_sq += dir;   
-			}
-		}
-
-		tropism = getTropism(sq, pos->KingSq[side^1]);
-		ei->mgTropism[side] += 2 * tropism;
-		ei->egTropism[side] += 4 * tropism;	
-		ei->mgMob[side] += 1 * (mobility-14);
-    	ei->egMob[side] += 2 * (mobility-14);
-
-		if (att[pceNum]) {
-			ei->attCnt[side] += att[pceNum];
-            ei->attckersCnt[side] += 1;
-            ei->attWeight[side] += Weight[pce];
-    	}	
+	for(int pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
+		Queens(pos, BLACK, pce, pceNum);
 	}
 }
 
@@ -885,10 +572,13 @@ void EvaluateKings(const S_BOARD *pos) {
 	int pce;
 	int pceNum2, sq2;
 	int sq;
-	int ours, ourDist, theirs, theirDist, blocked;
+	int ourDist, theirDist, blocked;
+	U64 ours;
+	U64 theirs;
 	int PAWN, PAWNOPPO;
 	int side;
 	int count;
+	int center;
 
    	//PrintBitBoard(ei->kingAreas[WHITE]);
 	//PrintBitBoard(ei->kingAreas[BLACK]);
@@ -923,42 +613,80 @@ void EvaluateKings(const S_BOARD *pos) {
 	pce = wK;
 	side = WHITE;
 	sq = pos->pList[pce][0];
-	ei->PSQTMG[WHITE] += KingMG[SQ64(sq)];
-	ei->PSQTEG[WHITE] += KingEG[SQ64(sq)];
- 
-	for (int file = MAX(FILE_A, FilesBrd[pos->KingSq[side]] - 1); file <= MIN(FILE_H, FilesBrd[pos->KingSq[side]] + 1); file++) {
+	//ei->PSQTMG[WHITE] += KingMG[SQ64(sq)];
+	//ei->PSQTEG[WHITE] += KingEG[SQ64(sq)];
 
-		ours = pos->pawns[side] & FileBBMask[FilesBrd[file]];
-        ourDist = !ours ? 7 : abs(RanksBrd[pos->KingSq[side]] - RanksBrd[ours]);
+	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
+  	for (int file = center - 1; file <= center + 1; ++file) {
+  		//printf("file %c\n",'a' + file);
 
-        theirs = pos->pawns[side^1] & FileBBMask[FilesBrd[file]];
-        theirDist = !theirs ? 7 : abs(RanksBrd[pos->KingSq[side]] - RanksBrd[theirs]);
-        
-        ei->pkeval[side] += KingShelter[ file == FilesBrd[pos->KingSq[side]] ][file][ourDist];
+  		ours = (pos->pawns[side] & FileBBMask[file]);
+  		//printf("count %d ours %d\n",popcount(ours),bool(ours));
+  		//printf("ours sq %s\n",PrSq(SQ120(ours)) );
+  		int ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
+  		//printf("ourRank %d\n",ourRank );
 
-        blocked = (ourDist != 7 && (ourDist == theirDist - 1));
-        ei->pkeval[side] += KingStorm[blocked][mirrorFile(file)][theirDist];
-    }
+  	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
+  	 	//printf("count %d theirs %d\n",popcount(theirs),bool(theirs));
+  	 	//printf("theirs sq %s\n",PrSq(SQ120(theirs)) );
+      	int theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
+      	//printf("theirRank %d\n",theirRank );
+
+      	int d = map_to_queenside(file);
+      	int bonus = 5;
+      	bonus += ShelterStrength[d][ourRank];
+      	//printf("bonus %d\n",bonus );
+
+      	if (ourRank && (ourRank == theirRank - 1)) {
+      		bonus -= BlockedStorm * int(theirRank == RANK_3);
+        	//printf("bonus BlockedStorm %d\n", bonus);
+      	} else {
+      		bonus -= UnblockedStorm[d][theirRank];
+        	//printf("bonus UnblockedStorm %d\n", bonus);
+      	}
+      	bonus *= 100;
+        bonus /= 310;
+      	ei->pkeval[side] += bonus;
+  	}
 
 	pce = bK;
 	side = BLACK;
 	sq = pos->pList[pce][0];
-	ei->PSQTMG[BLACK] += KingMG[MIRROR64(SQ64(sq))];
-	ei->PSQTEG[BLACK] += KingEG[MIRROR64(SQ64(sq))];
+	//ei->PSQTMG[BLACK] += KingMG[MIRROR64(SQ64(sq))];
+	//ei->PSQTEG[BLACK] += KingEG[MIRROR64(SQ64(sq))];
+	//printf("\n\nBLACK" );
+	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
+  	for (int file = center - 1; file <= center + 1; ++file) {
+  		//printf("file %c\n",'a' + file);
 
-	for (int file = MAX(FILE_A, FilesBrd[pos->KingSq[side]] - 1); file <= MIN(FILE_H, FilesBrd[pos->KingSq[side]] + 1); file++) {
+  		ours = (pos->pawns[side] & FileBBMask[file]);
+  		//printf("count %d ours %d\n",popcount(ours),bool(ours));
+  		//printf("ours sq %s\n",PrSq(SQ120(ours)) );
+  		int ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
+  		//printf("ourRank %d\n",ourRank );
 
-		ours = pos->pawns[side] & FileBBMask[FilesBrd[file]];
-        ourDist = !ours ? 7 : abs(RanksBrd[pos->KingSq[side]] - RanksBrd[ours]);
+  	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
+  	 	//printf("count %d theirs %d\n",popcount(theirs),bool(theirs));
+  	 	//printf("theirs sq %s\n",PrSq(SQ120(theirs)) );
+      	int theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
+      	//printf("theirRank %d\n",theirRank );
 
-        theirs = pos->pawns[side^1] & FileBBMask[FilesBrd[file]];
-        theirDist = !theirs ? 7 : abs(RanksBrd[pos->KingSq[side]] - RanksBrd[theirs]);
- 
-        ei->pkeval[side] += KingShelter[file == FilesBrd[pos->KingSq[side]]][file][ourDist];
+      	int d = map_to_queenside(file);
+      	int bonus = 5;
+      	bonus += ShelterStrength[d][ourRank];
+      	//printf("bonus %d\n",bonus );
 
-        blocked = (ourDist != 7 && (ourDist == theirDist - 1));
-        ei->pkeval[side] += KingStorm[blocked][mirrorFile(file)][theirDist];
-    }
+      	if (ourRank && (ourRank == theirRank - 1)) {
+      		bonus -= BlockedStorm * int(theirRank == RANK_3);
+        	//printf("bonus BlockedStorm %d\n", bonus);
+      	} else {
+      		bonus -= UnblockedStorm[d][theirRank];
+        	//printf("bonus UnblockedStorm %d\n", bonus);
+      	}
+      	bonus *= 100;
+        bonus /= 310;
+      	ei->pkeval[side] += bonus;
+  	}
 }
 
 int wKingShield(const S_BOARD *pos) {
@@ -1173,7 +901,7 @@ void blockedPiecesW(const S_BOARD *pos) {
 	 // knight blocking queenside pawns
 	if (pos->pieces[C3] == wN
 	&&  pos->pieces[C2] == wP
-	//&&  pos->pieces[D4] == wP
+	&& (pos->pieces[D4] == wP || pos->pieces[D2] == wP)
 	&&  pos->pieces[E4] != wP) {
 	    ei->blockages[side] -= P_C3_KNIGHT;
 	}
@@ -1277,7 +1005,7 @@ void blockedPiecesB(const S_BOARD *pos) {
 	 // knight blocking queenside pawns
 	if (pos->pieces[C6] == bN
 	&&  pos->pieces[C7] == bP
-	//&&  pos->pieces[D5] == bP
+	&& (pos->pieces[D5] == bP || pos->pieces[D7] == bP)
 	&&  pos->pieces[E5] != bP) {
 	    ei->blockages[side] -= P_C3_KNIGHT;
 	}
@@ -1340,6 +1068,8 @@ void blockedPiecesB(const S_BOARD *pos) {
 
 int EvalPosition(S_BOARD *pos) {
 
+	//int startTime = GetTimeMs();
+
 	ASSERT(CheckBoard(pos));
 
 	int pce;
@@ -1383,23 +1113,19 @@ int EvalPosition(S_BOARD *pos) {
 	/*if(!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) {
 		return 0;
 	}*/
-	
-	EvaluatePawns(pos);
-	EvaluateKnights(pos);
-	EvaluateBishops(pos);
-	EvaluateRooks(pos);
-	EvaluateQueens(pos);
+
+	pieces(pos);
 	EvaluateKings(pos);
 
-	mgScore = pos->material[WHITE] + ei->PSQTMG[WHITE] - pos->material[BLACK] - ei->PSQTMG[BLACK];
-	egScore = pos->materialeg[WHITE] + ei->PSQTEG[WHITE] - pos->materialeg[BLACK] - ei->PSQTEG[BLACK];
+	mgScore = pos->material[WHITE] + pos->pcsq_mg[WHITE] - pos->material[BLACK] - pos->pcsq_mg[BLACK];
+	egScore = pos->materialeg[WHITE] + pos->pcsq_eg[WHITE] - pos->materialeg[BLACK] - pos->pcsq_eg[BLACK];
 
 	//ei->kingShield[WHITE] = wKingShield(pos);
     //ei->kingShield[BLACK] = bKingShield(pos);
     blockedPiecesW(pos);
     blockedPiecesB(pos);
 
-	mgScore += (ei->kingShield[WHITE] - ei->kingShield[BLACK]);
+	//mgScore += (ei->kingShield[WHITE] - ei->kingShield[BLACK]);
 	mgScore += (ei->pkeval[WHITE] - ei->pkeval[BLACK]);
 
 	mgScore += (ei->mgMob[WHITE] - ei->mgMob[BLACK]);
@@ -1427,9 +1153,6 @@ int EvalPosition(S_BOARD *pos) {
 	score += (ei->blockages[WHITE] - ei->blockages[BLACK]);
     score += (ei->positionalThemes[WHITE] - ei->positionalThemes[BLACK]);
 	score += (ei->adjustMaterial[WHITE] - ei->adjustMaterial[BLACK]);
-
-	//score += SafetyTable[ei->attWeight[WHITE]];
-    //score -= SafetyTable[ei->attWeight[BLACK]];
 
 	pos->side == WHITE ? score += TEMPO : score -= TEMPO;
 
@@ -1476,6 +1199,8 @@ int EvalPosition(S_BOARD *pos) {
         if (pos->material[stronger] == ( PieceVal[wB] || PieceVal[wN] )
                 && pos->material[weaker] == ( PieceVal[wB] || PieceVal[wN])) return 0;
     }
+	
+	//printf("Elapsed %d\n",GetTimeMs() - startTime);
 
 	if(pos->side == WHITE) {
 		return score;
@@ -1498,10 +1223,10 @@ void printEval(S_BOARD *pos) {
     printEvalFactor(ei->PSQTMG[WHITE], ei->PSQTMG[BLACK]);
     printf("Eg Piece/square tables : ");
     printEvalFactor(ei->PSQTEG[WHITE], ei->PSQTEG[BLACK]);
-    /*printf("Mg Piece/square tables : ");
+    printf("Mg PSQT                : ");
     printEvalFactor(pos->pcsq_mg[WHITE], pos->pcsq_mg[BLACK]);
-    printf("Eg Piece/square tables : ");
-    printEvalFactor(pos->pcsq_eg[BLACK], pos->pcsq_eg[BLACK]);*/
+    printf("Eg PSQT                : ");
+    printEvalFactor(pos->pcsq_eg[WHITE], pos->pcsq_eg[BLACK]);
     printf("Mg Mobility            : ");
     printEvalFactor(ei->mgMob[WHITE], ei->mgMob[BLACK]);
     printf("Eg Mobility            : ");
@@ -1532,5 +1257,9 @@ void printEval(S_BOARD *pos) {
     if ( pos->side == WHITE ) printf("%d", TEMPO);
     else printf("%d", -TEMPO);
     printf("\n");
+    //pieces(pos);
     printf("------------------------------------------\n");
+    //PrintNonBits(pos, WHITE);
+    printf("\n");
+    //PrintNonBits(pos, BLACK);
 }

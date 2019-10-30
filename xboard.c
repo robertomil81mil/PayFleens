@@ -89,7 +89,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
     setbuf(stdout, NULL);
 	PrintOptions(); // HACK
 
-	int depth = -1, movestogo[2] = {30,30 }, movetime = -1;
+	int depth = -1, movestogo[2] = {0,0 }, movetime = -1;
 	int time = -1, inc = 0;
 	int engineSide = BOTH;
 	int timeLeft;
@@ -115,17 +115,24 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 			if(time != -1) {
 				info->timeset = TRUE;
+
+				TimeManagementInit(info, time, inc, pos->gamePly, movestogo[pos->side]);
+				printf("gamePly %d\n",pos->gamePly );
+				printf("optimumTime %d\n",info->optimumTime );
+				printf("maximumTime %d\n",info->maximumTime );
 				
 				if(inc != 0) {
 					idealUsage = time / movestogo[pos->side] + inc - 1;
 				} else {
-					idealUsage = (time + 1000 ) / 40;
+					idealUsage = (time + 1000) / 40;
 				}
 
 				idealUsage = MIN(idealUsage, time - MoveOverhead);
+				printf("idealUsage %d\n", idealUsage);
 				//time /= movestogo[pos->side];
 				//time -= 50;
-				info->stoptime = info->starttime + idealUsage;
+
+				info->stoptime = info->starttime + info->optimumTime;
 			}
 
 			if(depth == -1 || depth > MAXDEPTH) {
@@ -210,7 +217,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			}
 			timeLeft *= 60000;
 			timeLeft += sec * 1000;
-			movestogo[0] = movestogo[1] = 30;
+			movestogo[0] = movestogo[1] = 0;
 			if(mps != 0) {
 				movestogo[0] = movestogo[1] = mps;
 			}
@@ -331,16 +338,8 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 		if(!strcmp(command, "eval")) {
 			PrintBoard(pos);
-			//printf("Eval:%d",EvalPosition(pos));
 			printEval(pos);
-			//EvaluateKnights(pos);
-			//EvaluateBishops(pos);
-			//EvaluateRooks(pos);
-			//EvaluateQueens(pos);
-			//EvalPosition(pos);
-			//BishopMobilityCount(pos);
-			//MobilityCountWhiteKn(pos,wN);
-			//MobilityCountWhiteBi(pos,wB);
+			
 			//MirrorBoard(pos);
 			//PrintBoard(pos);
 			//printf("Eval:%d",EvalPosition(pos));

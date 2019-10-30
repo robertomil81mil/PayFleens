@@ -52,7 +52,7 @@ U64 RankBBMask[8];
 U64 BlackPassedMask[64];
 U64 WhitePassedMask[64];
 U64 IsolatedMask[64];
-U64 SqBlocker[64];
+U64 SqBlocker[2][64];
 
 int SquareDistance[120][120];
 S_OPTIONS EngineOptions[1];
@@ -79,23 +79,23 @@ void InitEvalMasks() {
 		IsolatedMask[sq] = 0ULL;
 		WhitePassedMask[sq] = 0ULL;
 		BlackPassedMask[sq] = 0ULL;
-		SqBlocker[sq] = 0ULL;
+		SqBlocker[WHITE][sq] = 0ULL;
+		SqBlocker[BLACK][sq] = 0ULL;
     }
 
 	for(sq = 0; sq < 64; ++sq) {
 		tsq = sq + 8;
-
+		SqBlocker[WHITE][sq] |= (1ULL << tsq);
         while(tsq < 64) {
             WhitePassedMask[sq] |= (1ULL << tsq);
-            tsq += 8;
-            //SqBlocker[tsq] |= (1ULL << tsq);
+            tsq += 8;        
         }
 
         tsq = sq - 8;
+        SqBlocker[BLACK][sq] |= (1ULL << tsq);
         while(tsq >= 0) {
             BlackPassedMask[sq] |= (1ULL << tsq);
             tsq -= 8;
-            //SqBlocker[tsq] |= (1ULL << tsq);
         }
 
         if(FilesBrd[SQ120(sq)] > FILE_A) {
@@ -130,9 +130,6 @@ void InitEvalMasks() {
             }
         }
 	}
-//	for(sq = 0; sq < 64; ++sq) {
-		///PrintBitBoard(SqBlocker[sq]);
-	//}
 }
 
 void InitFilesRanksBrd() {
@@ -221,8 +218,14 @@ void InitSq120To64() {
 
 U64 kingAreaMasks(int colour, int sq) {
     ASSERT(0 <= colour && colour < BOTH);
-    ASSERT(0 <= sq && sq < OFFBOARD);
+    ASSERT(0 <= sq && sq < 64);
     return KingAreaMasks[colour][sq];
+}
+
+U64 pawnAttacks(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < 64);
+    return PawnAttacks[colour][sq];
 }
 
 void setPcsq() {
@@ -231,8 +234,36 @@ void setPcsq() {
 
     	if(!SQOFFBOARD(i)) {
 	    	/* set the piece/square tables for each piece type */
+	    	for(int l = 0; l < 13; l++) {
+	    		e->mgPst[l][i] = 0;
+	    	}
+	    	e->mgPst[wP][i] = PawnTable[SQ64(i)];
+	        e->mgPst[bP][i] = PawnTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wN][i] = KnightTable[SQ64(i)];
+	        e->mgPst[bN][i] = KnightTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wB][i] = BishopTable[SQ64(i)];
+	        e->mgPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wR][i] = RookTable[SQ64(i)];
+	        e->mgPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wQ][i] = QueenTable[SQ64(i)];
+	        e->mgPst[bQ][i] = QueenTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wK][i] = KingMG[SQ64(i)];
+	        e->mgPst[bK][i] = KingMG[MIRROR64(SQ64(i))];
 
-	        e->mgPst[wP][i] = PawnTableMG[SQ64(i)];
+	        e->egPst[wP][i] = PawnTable[SQ64(i)];
+	        e->egPst[bP][i] = PawnTable[MIRROR64(SQ64(i))];
+	        e->egPst[wN][i] = KnightTable[SQ64(i)];
+	        e->egPst[bN][i] = KnightTable[MIRROR64(SQ64(i))];
+	        e->egPst[wB][i] = BishopTable[SQ64(i)];
+	        e->egPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
+	        e->egPst[wR][i] = RookTable[SQ64(i)];
+	        e->egPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
+	        e->egPst[wQ][i] = QueenTable[SQ64(i)];
+	        e->egPst[bQ][i] = QueenTable[MIRROR64(SQ64(i))];
+	        e->egPst[wK][i] = KingEG[SQ64(i)];
+	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];
+
+	        /*e->mgPst[wP][i] = PawnTableMG[SQ64(i)];
 	        e->mgPst[bP][i] = PawnTableMG[MIRROR64(SQ64(i))];
 	        e->mgPst[wN][i] = KnightTableMG[SQ64(i)];
 	        e->mgPst[bN][i] = KnightTableMG[MIRROR64(SQ64(i))];
@@ -256,7 +287,7 @@ void setPcsq() {
 	        e->egPst[wQ][i] = QueenTableEG[SQ64(i)];
 	        e->egPst[bQ][i] = QueenTableEG[MIRROR64(SQ64(i))];
 	        e->egPst[wK][i] = KingEG[SQ64(i)];
-	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];
+	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];*/
     	}
         
     }
@@ -273,5 +304,6 @@ void AllInit() {
 	//InitPolyBook();
 	setSquaresNearKing();
 	KingAreaMask();
+	PawnAttacksMasks();
 	setPcsq();
 }

@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "defs.h"
 #include "string.h"
+#include <math.h>
 
 #define INPUTBUFFER 400 * 6
 
@@ -11,7 +12,7 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 	info->starttime = GetTimeMs();
 
-	int depth = -1, movestogo = 30,movetime = -1;
+	int depth = -1, movestogo = 0,movetime = -1;
 	int time = -1, inc = 0, myTime = 0, idealUsage = 0, MoveOverhead = 200;
     char *ptr = NULL;
 	info->timeset = FALSE;
@@ -57,17 +58,19 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 	if(time != -1) {
 		info->timeset = TRUE;
-				
-		if(inc != 0) {
-			idealUsage = time / 25 + inc - 4;
+
+		TimeManagementInit(info, time, inc, pos->gamePly, movestogo);
+
+		/*if(inc != 0) {
+			idealUsage = time / movestogo + inc - 4;
 		} else {
 			idealUsage = (time + 100 ) / 40;
 		}
 
-		idealUsage = MIN(idealUsage, time - 1000);
+		idealUsage = MIN(idealUsage, time - 1000);*/
 		//time /= movestogo[pos->side];
 		//time -= 50;
-		info->stoptime = info->starttime + idealUsage;
+		info->stoptime = info->starttime + info->optimumTime;
 	} 
 
 	if(depth == -1) {
@@ -119,7 +122,6 @@ void ParsePosition(char* lineIn, S_BOARD *pos) {
 void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 	info->GAME_MODE = UCIMODE;
-	//S_OPTIONS EngineOptions[1];
 
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);

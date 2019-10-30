@@ -55,6 +55,13 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 	} else {
 		CLRBIT(pos->pawns[col],SQ64(sq));
 		CLRBIT(pos->pawns[BOTH],SQ64(sq));
+
+		int ne = (col == WHITE ? 9 : -9);
+		int nw = (col == WHITE ? 11 : -11);
+		pos->pawn_ctrl[col][sq + ne]--;
+		pos->pawn_ctrl[col][sq + nw]--;
+		//CLRBIT(PawnAttacks[col][SQ64(sq + ne)]);
+		//CLRBIT(PawnAttacks[col][SQ64(sq + nw)]);
 	}
 
 	/*if ( PiecePawn[pce] ) {
@@ -69,11 +76,12 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 
 		--pos->pawns_on_file[col][FilesBrd[sq]];
 		--pos->pawns_on_rank[col][RanksBrd[sq]];
-    }
-
-    pos->pcsq_mg[col] -= e->mgPst[pce][sq];
-    pos->pcsq_eg[col] -= e->egPst[pce][sq];*/
-	
+    }*/
+	if(pce != EMPTY) {
+		pos->pcsq_mg[col] -= e->mgPst[pce][sq];
+    	pos->pcsq_eg[col] -= e->egPst[pce][sq];
+	}
+    
 	for(index = 0; index < pos->pceNum[pce]; ++index) {
 		if(pos->pList[pce][index] == sq) {
 			t_pceNum = index;
@@ -113,6 +121,14 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 	} else {
 		SETBIT(pos->pawns[col],SQ64(sq));
 		SETBIT(pos->pawns[BOTH],SQ64(sq));
+
+		int ne = (col == WHITE ? 9 : -9);
+		int nw = (col == WHITE ? 11 : -11);
+		//pawnAttacks(col, SQ64(sq));
+		pos->pawn_ctrl[col][sq + ne]++;
+		pos->pawn_ctrl[col][sq + nw]++;
+		//SETBIT(PawnAttacks[col][SQ64(sq + ne)]);
+		//SETBIT(PawnAttacks[col][SQ64(sq + nw)]);
 	}
 
 	/*if ( PiecePawn[pce] ) {
@@ -129,11 +145,13 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]++;
 			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]++;
 		}
-    }
+    }*/
 
     // update piece-square value
-    pos->pcsq_mg[col] += e->mgPst[pce][sq];
-    pos->pcsq_eg[col] += e->egPst[pce][sq];*/
+    if(pce != EMPTY) {
+    	pos->pcsq_mg[col] += e->mgPst[pce][sq];
+    	pos->pcsq_eg[col] += e->egPst[pce][sq];
+    }    
 	
 	pos->material[col] += PieceVal[pce];
 	pos->materialeg[col] += PieceValEG[pce];
@@ -176,10 +194,9 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 
 		--pos->pawns_on_file[color][FilesBrd[from]];
 		--pos->pawns_on_rank[color][RanksBrd[from]];
-    }
-
-    pos->pcsq_mg[color] -= e->mgPst[piece][from];
-    pos->pcsq_eg[color] -= e->egPst[piece][from];*/
+    }*/
+	pos->pcsq_mg[col] -= e->mgPst[pce][from];
+	pos->pcsq_eg[col] -= e->egPst[pce][from];
 
 	HASH_PCE(pce,to);
 	pos->pieces[to] = pce;
@@ -203,17 +220,29 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 			if (!SQOFFBOARD(to + SE)) pos->pawn_ctrl[BLACK][to + SE]++;
 			if (!SQOFFBOARD(to + SW)) pos->pawn_ctrl[BLACK][to + SW]++;
 		}
-    }
+    }*/
 
     // update piece-square value
-    pos->pcsq_mg[color] += e->mgPst[piece][to];
-    pos->pcsq_eg[color] += e->egPst[piece][to];*/
+	pos->pcsq_mg[col] += e->mgPst[pce][to];
+	pos->pcsq_eg[col] += e->egPst[pce][to];
+
 	
 	if(!PieceBig[pce]) {
 		CLRBIT(pos->pawns[col],SQ64(from));
 		CLRBIT(pos->pawns[BOTH],SQ64(from));
 		SETBIT(pos->pawns[col],SQ64(to));
-		SETBIT(pos->pawns[BOTH],SQ64(to));		
+		SETBIT(pos->pawns[BOTH],SQ64(to));
+
+		int ne = (col == WHITE ? 9 : -9);
+		int nw = (col == WHITE ? 11 : -11);
+		pos->pawn_ctrl[col][from + ne]--;
+		pos->pawn_ctrl[col][from + nw]--;
+		pos->pawn_ctrl[col][to + ne]++;
+		pos->pawn_ctrl[col][to + nw]++;
+		//CLRBIT(PawnAttacks[col][SQ64(from + ne)]);
+		//CLRBIT(PawnAttacks[col][SQ64(from + nw)]);
+		//SETBIT(PawnAttacks[col][SQ64(to + ne)]);
+		//SETBIT(PawnAttacks[col][SQ64(to + nw)]);
 	}    
 	
 	for(index = 0; index < pos->pceNum[pce]; ++index) {
@@ -304,6 +333,7 @@ int MakeMove(S_BOARD *pos, int move) {
     }
 
 	pos->hisPly++;
+	pos->gamePly++;
 	pos->ply++;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
@@ -363,6 +393,7 @@ void TakeMove(S_BOARD *pos) {
 	ASSERT(CheckBoard(pos));
 	
 	pos->hisPly--;
+	pos->gamePly--;
     pos->ply--;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);

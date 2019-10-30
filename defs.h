@@ -23,6 +23,10 @@ exit(1);}
 
 typedef unsigned long long U64;
 
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
+#define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
+
 #define NAME "PayFleens 1.0.1"
 #define BRD_SQ_NUM 120
 
@@ -33,8 +37,6 @@ typedef unsigned long long U64;
 #define MAXPOSITIONMOVES 256
 #define MAXPLY 128
 #define MAXDEPTH 64
-
-#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 #define INFINITE 32000
 #define ISMATE (INFINITE - 2 * MAXPLY)
@@ -60,6 +62,8 @@ enum {
   A7 = 81, B7, C7, D7, E7, F7, G7, H7,
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
+
+enum { OptimumTime, MaxTime };
 
 enum { FALSE, TRUE };
 
@@ -122,6 +126,7 @@ typedef struct {
 
 	int ply;
 	int hisPly;
+	int gamePly;
 	int reps;
 
 	int castlePerm;
@@ -163,6 +168,8 @@ typedef struct {
 	int staticEval[MAXDEPTH];
 
 	int timeset;
+	int optimumTime;
+	int maximumTime;
 	int movestogo;
 
 	long nodes;
@@ -210,8 +217,8 @@ typedef struct {
 
 typedef struct {
 	int sqNearK [2][120][120];
-	int mgPst[13][64];
-	int egPst[13][64];
+	int mgPst[13][120];
+	int egPst[13][120];
 } EVAL_DATA;
 /* GAME MOVE */
 
@@ -338,20 +345,20 @@ extern U64 RankBBMask[8];
 extern U64 BlackPassedMask[64];
 extern U64 WhitePassedMask[64];
 extern U64 IsolatedMask[64];
-extern U64 SqBlocker[64];
+extern U64 SqBlocker[2][64];
+extern U64 PawnAttacks[2][64];
 
 extern U64 KingAreaMasks[BOTH][64];
 extern void KingAreaMask();
 extern U64 kingAreaMasks(int colour, int sq);
+extern void PawnAttacksMasks();
+extern U64 pawnAttacks(int colour, int sq);
 
 extern int LMRTable[64][64]; // Init LMR Table 
 
 extern S_OPTIONS EngineOptions[1];
 extern EVAL_DATA e[1];
 extern eval_info ei[1];
-
-#define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
-#define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
 /* FUNCTIONS */
 
@@ -374,6 +381,7 @@ extern void PrintBoard(const S_BOARD *pos);
 extern void UpdateListsMaterial(S_BOARD *pos);
 extern int CheckBoard(const S_BOARD *pos);
 extern void MirrorBoard(S_BOARD *pos);
+extern void PrintNonBits(const S_BOARD *pos, int side);
 
 // attack.c
 extern int SqAttacked(const int sq, const int side, const S_BOARD *pos);
@@ -440,7 +448,7 @@ extern void printLMR();
 // misc.c
 extern int GetTimeMs();
 extern void ReadInput(S_SEARCHINFO *info);
-
+extern void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, int movestogo);
 // pvtable.c
 extern void InitHashTable(S_HASHTABLE *table, const int MB);
 extern void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, const int depth);
@@ -458,7 +466,6 @@ extern void EvaluateRooks(const S_BOARD *pos);
 extern void EvaluateQueens(const S_BOARD *pos);
 extern void EvaluateKings(const S_BOARD *pos);
 extern void MirrorEvalTest(S_BOARD *pos);
-extern int REL_SQ(int sq120, int side);
 
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);

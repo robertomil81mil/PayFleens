@@ -21,13 +21,13 @@ const int LoopNonSlideIndex[2] = { 0, 3 };
 
 const int PceDir[13][8] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0 },
+	{  9, 11, 0, 0, 0, 0, 0, 0 },
 	{ -8, -19,	-21, -12, 8, 19, 21, 12 },
 	{ -9, -11, 11, 9, 0, 0, 0, 0 },
 	{ -1, -10,	1, 10, 0, 0, 0, 0 },
 	{ -1, -10,	1, 10, -9, -11, 11, 9 },
 	{ -1, -10,	1, 10, -9, -11, 11, 9 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ -9, -11, 0, 0, 0, 0, 0, 0 },
 	{ -8, -19,	-21, -12, 8, 19, 21, 12 },
 	{ -9, -11, 11, 9, 0, 0, 0, 0 },
 	{ -1, -10,	1, 10, 0, 0, 0, 0 },
@@ -36,7 +36,7 @@ const int PceDir[13][8] = {
 };
 
 const int NumDir[13] = {
- 0, 0, 8, 4, 4, 8, 8, 0, 8, 4, 4, 8, 8
+ 0, 2, 8, 4, 4, 8, 8, 2, 8, 4, 4, 8, 8
 };
 
 /*
@@ -639,6 +639,7 @@ void setSquaresNearKing() {
 }
 
 U64 KingAreaMasks[BOTH][64];
+U64 PawnAttacks[BOTH][64];
 
 void KingAreaMask() {
 	int sq;
@@ -662,6 +663,45 @@ void KingAreaMask() {
 				if(!SQOFFBOARD(t_sq)) {
 					KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 					KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+			}
+		}	
+	}
+}
+
+void PawnAttacksMasks() {
+	int sq;
+	int index;
+	int MobilityCount = 0;
+	int t_sq;
+	int SqAttackedbyThem;
+	int dir;
+	int pce;
+
+	for(sq = 0; sq < 64; ++sq) {
+		PawnAttacks[WHITE][sq] = 0ULL;
+		PawnAttacks[BLACK][sq] = 0ULL;
+	}
+	pce = wP;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				dir = PceDir[pce][index];
+				t_sq = sq + dir;
+				if(!SQOFFBOARD(t_sq)) {
+					PawnAttacks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+			}
+		}	
+	}
+	pce = bP;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				dir = PceDir[pce][index];
+				t_sq = sq + dir;
+				if(!SQOFFBOARD(t_sq)) {
+					PawnAttacks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 				}
 			}
 		}	

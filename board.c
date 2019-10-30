@@ -124,6 +124,9 @@ void UpdateListsMaterial(S_BOARD *pos) {
 		    if( PieceMin[piece] == TRUE) pos->minPce[colour]++;
 		    if( PieceMaj[piece] == TRUE) pos->majPce[colour]++;
 
+		    pos->pcsq_mg[colour] += e->mgPst[piece][sq];
+    		pos->pcsq_eg[colour] += e->egPst[piece][sq];
+
 			pos->material[colour] += PieceVal[piece];
 			pos->materialeg[colour] += PieceValEG[piece];
 
@@ -132,16 +135,27 @@ void UpdateListsMaterial(S_BOARD *pos) {
 			pos->pList[piece][pos->pceNum[piece]] = sq;
 			pos->pceNum[piece]++;
 
+			int ne = (colour == WHITE ? 9 : -9);
+			int nw = (colour == WHITE ? 11 : -11);
 
+			if(piece==wP||piece==bP) {
+				pos->pawn_ctrl[colour][sq + ne]++;
+				pos->pawn_ctrl[colour][sq + nw]++;	
+			}
+			
 			if(piece==wK) pos->KingSq[WHITE] = sq;
 			if(piece==bK) pos->KingSq[BLACK] = sq;
 
 			if(piece==wP) {
 				SETBIT(pos->pawns[WHITE],SQ64(sq));
 				SETBIT(pos->pawns[BOTH],SQ64(sq));
+				//pos->pawn_ctrl[WHITE][sq+9]++;
+				//pos->pawn_ctrl[WHITE][sq+11]++;
 			} else if(piece==bP) {
 				SETBIT(pos->pawns[BLACK],SQ64(sq));
 				SETBIT(pos->pawns[BOTH],SQ64(sq));
+				//pos->pawn_ctrl[BLACK][sq-9]++;
+	    		//pos->pawn_ctrl[BLACK][sq-11]++;
 			}
 		}
 	}
@@ -244,8 +258,27 @@ int ParseFen(char *fen, S_BOARD *pos) {
 
 		pos->enPas = FR2SQ(file,rank);
     }
+    fen += 2;
+
+    if (*fen != ' ') {
+    	int ply = 0;
+		int converted;
+		converted = sscanf(fen, "%d", &ply);
+		pos->fiftyMove = ply;
+		//printf("fiftyMove %d\n",pos->fiftyMove );
+    }
+    fen += 2;
+    if (*fen != ' ') {
+    	int ply = 0;
+		int converted;
+		converted = sscanf(fen, "%d", &ply);
+		pos->gamePly = ply;
+		pos->hisPly = ply;
+		//printf("hisPly %d\n",pos->hisPly );
+    }
 
 	pos->posKey = GeneratePosKey(pos);
+	pos->gamePly = MAX(2 * (pos->gamePly - 1), 0) + (pos->side == BLACK);
 
 	UpdateListsMaterial(pos);
 
@@ -258,6 +291,8 @@ void ResetBoard(S_BOARD *pos) {
 
 	for(index = 0; index < BRD_SQ_NUM; ++index) {
 		pos->pieces[index] = OFFBOARD;
+		pos->pawn_ctrl[WHITE][index] = 0;
+	    pos->pawn_ctrl[BLACK][index] = 0;
 	}
 
 	for(index = 0; index < 64; ++index) {
@@ -270,6 +305,8 @@ void ResetBoard(S_BOARD *pos) {
 		pos->minPce[index] = 0;
 		pos->material[index] = 0;
 		pos->materialeg[index] = 0;
+		pos->pcsq_mg[index] = 0;
+	    pos->pcsq_eg[index] = 0;
 	}
 
 	for(index = 0; index < 3; ++index) {
@@ -324,6 +361,27 @@ void PrintBoard(const S_BOARD *pos) {
 			pos->castlePerm & BQCA ? 'q' : '-'
 			);
 	printf("PosKey:%llX\n",pos->posKey);
+}
+
+void PrintNonBits(const S_BOARD *pos, int side) {
+
+	int sq,file,rank,piece;
+
+	printf("\n%c:\n\n",SideChar[side]);
+
+	for(rank = RANK_8; rank >= RANK_1; rank--) {
+		printf("%d  ",rank+1);
+		for(file = FILE_A; file <= FILE_H; file++) {
+			sq = FR2SQ(file,rank);
+			printf("%3d",pos->pawn_ctrl[side][sq]);
+		}
+		printf("\n");
+	}
+
+	printf("\n   ");
+	for(file = FILE_A; file <= FILE_H; file++) {
+		printf("%3c",'a'+file);
+	}
 }
 
 void MirrorBoard(S_BOARD *pos) {
