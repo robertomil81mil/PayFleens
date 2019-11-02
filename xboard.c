@@ -4,6 +4,27 @@
 #include "defs.h"
 #include "string.h"
 
+void PrintNonBits2(S_BOARD *pos, int side, int sq) {
+
+	int tsq,file,rank,piece;
+
+	printf("\n%c:\n\n",SideChar[side]);
+
+	for(rank = RANK_8; rank >= RANK_1; rank--) {
+		printf("%d  ",rank+1);
+		for(file = FILE_A; file <= FILE_H; file++) {
+			tsq = FR2SQ(file,rank);	
+			printf("%3d",e->sqNearK[side][sq][tsq]);
+		}
+		printf("\n");
+	}
+
+	printf("\n   ");
+	for(file = FILE_A; file <= FILE_H; file++) {
+		printf("%3c",'a'+file);
+	}
+}
+
 int ThreeFoldRep(const S_BOARD *pos) {
 
 	ASSERT(CheckBoard(pos));
@@ -116,19 +137,20 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			if(time != -1) {
 				info->timeset = TRUE;
 
-				TimeManagementInit(info, time, inc, pos->gamePly, movestogo[pos->side]);
-				printf("gamePly %d\n",pos->gamePly );
-				printf("optimumTime %d\n",info->optimumTime );
-				printf("maximumTime %d\n",info->maximumTime );
+				//TimeManagementInit(info, time, inc, pos->gamePly, movestogo[pos->side]);
+				TimeManagementInit(info, time, inc, pos->gamePly, 30);
+				//printf("gamePly %d\n",pos->gamePly );
+				//printf("optimumTime %d\n",info->optimumTime );
+				//printf("maximumTime %d\n",info->maximumTime );
 				
-				if(inc != 0) {
+				/*if(inc != 0) {
 					idealUsage = time / movestogo[pos->side] + inc - 1;
 				} else {
 					idealUsage = (time + 1000) / 40;
 				}
 
 				idealUsage = MIN(idealUsage, time - MoveOverhead);
-				printf("idealUsage %d\n", idealUsage);
+				//printf("idealUsage %d\n", idealUsage);*/
 				//time /= movestogo[pos->side];
 				//time -= 50;
 
@@ -340,9 +362,16 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			PrintBoard(pos);
 			printEval(pos);
 			
+			/*for(int sq = 0; sq < 120; ++sq) {
+				if(!SQOFFBOARD(sq)) {
+					PrintNonBits2(pos, WHITE,sq);
+    				//PrintNonBits2(pos, BLACK,sq);
+				}
+			}*/
+			
 			//MirrorBoard(pos);
 			//PrintBoard(pos);
-			//printf("Eval:%d",EvalPosition(pos));
+			//printEval(pos);
 			continue;
 		}
 

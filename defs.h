@@ -62,6 +62,11 @@ enum {
   A7 = 81, B7, C7, D7, E7, F7, G7, H7,
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
+enum {
+
+    WHITE_SQUARES = 0x55AA55AA55AA55AAull,
+    BLACK_SQUARES = 0xAA55AA55AA55AA55ull,
+};
 
 enum { OptimumTime, MaxTime };
 
@@ -276,6 +281,7 @@ typedef struct {
 /* MACROS */
 
 #define FR2SQ(f,r) ( (21 + (f) ) + ( (r) * 10 ) )
+#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
 #define SQ64(sq120) (Sq120ToSq64[(sq120)])
 #define SQ120(sq64) (Sq64ToSq120[(sq64)])
 #define POP(b) PopBit(b)
@@ -341,6 +347,11 @@ extern int Mirror120[64];
 
 extern U64 FileBBMask[8];
 extern U64 RankBBMask[8];
+extern const U64 KingFlank[FILE_NONE];
+extern const U64 QueenSide;
+extern const U64 CenterFiles;
+extern const U64 KingSide;
+extern const U64 Center;
 
 extern U64 BlackPassedMask[64];
 extern U64 WhitePassedMask[64];

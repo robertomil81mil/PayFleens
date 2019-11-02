@@ -54,6 +54,17 @@ U64 WhitePassedMask[64];
 U64 IsolatedMask[64];
 U64 SqBlocker[2][64];
 
+const U64 QueenSide   =  FileBBMask[FILE_A] | FileBBMask[FILE_B] | FileBBMask[FILE_C] | FileBBMask[FILE_D];
+const U64 CenterFiles =  FileBBMask[FILE_C] | FileBBMask[FILE_D] | FileBBMask[FILE_E] | FileBBMask[FILE_F];
+const U64 KingSide    =  FileBBMask[FILE_E] | FileBBMask[FILE_F] | FileBBMask[FILE_G] | FileBBMask[FILE_H];
+const U64 Center      = (FileBBMask[FILE_D] | FileBBMask[FILE_E]) & (RankBBMask[RANK_4] | RankBBMask[RANK_5]);
+
+const U64 KingFlank[FILE_NONE] = {
+	QueenSide ^ FileBBMask[FILE_D], QueenSide, QueenSide,
+	CenterFiles, CenterFiles,
+	KingSide, KingSide, KingSide ^ FileBBMask[FILE_E]
+};
+
 int SquareDistance[120][120];
 S_OPTIONS EngineOptions[1];
 //EVAL_DATA e[1];
@@ -245,8 +256,8 @@ void setPcsq() {
 	        e->mgPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
 	        e->mgPst[wR][i] = RookTable[SQ64(i)];
 	        e->mgPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
-	        e->mgPst[wQ][i] = QueenTable[SQ64(i)];
-	        e->mgPst[bQ][i] = QueenTable[MIRROR64(SQ64(i))];
+	        e->mgPst[wQ][i] = QueenTableMG[SQ64(i)];
+	        e->mgPst[bQ][i] = QueenTableMG[MIRROR64(SQ64(i))];
 	        e->mgPst[wK][i] = KingMG[SQ64(i)];
 	        e->mgPst[bK][i] = KingMG[MIRROR64(SQ64(i))];
 
@@ -258,8 +269,8 @@ void setPcsq() {
 	        e->egPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
 	        e->egPst[wR][i] = RookTable[SQ64(i)];
 	        e->egPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
-	        e->egPst[wQ][i] = QueenTable[SQ64(i)];
-	        e->egPst[bQ][i] = QueenTable[MIRROR64(SQ64(i))];
+	        e->egPst[wQ][i] = QueenTableEG[SQ64(i)];
+	        e->egPst[bQ][i] = QueenTableEG[MIRROR64(SQ64(i))];
 	        e->egPst[wK][i] = KingEG[SQ64(i)];
 	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];
 

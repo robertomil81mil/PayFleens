@@ -4,7 +4,6 @@
 #include "defs.h"
 
 #define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
-#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
 
 EVAL_DATA e[1];
 
@@ -603,10 +602,10 @@ int moveBestCaseValue(const S_BOARD *pos) {
 }
 
 void setSquaresNearKing() {
+
     for (int i = 0; i < 120; ++i)
         for (int j = 0; j < 120; ++j)
         {
-
             e->sqNearK[WHITE][i][j] = 0;
             e->sqNearK[BLACK][i][j] = 0;
             // e->sqNearK[side^1] [ KingSq[side^1] ] [t_sq] 
@@ -618,22 +617,84 @@ void setSquaresNearKing() {
 				||  j == i + EAST  || j == i + WEST 
 				||  j == i + NW    || j == i + NE 
 				||  j == i + SW    || j == i + SE) {
-
-                    e->sqNearK[WHITE][i][j] = 1;
+                	e->sqNearK[WHITE][i][j] = 1;
                     e->sqNearK[BLACK][i][j] = 1;
                 }
 
-                /* squares in front of the white king ring */
+                if (FilesBrd[i] == FILE_A && FilesBrd[j] == FILE_C) {
+
+                	if (j == i + 12
+                	||  j == i + 2 
+                	||  j == i - 8) {
+                		e->sqNearK[WHITE][i][j] = 1;
+                    	e->sqNearK[BLACK][i][j] = 1;
+                	}
+                }
+                if (FilesBrd[i] == FILE_H && FilesBrd[j] == FILE_F) {
+
+                	if (j == i - 12
+                	||  j == i - 2 
+                	||  j == i + 8) {
+                		e->sqNearK[WHITE][i][j] = 1;
+                    	e->sqNearK[BLACK][i][j] = 1;
+                	}
+                }
+                if (RanksBrd[i] == RANK_1) {
+
+                	if (j == i + 19
+                	||  j == i + 20 
+                	||  j == i + 21) {
+                		e->sqNearK[WHITE][i][j] = 1;
+                    	e->sqNearK[BLACK][i][j] = 1;
+                    }
+                    if (FilesBrd[i] == FILE_A) {
+                    	if (j == i + 22) {
+                    		e->sqNearK[WHITE][i][j] = 1;
+                    		e->sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                    if (FilesBrd[i] == FILE_H) {
+                    	if (j == i + 18) {
+                    		e->sqNearK[WHITE][i][j] = 1;
+                    		e->sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                }
+                if (RanksBrd[i] == RANK_8) {
+
+                	if (j == i - 19
+                	||  j == i - 20 
+                	||  j == i - 21) {
+                		e->sqNearK[WHITE][i][j] = 1;
+                    	e->sqNearK[BLACK][i][j] = 1;
+                    }
+                    if (FilesBrd[i] == FILE_A) {
+                    	if (j == i - 18) {
+                    		e->sqNearK[WHITE][i][j] = 1;
+                    		e->sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                    if (FilesBrd[i] == FILE_H) {
+                    	if (j == i - 22) {
+                    		e->sqNearK[WHITE][i][j] = 1;
+                    		e->sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                }
+                		
+               	
+                /* squares in front of the white king ring
                 if (j == i + NORTH + NORTH 
 				||  j == i + NORTH + NE 
 				||  j == i + NORTH + NW)
                     e->sqNearK[WHITE][i][j] = 1;
 
-                /* squares in front of the black king ring */
+                /* squares in front of the black king ring 
                 if (j == i + SOUTH + SOUTH 
 				||  j == i + SOUTH + SE 
 				||  j == i + SOUTH + SW)
                     e->sqNearK[BLACK][i][j] = 1;
+                */
             }
         }
 }
@@ -663,6 +724,86 @@ void KingAreaMask() {
 				if(!SQOFFBOARD(t_sq)) {
 					KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 					KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+				if(FilesBrd[sq] == FILE_A) {
+					if (!SQOFFBOARD(sq+12)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+12));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+12));
+					}
+					if (!SQOFFBOARD(sq+2)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+2));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+2));
+					}
+					if (!SQOFFBOARD(sq-8)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-8));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-8));
+					}
+				}
+				if(FilesBrd[sq] == FILE_H) {
+					if (!SQOFFBOARD(sq-12)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-12));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-12));
+					}
+					if (!SQOFFBOARD(sq-2)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-2));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-2));
+					}
+					if (!SQOFFBOARD(sq+8)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+8));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+8));
+					}
+				}
+				if(RanksBrd[sq] == RANK_1) {
+					if (!SQOFFBOARD(sq+19)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+19));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+19));
+					} 
+					if (!SQOFFBOARD(sq+20)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+20));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+20));
+					} 
+					if (!SQOFFBOARD(sq+21)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+21));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+21));
+					}
+					if(FilesBrd[sq] == FILE_A) {
+						if (!SQOFFBOARD(sq+22)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+22));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+22));
+						}
+					}
+					if(FilesBrd[sq] == FILE_H) {
+						if (!SQOFFBOARD(sq+18)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+18));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+18));
+						}
+					}
+				}
+				if(RanksBrd[sq] == RANK_8) {
+					if (!SQOFFBOARD(sq-19)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-19));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-19));
+					} 
+					if (!SQOFFBOARD(sq-20)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-20));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-20));
+					} 
+					if (!SQOFFBOARD(sq-21)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-21));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-21));
+					}
+					if(FilesBrd[sq] == FILE_A) {
+						if (!SQOFFBOARD(sq-18)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-18));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-18));
+						}
+					}
+					if(FilesBrd[sq] == FILE_H) {
+						if (!SQOFFBOARD(sq-22)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-22));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-22));
+						}
+					}
 				}
 			}
 		}	

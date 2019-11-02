@@ -106,8 +106,10 @@ void MirrorEvalTest(S_BOARD *pos) {
                 printf("\n\n\n");
                 ParseFen(lineIn, pos);
                 PrintBoard(pos);
+                printEval(pos);
                 MirrorBoard(pos);
                 PrintBoard(pos);
+                printEval(pos);
                 printf("\n\nMirror Fail:\n%s\n",lineIn);
                 getchar();
                 return;

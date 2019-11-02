@@ -32,10 +32,22 @@ int MaterialDraw(const S_BOARD *pos) {
   return FALSE;
 }
 
+int popcount(U64 bb) {
+    return __builtin_popcountll(bb);
+}
+
 static int mirrorFile(const int file) {
     static const int Mirror[] = {0,1,2,3,3,2,1,0};
     ASSERT(0 <= file && file < FILE_NONE);
     return Mirror[file];
+}
+
+U64 pawnAdvance(U64 pawns, U64 occupied, int colour) {
+    return ~occupied & pawns;
+}
+
+int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s) {
+	return popcount(pos->pawns[c] & ((BLACK_SQUARES & s) ? BLACK_SQUARES : ~BLACK_SQUARES));
 }
 
 static int getTropism(const int sq1, const int sq2) {
@@ -80,10 +92,6 @@ static int relative_rank(const int c, const int s) {
 
 static int relative_rankBB(const int c, const int s) {
 	return c == WHITE ? RankBBMask[RanksBrd[s]] : 7 - RankBBMask[RanksBrd[s]];
-}
-
-int popcount(U64 bb) {
-    return __builtin_popcountll(bb);
 }
 
 int getlsb(U64 bb) {
@@ -257,7 +265,7 @@ void Pawns(S_BOARD *pos, int side, int pce, int pceNum) {
 	if(att) {
 		//printf("att %d\n", att);
     	ei->attCnt[side] += att;
-    	ei->attckersCnt[side] += 1;
+    	//ei->attckersCnt[side] += 1;
         ei->attWeight[side] += Weight[pce];		
     }
 }
@@ -300,6 +308,12 @@ void Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
 	ei->egTropism[side] += 3 * tropism;	
 	ei->mgMob[side] += 4 * (mobility-4);
     ei->egMob[side] += 4 * (mobility-4);
+
+    int Count = distanceBetween(sq, pos->KingSq[side]);
+    int P1 = (7 * Count) * 100 / 310;
+    int P2 = (8 * Count) * 100 / 310;
+    ei->mgTropism[side] -= P1;
+    ei->egTropism[side] -= P2;
 
 	if(att) {
     	ei->attCnt[side] += att;
@@ -348,13 +362,27 @@ void Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 			t_sq += dir;   
 		}
 	}
+
 	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 1 * tropism;	
-	ei->mgMob[side] += 3 * (mobility-6);
-    ei->egMob[side] += 3 * (mobility-6);
+	ei->mgMob[side] += 3 * (mobility-7);
+    ei->egMob[side] += 3 * (mobility-7);
+
+    int Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
+    int P1 = (BishopPawns * Count) * 100 / 310;
+    int P2 = (BishopPawnsEG * Count) * 100 / 310;
+   
+    ei->mgMob[side] -= P1;
+    ei->egMob[side] -= P2;
+
+    Count = distanceBetween(sq, pos->KingSq[side]);
+    P1 = (7 * Count) * 100 / 310;
+    P2 = (8 * Count) * 100 / 310;
+    ei->mgTropism[side] -= P1;
+    ei->egTropism[side] -= P2;
 
     if(att) {
     	ei->attCnt[side] += att;
@@ -429,8 +457,8 @@ void Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 1 * tropism;	
-	ei->mgMob[side] += 2 * (mobility-6);
-    ei->egMob[side] += 4 * (mobility-6);
+	ei->mgMob[side] += 2 * (mobility-7);
+    ei->egMob[side] += 4 * (mobility-7);
 
 	if (att) {
 		ei->attCnt[side] += att;
@@ -513,8 +541,8 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 4 * tropism;	
-	ei->mgMob[side] += 1 * (mobility-12);
-    ei->egMob[side] += 2 * (mobility-12);
+	ei->mgMob[side] += 1 * (mobility-14);
+    ei->egMob[side] += 2 * (mobility-14);
 
 	if (att) {
 		ei->attCnt[side] += att;
@@ -584,12 +612,13 @@ void EvaluateKings(const S_BOARD *pos) {
 	//PrintBitBoard(ei->kingAreas[BLACK]);
 	if (ei->attckersCnt[BLACK] > 1 - pos->pceNum[bQ]) {
 	
-		float scaledAttackCounts = 9.0 * ei->attCnt[BLACK] / CountBits(ei->kingAreas[WHITE]) + 1;
+		float scaledAttackCounts = 9.0 * ei->attCnt[BLACK] / popcount(ei->kingAreas[WHITE]) + 1;
 		count = ei->attckersCnt[BLACK] * ei->attWeight[BLACK];
 		count += 44 * scaledAttackCounts
-			  + -22 * CountBits(pos->pawns[WHITE] & ei->kingAreas[WHITE]);
+			  + -22 * popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]);
 
 		//printf("BLACK attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[BLACK], ei->attckersCnt[BLACK], ei->attWeight[BLACK]);
+		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]) );
 		if(count > 0) {
 			//printf("count %d\n", count);
 			ei->KD[BLACK] += count * count / 720;
@@ -598,11 +627,12 @@ void EvaluateKings(const S_BOARD *pos) {
 	}
     if (ei->attckersCnt[WHITE] > 1 - pos->pceNum[wQ]) {
     
-    	float scaledAttackCounts = 9.0 * ei->attCnt[WHITE] / CountBits(ei->kingAreas[BLACK]) + 1;
+    	float scaledAttackCounts = 9.0 * ei->attCnt[WHITE] / popcount(ei->kingAreas[BLACK]) + 1;
 		count = ei->attckersCnt[WHITE] * ei->attWeight[WHITE];
 		//printf(" WHITE attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[WHITE], ei->attckersCnt[WHITE], ei->attWeight[WHITE]);
 		count += 44 * scaledAttackCounts
-		      + -22 * CountBits(pos->pawns[BLACK] & ei->kingAreas[BLACK]);
+		      + -22 * popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]);
+		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]) );
 		if(count > 0) {
 			//printf("count2 %d\n",count );
 			ei->KD[WHITE] += count * count / 720;
@@ -616,6 +646,11 @@ void EvaluateKings(const S_BOARD *pos) {
 	//ei->PSQTMG[WHITE] += KingMG[SQ64(sq)];
 	//ei->PSQTEG[WHITE] += KingEG[SQ64(sq)];
 
+	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[sq]])) { 
+		ei->mgMob[side] -= 8;
+		ei->egMob[side] -= 44;
+	}
+
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
   	for (int file = center - 1; file <= center + 1; ++file) {
   		//printf("file %c\n",'a' + file);
@@ -645,7 +680,7 @@ void EvaluateKings(const S_BOARD *pos) {
         	//printf("bonus UnblockedStorm %d\n", bonus);
       	}
       	bonus *= 100;
-        bonus /= 310;
+        bonus /= 410;
       	ei->pkeval[side] += bonus;
   	}
 
@@ -655,6 +690,11 @@ void EvaluateKings(const S_BOARD *pos) {
 	//ei->PSQTMG[BLACK] += KingMG[MIRROR64(SQ64(sq))];
 	//ei->PSQTEG[BLACK] += KingEG[MIRROR64(SQ64(sq))];
 	//printf("\n\nBLACK" );
+	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[sq]])) { 
+		ei->mgMob[side] -= 8;
+		ei->egMob[side] -= 44;
+	}
+
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
   	for (int file = center - 1; file <= center + 1; ++file) {
   		//printf("file %c\n",'a' + file);
@@ -684,7 +724,7 @@ void EvaluateKings(const S_BOARD *pos) {
         	//printf("bonus UnblockedStorm %d\n", bonus);
       	}
       	bonus *= 100;
-        bonus /= 310;
+        bonus /= 410;
       	ei->pkeval[side] += bonus;
   	}
 }
@@ -1083,9 +1123,10 @@ int EvalPosition(S_BOARD *pos) {
 	int phase;
 	int mgScore = 0, egScore = 0;
 
-	phase = 24 - 4 * pos->pceNum[wQ] + pos->pceNum[bQ]
-               - 2 * pos->pceNum[wR] + pos->pceNum[bR]
-               - 1 * pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB];
+	phase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
+               - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
+               - 1 * (pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB]);
+
     phase = (phase * 256 + 12) / 24;
 			
 	for(int side = WHITE; side <= BLACK; side++) {
@@ -1219,10 +1260,10 @@ void printEval(S_BOARD *pos) {
     printf("Material balance       : %d \n", pos->material[WHITE] - pos->material[BLACK] );
     printf("Material adjustement   : ");
 	printEvalFactor(ei->adjustMaterial[WHITE], ei->adjustMaterial[BLACK]);
-    printf("Mg Piece/square tables : ");
+    /*printf("Mg Piece/square tables : ");
     printEvalFactor(ei->PSQTMG[WHITE], ei->PSQTMG[BLACK]);
     printf("Eg Piece/square tables : ");
-    printEvalFactor(ei->PSQTEG[WHITE], ei->PSQTEG[BLACK]);
+    printEvalFactor(ei->PSQTEG[WHITE], ei->PSQTEG[BLACK]);*/
     printf("Mg PSQT                : ");
     printEvalFactor(pos->pcsq_mg[WHITE], pos->pcsq_mg[BLACK]);
     printf("Eg PSQT                : ");

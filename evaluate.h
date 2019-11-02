@@ -2,7 +2,6 @@
 
 #ifndef EVAL_H
 #define EVAL_H
-#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
 #define SAME_FILE(sq,sq2) ( ( FileBBMask[FilesBrd[(sq)]] == FileBBMask[FilesBrd[(sq2)]] ) ? (1) : (0) )
 #define SAME_RANK(sq,sq2) ( ( RankBBMask[RanksBrd[(sq)]] == RankBBMask[RanksBrd[(sq2)]] ) ? (1) : (0) )
 #define R_BIGER_R2(sq,sq2) ( ( RankBBMask[RanksBrd[(sq)]] > RankBBMask[RanksBrd[(sq2)]] ) ? (1) : (0) )
@@ -78,6 +77,10 @@ const int PawnIsolated = 5;
 const int PawnIsolatedEG = 15;
 const int Doubled = 11;
 const int DoubledEG = 56;
+
+const int BishopPawns = 3; 
+const int BishopPawnsEG = 7;
+
 /*const int PawnIsolated = 2;
 const int PawnIsolatedEG = 7;
 const int Doubled = 5;
@@ -281,23 +284,23 @@ const int RookTableEG[64] = {
 };
 
 const int QueenTableMG[64] = {
- 1	,	-2	,	-2	,	1	,	1	,	-2	,	-2	,	1	,
--1	,	2	,	3	,	5	,	5	,	3	,	2	,	-1	,
--1	,	2	,	6	,	3	,	3	,	6	,	2	,	-1	,
-1	,	2	,	4	,	3	,	3	,	4	,	2	,	1	,
-0	,	6	,	5	,	2	,	2	,	5	,	6	,	0	,
--1	,	4	,	2	,	3	,	3	,	2	,	4	,	-1	,
--2	,	2	,	4	,	3	,	3	,	4	,	2	,	-2	,
-0	,	0	,	0	,	0	,	0	,	0	,	0	,	0		
+ 1	,	-2	,	-2	,  	1	,	 1	,	-2	,	-2	,	  1	,
+-1	,	 2	,	  3	, 	5	,	 5	, 	3	,	 2	,	-1	,
+-1	,	 2	,	  6	, 	3	,  	3	,  	6	,	 2	,	-1	,
+  1	,	  2	,	  4	,	  3	,	  3	, 	4	,	 2	,	  1	,
+  0	,	  6	,	  5	,	  2	,	  2	,	  5	,	  6	,	  0	,
+-1	,	 4	,	  2	,	  3	,	  3	, 	2	,	 4	,	-1	,
+-2	,	 2	,	  4	,	  3	,	  3	, 	4	,	 2	,	-2	,
+  0	,	  0	,	  0	,	  0	,	  0	, 	0	,	 0	,	0		
 };
 const int QueenTableEG[64] = {
 -32	,	-26	,	-22	,	-12	,	-12	,	-22	,	-26	,	-32	,
 -25	,	-14	,	-10	,	-1	,	-1	,	-10	,	-14	,	-25	,
--18	,	-8	,	-4	,	1	,	1	,	-4	,	-8	,	-18	,
--10	,	-1	,	6	,	11	,	11	,	6	,	-1	,	-10	,
--13	,	-2	,	4	,	9	,	9	,	4	,	-2	,	-13	,
--17	,	-8	,	-5	,	0	,	0	,	-5	,	-8	,	-17	,
--23	,	-12	,	-11	,	-3	,	-3	,	-11	,	-12	,	-23	,
+-18	,	-8	,	-4	,	  1	,	  1	,	-4	,	-8	,	-18	,
+-10	,	-1	,	 6	,	 11	,	 11	,	  6	,	-1	,	-10	,
+-13	,	-2	,	 4	,	  9	,	  9	,	  4	,	-2	,	-13	,
+-17	,	-8	,	-5	,	  0	,	  0	,	-5	,	-8	,	-17	,
+-23	,	-12	,	-11	,	-3	,	 -3	,	-11	,	-12	,	-23	,
 -35	,	-24	,	-20	,	-16	,	-16	,	-20	,	-24	,	-35		
 };
 
@@ -335,7 +338,9 @@ const int KingMG[64] = {
 	30	,	40	,	22	,	 0	,	 0	,	22	,	40	,	30		
 };
 
-const int Weight[13] = { 0, 10, 38, 24, 20, 4, 0, 10, 38, 24, 20, 4, 0};
+//const int Weight[13] = { 0, 10, 38, 24, 20, 4, 0, 10, 38, 24, 20, 4, 0};
+const int Weight[13] = { 0, 4, 16, 10, 8, 2, 0, 4, 16, 10, 8, 2, 0};
+//const int Weight[13] =   { 0, 4, 16, 6, 10, 8, 0, 4, 16, 6, 10, 8, 0};
 
 static const int SafetyTable[100] = {
      0,  0,   1,   2,   3,   5,   7,   9,  12,  15,
