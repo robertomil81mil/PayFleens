@@ -168,13 +168,8 @@ void Pawns(S_BOARD *pos, int side, int pce, int pceNum) {
 	PassedMask = (side == WHITE ? WhitePassedMask[SQ64(sq)] : BlackPassedMask[SQ64(sq)]);
 	PassedMaskFlip = (side == WHITE ? BlackPassedMask[SQ64(sq)] : WhitePassedMask[SQ64(sq)]);
 
-	/*if (pos->pieces[sq+SE1] == pce ) {
-		supportCount++;
-	} else if (pos->pieces[sq+SW1] == pce) {
-		supportCount++;
-	}*/
 	opposed = (FileBBMask[FilesBrd[sq]] & pos->pawns[side^1]);
-	support = (pos->pieces[sq+SE1] == pce || pos->pieces[sq+SW1] == pce );
+	support = (pos->pawn_ctrl[side][sq]);
 	pawnbrothers = (pos->pieces[sq-1] == pce || pos->pieces[sq+1] == pce);
 
 	//printf("opposed %d\n",bool(opposed) );
@@ -240,17 +235,15 @@ void Pawns(S_BOARD *pos, int side, int pce, int pceNum) {
 		}
 	}
 
-	/*if(support || pawnbrothers) {
-
+	if(support || pawnbrothers) {
 		int v =  Connected[R] * (2 + bool(pawnbrothers) - bool(opposed))
-				+ 21 * supportCount;
+				+ 21 * pos->pawn_ctrl[side][sq];
         v *= 100;
-        v /= 510;
-
-        //printf("supportCount %d v %d v eg %d \n",supportCount, v, v * (R - 2) / 4);
+        v /= 1220;
+        //printf("supportCount %d v %d v eg %d \n",pos->pawn_ctrl[side][sq], v, v * (R - 2) / 4);
 		ei->pawnsMG[side] += v;
 		ei->pawnsEG[side] += v * (R - 2) / 4;
-	}*/
+	}
 
     for(index = 0; index < NumDir[pce]; ++index) {
 		dir = PceDir[pce][index];
@@ -263,10 +256,7 @@ void Pawns(S_BOARD *pos, int side, int pce, int pceNum) {
 	}
 	
 	if(att) {
-		//printf("att %d\n", att);
-    	ei->attCnt[side] += att;
-    	//ei->attckersCnt[side] += 1;
-        ei->attWeight[side] += Weight[pce];		
+    	ei->attCnt[side] += att;	
     }
 }
 
@@ -294,14 +284,12 @@ void Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
 			if(!pos->pawn_ctrl[side^1][t_sq]) {
 				mobility++;
 			}
-			//printf("t_sq %s pawn_ctrl %d\n", PrMove(t_sq),pos->pawn_ctrl[side^1][t_sq]);
 				
 			if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 				att++;
 			}    
 		}
 	}
-	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 3 * tropism;
@@ -310,8 +298,8 @@ void Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
     ei->egMob[side] += 4 * (mobility-4);
 
     int Count = distanceBetween(sq, pos->KingSq[side]);
-    int P1 = (7 * Count) * 100 / 310;
-    int P2 = (8 * Count) * 100 / 310;
+    int P1 = (7 * Count) * 100 / 410;
+    int P2 = (8 * Count) * 100 / 410;
     ei->mgTropism[side] -= P1;
     ei->egTropism[side] -= P2;
 
@@ -327,6 +315,7 @@ void Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 	int index;
 	int t_sq;
 	int dir;
+	int Count, P1, P2;
 
 	int att = 0;
 	int mobility = 0;
@@ -363,24 +352,22 @@ void Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 		}
 	}
 
-	//printf("%1c mobility %d\n",PceChar[pce],mobility );
-
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 1 * tropism;	
-	ei->mgMob[side] += 3 * (mobility-7);
-    ei->egMob[side] += 3 * (mobility-7);
+	ei->mgMob[side] += 3 * (mobility-6);
+    ei->egMob[side] += 3 * (mobility-6);
 
-    int Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
-    int P1 = (BishopPawns * Count) * 100 / 310;
-    int P2 = (BishopPawnsEG * Count) * 100 / 310;
+    Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
+    P1 = (BishopPawns * Count) * 100 / 410;
+    //int P2 = (BishopPawnsEG * Count) * 100 / 410;
    
     ei->mgMob[side] -= P1;
-    ei->egMob[side] -= P2;
+    ei->egMob[side] += P1;
 
     Count = distanceBetween(sq, pos->KingSq[side]);
-    P1 = (7 * Count) * 100 / 310;
-    P2 = (8 * Count) * 100 / 310;
+    P1 = (7 * Count) * 100 / 410;
+    P2 = (8 * Count) * 100 / 410;
     ei->mgTropism[side] -= P1;
     ei->egTropism[side] -= P2;
 
@@ -401,12 +388,12 @@ void Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 	int mobility = 0;
 	int tropism;
 
-	int REL_R7 = (side == WHITE ? RANK_7 : RANK_2);
-	int REL_R8 = (side == WHITE ? RANK_8 : RANK_1);
-
 	sq = pos->pList[pce][pceNum];
 	ASSERT(SqOnBoard(sq));
 	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	int R  = (side == WHITE ? RanksBrd[sq] : 7 - RanksBrd[sq]);
+	int KR = (side == WHITE ? RanksBrd[pos->KingSq[side^1]] : 7 - RanksBrd[pos->KingSq[side^1]]);
 
 	for(index = 0; index < NumDir[pce]; ++index) {
 		dir = PceDir[pce][index];
@@ -434,31 +421,26 @@ void Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 			t_sq += dir;   
 		}
 	}
-	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
 	if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
-		ei->mgMob[side] += RookOpenFile;
-    	ei->egMob[side] += RookOpenFile;
-	    if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			ei->attWeight[side] += 1;
+		ei->mgMob[side] += 22;
+    	ei->egMob[side] += 11;
 	}
 	if(!(pos->pawns[side] & FileBBMask[FilesBrd[sq]])) {
-		ei->mgMob[side] += RookSemiOpenFile;
-    	ei->egMob[side] += RookSemiOpenFile;
-    	if (abs(RanksBrd[sq] - RanksBrd[pos->KingSq[side^1]] ) < 2) 
-			ei->attWeight[side] += 2;
+		ei->mgMob[side] += 10;
+    	ei->egMob[side] += 3;
 	}
 
-	if((RankBBMask[RanksBrd[sq]] == REL_R7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == REL_R8)) {
-		ei->mgMob[side] += 20;
-		ei->egMob[side] += 30;
+	if((R == RANK_7 && KR == RANK_8)) {
+		ei->mgMob[side] += 8;
+		ei->egMob[side] += 16;
 	}
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 1 * tropism;	
-	ei->mgMob[side] += 2 * (mobility-7);
-    ei->egMob[side] += 4 * (mobility-7);
+	ei->mgMob[side] += 2 * (mobility-6);
+    ei->egMob[side] += 4 * (mobility-6);
 
 	if (att) {
 		ei->attCnt[side] += att;
@@ -479,15 +461,15 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 	int KNIGHT, BISHOP;
 
-	int REL_R7 = (side == WHITE ? RANK_7 : RANK_2);
-	int REL_R8 = (side == WHITE ? RANK_8 : RANK_1);
-	int REL_R2 = (side == WHITE ? RANK_2 : RANK_7);
 	KNIGHT = (side == WHITE ? wN : bN);
 	BISHOP = (side == WHITE ? wB : bB);
 
 	sq = pos->pList[pce][pceNum];
 	ASSERT(SqOnBoard(sq));
 	ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+	int R  = (side == WHITE ? RanksBrd[sq] : 7 - RanksBrd[sq]);
+	//int KR = (side == WHITE ? RanksBrd[pos->KingSq[side^1]] : 7 - RanksBrd[pos->KingSq[side^1]]);
 
 	for(index = 0; index < NumDir[pce]; ++index) {
 		dir = PceDir[pce][index];
@@ -515,9 +497,8 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 			t_sq += dir;   
 		}
 	}
-	//printf("%1c mobility %d\n",PceChar[pce],mobility );
 
-	if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+	/*if(!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
 		ei->mgMob[side] += QueenOpenFile;
     	ei->egMob[side] += QueenOpenFile;
 	}
@@ -526,12 +507,12 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     	ei->egMob[side] += QueenSemiOpenFile;
 	}
 
-	if((RankBBMask[RanksBrd[sq]] == REL_R7 && RankBBMask[RanksBrd[pos->KingSq[side^1]]] == REL_R8)) {
+	if((R == RANK_7 && KR == RANK_8)) {
 		ei->mgMob[side] += 5;
 		ei->egMob[side] += 10;
-	}
+	}*/
 
-	if (RanksBrd[sq] > REL_R2) {
+	if (R > RANK_2) {
 		if(isPiece(side, KNIGHT, REL_SQ(side,B1), pos)) ei->positionalThemes[side] -= 2;
 		if(isPiece(side, BISHOP, REL_SQ(side,C1), pos)) ei->positionalThemes[side] -= 2;
 		if(isPiece(side, BISHOP, REL_SQ(side,F1), pos)) ei->positionalThemes[side] -= 2;
@@ -541,8 +522,8 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	ei->mgTropism[side] += 2 * tropism;
 	ei->egTropism[side] += 4 * tropism;	
-	ei->mgMob[side] += 1 * (mobility-14);
-    ei->egMob[side] += 2 * (mobility-14);
+	ei->mgMob[side] += 1 * (mobility-12);
+    ei->egMob[side] += 2 * (mobility-12);
 
 	if (att) {
 		ei->attCnt[side] += att;
@@ -596,49 +577,14 @@ void pieces(S_BOARD *pos) {
 }
 
 void EvaluateKings(const S_BOARD *pos) {
-	int score = 0;
 	int pce;
-	int pceNum2, sq2;
 	int sq;
 	int ourDist, theirDist, blocked;
 	U64 ours;
 	U64 theirs;
-	int PAWN, PAWNOPPO;
 	int side;
 	int count;
 	int center;
-
-   	//PrintBitBoard(ei->kingAreas[WHITE]);
-	//PrintBitBoard(ei->kingAreas[BLACK]);
-	if (ei->attckersCnt[BLACK] > 1 - pos->pceNum[bQ]) {
-	
-		float scaledAttackCounts = 9.0 * ei->attCnt[BLACK] / popcount(ei->kingAreas[WHITE]) + 1;
-		count = ei->attckersCnt[BLACK] * ei->attWeight[BLACK];
-		count += 44 * scaledAttackCounts
-			  + -22 * popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]);
-
-		//printf("BLACK attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[BLACK], ei->attckersCnt[BLACK], ei->attWeight[BLACK]);
-		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]) );
-		if(count > 0) {
-			//printf("count %d\n", count);
-			ei->KD[BLACK] += count * count / 720;
-			ei->KDE[BLACK] += count / 20;
-		}
-	}
-    if (ei->attckersCnt[WHITE] > 1 - pos->pceNum[wQ]) {
-    
-    	float scaledAttackCounts = 9.0 * ei->attCnt[WHITE] / popcount(ei->kingAreas[BLACK]) + 1;
-		count = ei->attckersCnt[WHITE] * ei->attWeight[WHITE];
-		//printf(" WHITE attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[WHITE], ei->attckersCnt[WHITE], ei->attWeight[WHITE]);
-		count += 44 * scaledAttackCounts
-		      + -22 * popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]);
-		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]) );
-		if(count > 0) {
-			//printf("count2 %d\n",count );
-			ei->KD[WHITE] += count * count / 720;
-			ei->KDE[WHITE] += count / 20;
-		}
-    }
 
 	pce = wK;
 	side = WHITE;
@@ -727,6 +673,44 @@ void EvaluateKings(const S_BOARD *pos) {
         bonus /= 410;
       	ei->pkeval[side] += bonus;
   	}
+
+  	//PrintBitBoard(ei->kingAreas[WHITE]);
+	//PrintBitBoard(ei->kingAreas[BLACK]);
+	if (ei->attckersCnt[BLACK] > 1 - pos->pceNum[bQ]) {
+	
+		float scaledAttackCounts = 9.0 * ei->attCnt[BLACK] / popcount(ei->kingAreas[WHITE]) + 1;
+		count = ei->attckersCnt[BLACK] * ei->attWeight[BLACK];
+		count += 34  * scaledAttackCounts
+			  + -17  * popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE])
+			  + - 2  * ei->pkeval[WHITE] / 8
+			  +       (ei->mgMob[BLACK] - ei->mgMob[WHITE]);
+			  //+ -176 * !pos->pceNum[bQ];
+
+		//printf("BLACK attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[BLACK], ei->attckersCnt[BLACK], ei->attWeight[BLACK]);
+		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]) );
+		if(count > 0) {
+			//printf("count %d\n", count);
+			ei->KD[BLACK] += count * count / 720;
+			ei->KDE[BLACK] += count / 20;
+		}
+	}
+    if (ei->attckersCnt[WHITE] > 1 - pos->pceNum[wQ]) {
+    
+    	float scaledAttackCounts = 9.0 * ei->attCnt[WHITE] / popcount(ei->kingAreas[BLACK]) + 1;
+		count = ei->attckersCnt[WHITE] * ei->attWeight[WHITE];
+		//printf(" WHITE attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[WHITE], ei->attckersCnt[WHITE], ei->attWeight[WHITE]);
+		count += 34  * scaledAttackCounts
+		      + -17  * popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK])
+		      + - 2  * ei->pkeval[BLACK] / 8
+		      +       (ei->mgMob[WHITE] - ei->mgMob[BLACK]);
+		      //+ -176 * !pos->pceNum[wQ];
+		//printf("scaledAttackCounts %d Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]) );
+		if(count > 0) {
+			//printf("count2 %d\n",count );
+			ei->KD[WHITE] += count * count / 720;
+			ei->KDE[WHITE] += count / 20;
+		}
+    }
 }
 
 int wKingShield(const S_BOARD *pos) {

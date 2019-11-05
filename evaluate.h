@@ -52,26 +52,15 @@ const int RookSemiOpenFile = 5;
 const int RookOnPawn = 10;
 const int QueenOpenFile = 5;
 const int QueenSemiOpenFile = 3;
-const int QueenNonOpenFile = 5;
-const int KingOpenFile = 20;
-const int KingAlmostOpenFile = 15;
-const int KingThirdOpenFile = 13;
-const int KingSemiOpenFile = 10;
-const int KingAlmostSemiOpenFile = 8;
-const int KingThirdSemiOpenFile = 6;
-const int KingSemiOpenFile2 = 4;
-const int KingAlmostSemiOpenFile2 = 2;
-const int KingThirdSemiOpenFile2 = 1;
 const int SHIELD_2 = 10;
 const int SHIELD_3 = 5;
 const int P_NO_SHIELD = 10;
 const int BishopPair = 42;
 const int KnightPair = 11;
-const int Mobility[16] = { -30, -20, -10, -4, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
 const int QueenCheck = 3;
 const int RookCheck = 5;
-const int BishopCheck = 6;  //  Q     R     B   KN|     5     4    4    3
-const int KnightCheck = 7;  // 780  1080  635 790 rook 10, kn 7, q 7, b 6
+const int BishopCheck = 6;
+const int KnightCheck = 7;  
 
 const int PawnIsolated = 5;
 const int PawnIsolatedEG = 15;
@@ -100,7 +89,7 @@ const int WeakUnopposed = 13;
 const int WeakUnopposedEG = 27;
 //const int WeakUnopposed = 6;
 //const int WeakUnopposedEG = 12;
-const int BlockedStorm = 38;
+const int BlockedStorm = 82;
 
 const int P_KING_BLOCKS_ROOK   = 24;
 const int P_BLOCK_CENTRAL_PAWN = 14;
@@ -287,8 +276,8 @@ const int QueenTableMG[64] = {
  1	,	-2	,	-2	,  	1	,	 1	,	-2	,	-2	,	  1	,
 -1	,	 2	,	  3	, 	5	,	 5	, 	3	,	 2	,	-1	,
 -1	,	 2	,	  6	, 	3	,  	3	,  	6	,	 2	,	-1	,
-  1	,	  2	,	  4	,	  3	,	  3	, 	4	,	 2	,	  1	,
-  0	,	  6	,	  5	,	  2	,	  2	,	  5	,	  6	,	  0	,
+1	  ,	  2	,	  4	,	  3	,	  3	, 	4	,	 2	,	  1	,
+0	  ,	  6	,	  5	,	  2	,	  2	,	  5	,	  6	,	  0	,
 -1	,	 4	,	  2	,	  3	,	  3	, 	2	,	 4	,	-1	,
 -2	,	 2	,	  4	,	  3	,	  3	, 	4	,	 2	,	-2	,
   0	,	  0	,	  0	,	  0	,	  0	, 	0	,	 0	,	0		
@@ -338,9 +327,7 @@ const int KingMG[64] = {
 	30	,	40	,	22	,	 0	,	 0	,	22	,	40	,	30		
 };
 
-//const int Weight[13] = { 0, 10, 38, 24, 20, 4, 0, 10, 38, 24, 20, 4, 0};
 const int Weight[13] = { 0, 4, 16, 10, 8, 2, 0, 4, 16, 10, 8, 2, 0};
-//const int Weight[13] =   { 0, 4, 16, 6, 10, 8, 0, 4, 16, 6, 10, 8, 0};
 
 static const int SafetyTable[100] = {
      0,  0,   1,   2,   3,   5,   7,   9,  12,  15,

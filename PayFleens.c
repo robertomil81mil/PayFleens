@@ -44,14 +44,12 @@ int main() {
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);
 
-	/*int ArgNum = 0;
-    
-    for(ArgNum = 0; ArgNum < argc; ++ArgNum) {
-    	if(strncmp(argv[ArgNum], "Book", 4) == 0) {
-    		EngineOptions->UseBook = TRUE;
-    		printf("Book On\n");
-    	}
-    }*/
+    /*for(int sq = 0; sq < 120; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			PrintBitBoard(kingAreaMasks(WHITE, SQ64(sq)));
+    		//PrintNonBits2(pos, BLACK,sq);
+		}
+	}*/
 
 	printf("Welcome to PayFleens! Type 'pay' for console mode...\n");
 
