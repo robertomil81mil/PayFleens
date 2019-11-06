@@ -396,7 +396,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	MAX(0, depth);
 
 	if (!RootNode) {
-		if((IsRepetition(pos) || pos->fiftyMove >= 100 && !InCheck) && pos->ply) {
+		if((IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck) && pos->ply) {
 			return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 		}
 		if(pos->ply > MAXDEPTH - 1) {
@@ -633,6 +633,8 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 	int pvNum = 0;
 	int lastValue;
 
+	S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
 	ClearForSearch(pos,info);
 
 	/*if(EngineOptions->UseBook == TRUE) {
@@ -665,7 +667,9 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 	    		}	
 	    	}
 	    	
-	    	
+	    	if(list->count == 1 && currentDepth > 5) {
+	    		info->stopped = TRUE;
+	    	}
 	    	if(currentDepth == MAXDEPTH - 1) {
 	    		info->stopped = TRUE;
 	    	}
