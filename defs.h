@@ -196,7 +196,7 @@ typedef struct {
 } S_OPTIONS;
 
 typedef struct {
-	int gamePhase;
+	int phase;
 	int mgMob[2];
 	int egMob[2];
 	int mob[2];
@@ -208,10 +208,11 @@ typedef struct {
 	int KDE[2];
 	int mgTropism[2];
 	int egTropism[2];
-	int kingShield[2];
 	int adjustMaterial[2];
 	int blockages[2];
+	int blockagesEG[2];
 	int positionalThemes[2];
+	int positionalThemesEG[2];
 	int pkeval[2];
 	int pawnsMG[2];
 	int pawnsEG[2];

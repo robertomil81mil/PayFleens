@@ -50,6 +50,16 @@ int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s) {
 	return popcount(pos->pawns[c] & ((BLACK_SQUARES & s) ? BLACK_SQUARES : ~BLACK_SQUARES));
 }
 
+bool opposite_colors(int s1, int s2) {
+	return bool(BLACK_SQUARES & s1) != bool(BLACK_SQUARES & s2);
+}
+
+bool opposite_bishops(const S_BOARD *pos) {
+	return  ( pos->pceNum[wB] == 1
+           && pos->pceNum[bB] == 1
+           && opposite_colors(SQ64(pos->pList[wB][0]) , SQ64(pos->pList[bB][0])) );
+}
+
 static int getTropism(const int sq1, const int sq2) {
 	return 7 - (abs(FilesBrd[(sq1)] - FilesBrd[(sq2)]) + abs(RanksBrd[(sq1)] - RanksBrd[(sq2)]));
 }
@@ -113,8 +123,7 @@ int backmost(int colour, U64 b) {
 
 int evaluateScaleFactor(S_BOARD *pos) {
 
-    if (   pos->pceNum[wB] == 1
-    	&& pos->pceNum[bB] == 1) {
+    if ( opposite_bishops(pos) ) {
 
     	if (!pos->pceNum[wN] && !pos->pceNum[bN] ||
     	    !pos->pceNum[wR] && !pos->pceNum[bR] ||
@@ -358,12 +367,15 @@ void Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 	ei->mgMob[side] += 3 * (mobility-6);
     ei->egMob[side] += 3 * (mobility-6);
 
-    Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
-    P1 = (BishopPawns * Count) * 100 / 410;
-    //int P2 = (BishopPawnsEG * Count) * 100 / 410;
-   
-    ei->mgMob[side] -= P1;
-    ei->egMob[side] += P1;
+    if(!opposite_bishops(pos)) {
+
+    	Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
+    	P1 = (3 * Count) * 100 / 410;
+    	P2 = (7 * Count) * 100 / 410;
+
+    	ei->mgMob[side] -= P1;
+    	ei->egMob[side] -= P2;
+    } 
 
     Count = distanceBetween(sq, pos->KingSq[side]);
     P1 = (7 * Count) * 100 / 410;
@@ -513,10 +525,22 @@ void Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	}*/
 
 	if (R > RANK_2) {
-		if(isPiece(side, KNIGHT, REL_SQ(side,B1), pos)) ei->positionalThemes[side] -= 2;
-		if(isPiece(side, BISHOP, REL_SQ(side,C1), pos)) ei->positionalThemes[side] -= 2;
-		if(isPiece(side, BISHOP, REL_SQ(side,F1), pos)) ei->positionalThemes[side] -= 2;
-		if(isPiece(side, KNIGHT, REL_SQ(side,G1), pos)) ei->positionalThemes[side] -= 2;
+		if(isPiece(side, KNIGHT, REL_SQ(side,B1), pos)) {
+			ei->positionalThemes[side] -= 2;
+			ei->positionalThemesEG[side] -= 2;
+		}
+		if(isPiece(side, BISHOP, REL_SQ(side,C1), pos)) {
+			ei->positionalThemes[side] -= 2;
+			ei->positionalThemesEG[side] -= 2;
+		}
+		if(isPiece(side, BISHOP, REL_SQ(side,F1), pos)) {
+			ei->positionalThemes[side] -= 2;
+			ei->positionalThemesEG[side] -= 2;
+		}
+		if(isPiece(side, KNIGHT, REL_SQ(side,G1), pos)) {
+			ei->positionalThemes[side] -= 2;
+			ei->positionalThemesEG[side] -= 2;
+		}
 	}
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
@@ -589,8 +613,6 @@ void EvaluateKings(const S_BOARD *pos) {
 	pce = wK;
 	side = WHITE;
 	sq = pos->pList[pce][0];
-	//ei->PSQTMG[WHITE] += KingMG[SQ64(sq)];
-	//ei->PSQTEG[WHITE] += KingEG[SQ64(sq)];
 
 	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[sq]])) { 
 		ei->mgMob[side] -= 8;
@@ -599,31 +621,21 @@ void EvaluateKings(const S_BOARD *pos) {
 
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
   	for (int file = center - 1; file <= center + 1; ++file) {
-  		//printf("file %c\n",'a' + file);
 
   		ours = (pos->pawns[side] & FileBBMask[file]);
-  		//printf("count %d ours %d\n",popcount(ours),bool(ours));
-  		//printf("ours sq %s\n",PrSq(SQ120(ours)) );
   		int ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
-  		//printf("ourRank %d\n",ourRank );
 
   	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
-  	 	//printf("count %d theirs %d\n",popcount(theirs),bool(theirs));
-  	 	//printf("theirs sq %s\n",PrSq(SQ120(theirs)) );
       	int theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
-      	//printf("theirRank %d\n",theirRank );
 
       	int d = map_to_queenside(file);
       	int bonus = 5;
       	bonus += ShelterStrength[d][ourRank];
-      	//printf("bonus %d\n",bonus );
 
       	if (ourRank && (ourRank == theirRank - 1)) {
       		bonus -= BlockedStorm * int(theirRank == RANK_3);
-        	//printf("bonus BlockedStorm %d\n", bonus);
       	} else {
       		bonus -= UnblockedStorm[d][theirRank];
-        	//printf("bonus UnblockedStorm %d\n", bonus);
       	}
       	bonus *= 100;
         bonus /= 410;
@@ -633,9 +645,7 @@ void EvaluateKings(const S_BOARD *pos) {
 	pce = bK;
 	side = BLACK;
 	sq = pos->pList[pce][0];
-	//ei->PSQTMG[BLACK] += KingMG[MIRROR64(SQ64(sq))];
-	//ei->PSQTEG[BLACK] += KingEG[MIRROR64(SQ64(sq))];
-	//printf("\n\nBLACK" );
+
 	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[sq]])) { 
 		ei->mgMob[side] -= 8;
 		ei->egMob[side] -= 44;
@@ -643,31 +653,21 @@ void EvaluateKings(const S_BOARD *pos) {
 
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
   	for (int file = center - 1; file <= center + 1; ++file) {
-  		//printf("file %c\n",'a' + file);
 
   		ours = (pos->pawns[side] & FileBBMask[file]);
-  		//printf("count %d ours %d\n",popcount(ours),bool(ours));
-  		//printf("ours sq %s\n",PrSq(SQ120(ours)) );
   		int ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
-  		//printf("ourRank %d\n",ourRank );
 
   	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
-  	 	//printf("count %d theirs %d\n",popcount(theirs),bool(theirs));
-  	 	//printf("theirs sq %s\n",PrSq(SQ120(theirs)) );
       	int theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
-      	//printf("theirRank %d\n",theirRank );
 
       	int d = map_to_queenside(file);
       	int bonus = 5;
       	bonus += ShelterStrength[d][ourRank];
-      	//printf("bonus %d\n",bonus );
 
       	if (ourRank && (ourRank == theirRank - 1)) {
       		bonus -= BlockedStorm * int(theirRank == RANK_3);
-        	//printf("bonus BlockedStorm %d\n", bonus);
       	} else {
       		bonus -= UnblockedStorm[d][theirRank];
-        	//printf("bonus UnblockedStorm %d\n", bonus);
       	}
       	bonus *= 100;
         bonus /= 410;
@@ -866,11 +866,11 @@ void blockedPieces(int side, const S_BOARD *pos) {
 	 // bishop on initial square supporting castled king
 	if (isPiece(side, BISHOP, REL_SQ(side,F1),pos)
 	 && isPiece(side, KING, REL_SQ(side,G1),pos)) 
-	   	ei->positionalThemes[side] += RETURNING_BISHOP;
+	   	ei->blockages[side] += RETURNING_BISHOP;
 
 	if (isPiece(side, BISHOP, REL_SQ(side,C1),pos)
 	 && isPiece(side, KING, REL_SQ(side,B1),pos)) 
-	   	ei->positionalThemes[side] += RETURNING_BISHOP;
+	   	ei->blockages[side] += RETURNING_BISHOP;
 
     // uncastled king blocking own rook
     if ( ( isPiece(side, KING, REL_SQ(side,F1),pos) || isPiece(side, KING, REL_SQ(side,G1),pos) )
@@ -964,12 +964,12 @@ void blockedPiecesW(const S_BOARD *pos) {
 	 // bishop on initial square supporting castled king
 	if (pos->pieces[F1] == wB
 	&&  pos->pieces[G1] == wK) {
-	    ei->positionalThemes[side] += RETURNING_BISHOP;
+	    ei->blockages[side] += RETURNING_BISHOP;
 	}
 
 	if (pos->pieces[C1] == wB
 	&&  pos->pieces[B1] == wK) {
-	    ei->positionalThemes[side] += RETURNING_BISHOP;
+	    ei->blockages[side] += RETURNING_BISHOP;
 	}
 
     // uncastled king blocking own rook
@@ -1068,12 +1068,12 @@ void blockedPiecesB(const S_BOARD *pos) {
 	 // bishop on initial square supporting castled king
 	if (pos->pieces[F8] == bB
 	&&  pos->pieces[G8] == bK) {
-	    ei->positionalThemes[side] += RETURNING_BISHOP;
+	    ei->blockages[side] += RETURNING_BISHOP;
 	}
 
 	if (pos->pieces[C8] == bB
 	&&  pos->pieces[B8] == bK) {
-	    ei->positionalThemes[side] += RETURNING_BISHOP;
+	    ei->blockages[side] += RETURNING_BISHOP;
 	}
 
     // uncastled king blocking own rook
@@ -1124,10 +1124,8 @@ int EvalPosition(S_BOARD *pos) {
 		ei->adjustMaterial[side] = 0;
 		ei->blockages[side] = 0;
 		ei->positionalThemes[side] = 0;
+		ei->positionalThemesEG[side] = 0;
 		ei->pkeval[side] = 0;
-		ei->kingShield[side] = 0;
-		ei->PSQTMG[side] = 0;
-		ei->PSQTEG[side] = 0;
 		ei->pawnsMG[side] = 0;
 		ei->pawnsEG[side] = 0;
 		ei->KD[side] = 0;
@@ -1145,18 +1143,17 @@ int EvalPosition(S_BOARD *pos) {
 	mgScore = pos->material[WHITE] + pos->pcsq_mg[WHITE] - pos->material[BLACK] - pos->pcsq_mg[BLACK];
 	egScore = pos->materialeg[WHITE] + pos->pcsq_eg[WHITE] - pos->materialeg[BLACK] - pos->pcsq_eg[BLACK];
 
-	//ei->kingShield[WHITE] = wKingShield(pos);
-    //ei->kingShield[BLACK] = bKingShield(pos);
     blockedPiecesW(pos);
     blockedPiecesB(pos);
 
-	//mgScore += (ei->kingShield[WHITE] - ei->kingShield[BLACK]);
 	mgScore += (ei->pkeval[WHITE] - ei->pkeval[BLACK]);
 
 	mgScore += (ei->mgMob[WHITE] - ei->mgMob[BLACK]);
     egScore += (ei->egMob[WHITE] - ei->egMob[BLACK]);
 	mgScore += (ei->mgTropism[WHITE] - ei->mgTropism[BLACK]);
 	egScore += (ei->egTropism[WHITE] - ei->egTropism[BLACK]);
+    mgScore += (ei->positionalThemes[WHITE] - ei->positionalThemes[BLACK]);
+    egScore += (ei->positionalThemesEG[WHITE] - ei->positionalThemesEG[BLACK]);
 	mgScore += (ei->pawnsMG[WHITE] - ei->pawnsMG[BLACK]);
 	egScore += (ei->pawnsEG[WHITE] - ei->pawnsEG[BLACK]);
     mgScore += (ei->KD[WHITE] - ei->KD[BLACK]);
@@ -1176,7 +1173,6 @@ int EvalPosition(S_BOARD *pos) {
 	score = (mgScore * (256 - phase) + egScore * phase * factor / SCALE_NORMAL) / 256;
 
 	score += (ei->blockages[WHITE] - ei->blockages[BLACK]);
-    score += (ei->positionalThemes[WHITE] - ei->positionalThemes[BLACK]);
 	score += (ei->adjustMaterial[WHITE] - ei->adjustMaterial[BLACK]);
 
 	pos->side == WHITE ? score += TEMPO : score -= TEMPO;
@@ -1266,16 +1262,14 @@ void printEval(S_BOARD *pos) {
     printEvalFactor(ei->pawnsEG[WHITE], ei->pawnsEG[BLACK]);
     printf("Blockages              : ");
     printEvalFactor(ei->blockages[WHITE], ei->blockages[BLACK]);
-    printf("Positional themes      : ");
+    printf("Positional themes Mg   : ");
     printEvalFactor(ei->positionalThemes[WHITE], ei->positionalThemes[BLACK]);
-    /*printf("King Safety            : ");
-    printEvalFactor(SafetyTable[ei->attWeight[WHITE]], SafetyTable[ei->attWeight[BLACK]]);*/
+    printf("Positional themes Eg   : ");
+    printEvalFactor(ei->positionalThemesEG[WHITE], ei->positionalThemesEG[BLACK]);
     printf("King Safety Mg         : ");
   	printEvalFactor(ei->KD[WHITE], ei->KD[BLACK]);
   	printf("King Safety Eg         : ");
   	printEvalFactor(ei->KDE[WHITE], ei->KDE[BLACK]);
-    printf("King Shield            : ");
-    printEvalFactor(ei->kingShield[WHITE], ei->kingShield[BLACK]);
     printf("Pawn King Eval         : ");
     printEvalFactor(ei->pkeval[WHITE], ei->pkeval[BLACK]);
     printf("Tempo                  : ");
