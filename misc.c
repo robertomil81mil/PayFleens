@@ -116,7 +116,7 @@ void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, 
 
     int minThinkingTime = 20;
     int moveOverhead    = 1000;
-    int slowMover       = 84;
+    int slowMover       = 64;
     int hypMyTime;
 
     info->optimumTime = info->maximumTime = MAX(myTime, minThinkingTime);
