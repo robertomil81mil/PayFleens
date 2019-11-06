@@ -3,12 +3,10 @@
 #include "stdio.h"
 #include <math.h>
 #include "defs.h"
-
+#include "evaluate.h"
 
 int rootDepth;
 int LMRTable[64][64]; // Init LMR Table 
-
-const int TEMPO = 10;
 
 const int RazorDepth = 1;
 const int RazorMargin = 325;
@@ -62,6 +60,77 @@ static void PickNextMove(int moveNum, S_MOVELIST *list) {
 	temp = list->moves[moveNum];
 	list->moves[moveNum] = list->moves[bestNum];
 	list->moves[bestNum] = temp;
+}
+
+int isPiece(const int color, const int piece, const int sq, const S_BOARD *pos) {
+    return ( (pos->pieces[sq] == piece) && (PieceCol[pos->pieces[sq]] == color) );
+}
+
+int leaperAttack( int side, int sq, const S_BOARD *pos ) {
+	int t_sq, dir;
+
+	for(int index = 0; index < 8; ++index) {
+		dir = PceDir[wN][index];
+		t_sq = sq + dir;
+		if(!SQOFFBOARD(t_sq) && IsKn(pos->pieces[t_sq]) && PieceCol[pos->pieces[t_sq]] == side ) { 
+			return 1;   
+		}
+	}
+    return 0;
+}
+
+int bishAttack(int side, int sq, int dir, const S_BOARD *pos) {
+	int t_sq = sq + dir;
+
+	while (!SQOFFBOARD(t_sq)) {
+		if (pos->pieces[t_sq] != EMPTY ) {
+			if (PieceCol[pos->pieces[t_sq]] == side 
+			&& (pos->pieces[t_sq] == wB || pos->pieces[t_sq] == bB))
+				return 1;
+			return 0;
+		}
+		t_sq += dir;
+	}
+	return 0;
+}
+
+int badCapture(int move, const S_BOARD *pos) {
+
+	int from = FROMSQ(move);
+    int to = TOSQ(move);
+    int captured = CAPTURED(move);
+
+    /* captures by pawn do not lose material */
+    if (pos->pieces[from] == wP || pos->pieces[from] == bP) return 0;
+
+    /* Captures "lower takes higher" (as well as BxN) are good by definition. */
+    if ( PieceVal[captured] >= PieceVal[pos->pieces[from]] - 50) return 0;
+
+	if (pos->pawn_ctrl[pos->side ^ 1][to]
+	&& PieceVal[captured] + 200 < PieceVal[pos->pieces[from]])
+        return 1;
+
+    if (PieceVal[captured] + 500 < PieceVal[pos->pieces[from]]) {
+		if (leaperAttack(pos->side ^ 1, to, pos)) return 1;
+		if (bishAttack(pos->side ^ 1, to, NE, pos)) return 1;
+		if (bishAttack(pos->side ^ 1, to, NW, pos)) return 1;
+		if (bishAttack(pos->side ^ 1, to, SE, pos)) return 1;
+		if (bishAttack(pos->side ^ 1, to, SW, pos)) return 1;
+	}
+
+    /* if a capture is not processed, it cannot be considered bad */
+    return 0;
+}
+
+int move_canSimplify(int move, const S_BOARD *pos) {
+
+    int captured = CAPTURED(move);
+
+    if ( (captured == wP || captured == bP)
+    ||    pos->material[pos->side^1] - PieceVal[captured] > ENDGAME_MAT )
+    	return 0;
+    else
+    	return 1;
 }
 
 static int IsRepetition(const S_BOARD *pos) {
@@ -175,7 +244,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
 
-	int BestMove, BestScore, value;
+	int BestMove, BestScore, value, captured;
 
 	if(( info->nodes & 1023 ) == 0) {
 		CheckUp(info);
@@ -195,7 +264,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 
 	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
-	if(IsRepetition(pos) || pos->fiftyMove >= 100 && !InCheck) {
+	if(IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck) {
 		return 0;
 	}
 
@@ -228,6 +297,18 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
 
 		PickNextMove(MoveNum, list);
+
+		captured = CAPTURED(list->moves[MoveNum].move);
+
+		if ( ( eval + PieceVal[ captured  ] + 200 < alpha ) 
+		&&   ( pos->material[pos->side^1] - PieceVal[captured] > ENDGAME_MAT ) 
+		&&   ( PROMOTED(list->moves[MoveNum].move) == EMPTY ) )
+            continue;
+
+        if ( badCapture( list->moves[MoveNum].move, pos )
+        &&  !move_canSimplify( list->moves[MoveNum].move, pos )
+        &&  PROMOTED(list->moves[MoveNum].move) == EMPTY )
+            continue;
 
         if ( !MakeMove(pos,list->moves[MoveNum].move))  {
             continue;
