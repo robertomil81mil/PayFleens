@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // xboard.c
 
 #include "stdio.h"
@@ -239,7 +257,6 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			}
 			timeLeft *= 60000;
 			timeLeft += sec * 1000;
-			movestogo[0] = movestogo[1] = 0;
 			if(mps != 0) {
 				movestogo[0] = movestogo[1] = mps;
 			}
@@ -279,7 +296,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		}
 
 		if(!strcmp(command, "usermove")){
-			movestogo[pos->side]--;
+
 			move = ParseMove(inBuf+9, pos);
 			if(move == NOMOVE) continue;
 			MakeMove(pos, move);
@@ -317,6 +334,7 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 			if(movetime != 0) {
 				info->timeset = TRUE;
+				info->optimumTime = movetime;
 				info->stoptime = info->starttime + movetime;
 			}
 
@@ -361,6 +379,7 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(!strcmp(command, "eval")) {
 			PrintBoard(pos);
 			printEval(pos);
+			printf("moveBestCaseValue %d\n", moveBestCaseValue(pos));
 			
 			/*for(int sq = 0; sq < 120; ++sq) {
 				if(!SQOFFBOARD(sq)) {
@@ -372,6 +391,12 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			//MirrorBoard(pos);
 			//PrintBoard(pos);
 			//printEval(pos);
+			continue;
+		}
+
+		if(!strcmp(command, "take")) {
+			engineSide = BOTH;
+			TakeMove(pos);
 			continue;
 		}
 

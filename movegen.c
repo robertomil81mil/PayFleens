@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // movegen.c
 
 #include "stdio.h"
@@ -490,114 +508,37 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
     ASSERT(MoveListOk(list,pos));
 }
 
-void fillSq(const int sq, S_BOARD *pos) {
-
-	int piece, color;
-
-    // place a piece on the board
-    piece = pos->pieces[sq];
-    color = PieceCol[piece];
-
-    ASSERT(color>=WHITE&&color<=BOTH);
-
-    if ( PiecePawn[piece] ) {
-      
-		// update counter of pawns on a given rank and file
-		++pos->pawns_on_file[color][FilesBrd[sq]];
-		++pos->pawns_on_rank[color][RanksBrd[sq]];
-
-		// update squares controlled by pawns
-		if (color == WHITE) {
-			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]++;
-			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]++;
-		} else {
-			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]++;
-			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]++;
-		}
-    }
-
-    if(piece != EMPTY) {
-    	// update piece-square value
-	    pos->pcsq_mg[color] += e->mgPst[piece][sq];
-	    pos->pcsq_eg[color] += e->egPst[piece][sq];
-    }
-}
-
-void clearSq(const int sq, S_BOARD *pos) {
-
-    // set intermediate variables, then do the same
-    // as in fillSq(), only backwards
-
-	int piece, color;
-
-    piece = pos->pieces[sq];
-    color = PieceCol[piece];
-    //ASSERT(PieceValid(piece));
-    ASSERT(color>=WHITE&&color<=BOTH);
-
-    if ( PiecePawn[piece] ) {
-		// update squares controlled by pawns
-		if (color == WHITE) {
-			if (!SQOFFBOARD(sq + NE)) pos->pawn_ctrl[WHITE][sq + NE]--;
-			if (!SQOFFBOARD(sq + NW)) pos->pawn_ctrl[WHITE][sq + NW]--;
-		} else {
-			if (!SQOFFBOARD(sq + SE)) pos->pawn_ctrl[BLACK][sq + SE]--;
-			if (!SQOFFBOARD(sq + SW)) pos->pawn_ctrl[BLACK][sq + SW]--;
-		}
-
-		--pos->pawns_on_file[color][FilesBrd[sq]];
-		--pos->pawns_on_rank[color][RanksBrd[sq]];
-    }
-
-    if(piece != EMPTY) {
-    	pos->pcsq_mg[color] -= e->mgPst[piece][sq];
-    	pos->pcsq_eg[color] -= e->egPst[piece][sq];
-    }
-    
-}
-
 static const int SEEPruningDepth = 8;
 static const int SEEQuietMargin = -80;
 static const int SEENoisyMargin = -18;
-static const int SEEPieceValues[] = {
-    0, 100,  450,  450,  675,
-    1300, 0, 100, 450, 450, 675, 1300, 0
+static const int SEEPieceValues[13] = {
+    0, 100, 450, 450, 675, 1300, 
+    0, 100, 450, 450, 675, 1300, 0
 };
 
 int moveBestCaseValue(const S_BOARD *pos) {
 
     // Assume the opponent has at least a pawn
     int value = SEEPieceValues[wP];
-    int sq;
-    int piece;
 
-    // Check for a higher value target
-    for (piece = bQ; piece >= wP; piece--) { 
-    	if(piece == bK || piece == wK) {
-    		continue;
+    if (pos->side == WHITE) {
+    	// Check for a higher value target
+   		for (int piece = bQ; piece >= bP; piece--) { 
+    		if (pos->pceNum[piece])
+    			{ value = SEEPieceValues[piece]; break; }     
     	}
-    	for(int pceNum = 0; pceNum < pos->pceNum[piece]; ++pceNum) {
-			sq = pos->pList[piece][pceNum];
-			ASSERT(SqOnBoard(sq))
-			// Check for a potential pawn promotion
-			if (   pos->pieces[sq] == wP
-		        &&  PieceCol[pos->pieces[sq]] == (pos->side)
-		        &&  pos->side == WHITE
-		        &&  RanksBrd[sq] == RANK_7)
-		        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
-
-		    if (   pos->pieces[sq] == bP
-		        &&  PieceCol[pos->pieces[sq]] == (pos->side)
-		        && pos->side == BLACK
-		        && RanksBrd[sq] == RANK_2)
-		        value += SEEPieceValues[bQ] - SEEPieceValues[bP];
-
-			while (PieceCol[pos->pieces[sq]] == (pos->side ^ 1)) {// pos->pieces[piece] && pos->side[!pos->turn] 
-            	value = SEEPieceValues[piece];
-            	break;
-           	}	
-		}    
+    } else {
+    	// Check for a higher value target
+    	for (int piece = wQ; piece >= wP; piece--) { 
+    		if (pos->pceNum[piece])
+    			{ value = SEEPieceValues[piece]; break; }     
+    	}
     }
+
+    // Check for a potential pawn promotion
+    if ( pos->pawns[pos->side] & (pos->side == WHITE ? RankBBMask[RANK_7] : RankBBMask[RANK_2]))
+        value += SEEPieceValues[wQ] - SEEPieceValues[wP];
+
     return value;
 }
 
@@ -681,20 +622,6 @@ void setSquaresNearKing() {
                     	}
                     }
                 }
-                		
-               	
-                /* squares in front of the white king ring
-                if (j == i + NORTH + NORTH 
-				||  j == i + NORTH + NE 
-				||  j == i + NORTH + NW)
-                    e->sqNearK[WHITE][i][j] = 1;
-
-                /* squares in front of the black king ring 
-                if (j == i + SOUTH + SOUTH 
-				||  j == i + SOUTH + SE 
-				||  j == i + SOUTH + SW)
-                    e->sqNearK[BLACK][i][j] = 1;
-                */
             }
         }
 }
@@ -847,295 +774,4 @@ void PawnAttacksMasks() {
 			}
 		}	
 	}
-}
-
-int MobilityCountWhiteKn(const S_BOARD *pos,int pce) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int MobilityCount;
-	int t_sq;
-	int SqAttackedbyThem;
-	int dir;
-	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq)) {
-				//SqAttackedbyThem = SqAttackedByPawn(t_sq,BLACK,pos);
-				//if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != WHITE) {
-				if(PieceCol[pos->pieces[t_sq]] != WHITE) {
-					MobilityCount++;
-				}
-			}
-		
-		}
-		
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return MobilityCount;
-}
-
-int KingSqAttackedbyPawnB(const S_BOARD *pos) {
-
-	int t_sq;;
-	//int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-
-	t_sq = SqKIngB - 9; // sq infront left right back to the king
-	int SqAttacked = SqAttackedByPawn(t_sq,BLACK,pos);
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-	
-	t_sq = SqKIngB - 11; // sq infront left right back to the king 
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-
-	t_sq = SqKIngB - 10; // sq infront left right back to the king
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-	return FALSE;
-}
-
-int KingSqAttackedbyPawnW(const S_BOARD *pos) {
-
-	int t_sq;;
-	//int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-
-	t_sq = SqKIngB + 9; // sq infront left right back to the king
-	int SqAttacked = SqAttackedByPawn(t_sq,WHITE,pos);
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-	
-	t_sq = SqKIngB + 11; // sq infront left right back to the king 
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-
-	t_sq = SqKIngB + 10; // sq infront left right back to the king
-	if(SqAttacked == TRUE) {
-		return TRUE;
-	}
-	return FALSE;
-}
-
-int KingSqAttackedbyKnightB(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = bK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngW + dir;
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByKnight(t_sq,BLACK,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return FALSE;
-}
-
-int KingSqAttackedbyKnightW(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = wK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngB + dir; // sq infront left right back to the king
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByKnight(t_sq,WHITE,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	return FALSE;
-}
-
-int KingSqAttackedbyRookQueenB(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = bK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngW + dir; // sq infront left right back to the king
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByRookQueen(t_sq,BLACK,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	
-	return FALSE;
-}
-
-int KingSqAttackedbyRookQueenW(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = wK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngB + dir; // sq infront left right back to the king
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByRookQueen(t_sq,WHITE,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return FALSE;
-}
-
-int KingSqAttackedbyBishopQueenB(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = bK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngW + dir; // sq infront left right back to the king
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByBishopQueen(t_sq,BLACK,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return FALSE;
-}
-
-int KingSqAttackedbyBishopQueenW(const S_BOARD *pos) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int t_sq;;
-	int dir;
-	int SqKIngW = pos->KingSq[WHITE];
-	int SqKIngB = pos->KingSq[BLACK];
-	int pce = wK;
-	
-	for(index = 0; index < NumDir[pce]; ++index) {
-		dir = PceDir[pce][index];
-		t_sq = SqKIngB + dir; // sq infront left right back to the king
-		if(!SQOFFBOARD(t_sq)) {  // sq infront left right back to the king
-			int SqAttacked = SqAttackedByBishopQueen(t_sq,WHITE,pos);
-			if(SqAttacked == TRUE) {
-				return TRUE;
-			}
-		}
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return FALSE;
-}
-int MobilityCountBlackKn(const S_BOARD *pos,int pce) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int MobilityCount;
-	int t_sq;
-	int SqAttackedbyThem;
-	int dir;
-	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			t_sq = sq + dir;
-			if(!SQOFFBOARD(t_sq)) {
-				//SqAttackedbyThem = SqAttackedByPawn(t_sq,WHITE,pos);
-				//if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != BLACK)
-				if(PieceCol[pos->pieces[t_sq]] != BLACK) {
-					MobilityCount++;
-				}
-				//}
-			}
-		
-		}
-		
-	}
-	//printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return MobilityCount;
-}
-
-int MobilityCountWhiteBi(const S_BOARD *pos,int pce) {
-
-	int pceNum;
-	int sq;
-	int index;
-	int MobilityCount;
-	int tf_sq;
-	int t_sq;
-	int SqAttackedbyThem;
-	int dir;
-	
-	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
-		sq = pos->pList[pce][pceNum];
-		ASSERT(SqOnBoard(sq));
-		for(index = 0; index < NumDir[pce]; ++index) {
-			dir = PceDir[pce][index];
-			tf_sq = sq + dir;
-			if(!SQOFFBOARD(tf_sq)) {
-				t_sq = tf_sq;
-			}
-			printf("t_sq:%d",t_sq);
-			SqAttackedbyThem = SqAttackedByPawn(t_sq,BLACK,pos);
-			if(SqAttackedbyThem == FALSE && PieceCol[pos->pieces[t_sq]] != WHITE) {
-				MobilityCount++;
-			}		
-		}
-		
-	}
-	printf("Piece%d:PieceMobility:%d t_sq:%d",pce,MobilityCount,t_sq);
-	return MobilityCount;
 }

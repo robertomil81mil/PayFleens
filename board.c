@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // board.c
 
 #include "stdio.h"
@@ -124,21 +142,20 @@ void UpdateListsMaterial(S_BOARD *pos) {
 		    if( PieceMin[piece] == TRUE) pos->minPce[colour]++;
 		    if( PieceMaj[piece] == TRUE) pos->majPce[colour]++;
 
-		    pos->pcsq_mg[colour] += e->mgPst[piece][sq];
-    		pos->pcsq_eg[colour] += e->egPst[piece][sq];
+		    pos->PSQT[colour] += e->PSQT[piece][sq];
 
 			pos->material[colour] += PieceVal[piece];
 			pos->materialeg[colour] += PieceValEG[piece];
+			pos->mPhases[colour] += PieceValPhases[piece];
 
 			ASSERT(pos->pceNum[piece] < 10 && pos->pceNum[piece] >= 0);
 
 			pos->pList[piece][pos->pceNum[piece]] = sq;
 			pos->pceNum[piece]++;
 
-			int ne = (colour == WHITE ? 9 : -9);
-			int nw = (colour == WHITE ? 11 : -11);
-
 			if(piece==wP||piece==bP) {
+				int ne = (colour == WHITE ? 9 : -9);
+				int nw = (colour == WHITE ? 11 : -11);
 				pos->pawn_ctrl[colour][sq + ne]++;
 				pos->pawn_ctrl[colour][sq + nw]++;	
 			}
@@ -149,13 +166,9 @@ void UpdateListsMaterial(S_BOARD *pos) {
 			if(piece==wP) {
 				SETBIT(pos->pawns[WHITE],SQ64(sq));
 				SETBIT(pos->pawns[BOTH],SQ64(sq));
-				//pos->pawn_ctrl[WHITE][sq+9]++;
-				//pos->pawn_ctrl[WHITE][sq+11]++;
 			} else if(piece==bP) {
 				SETBIT(pos->pawns[BLACK],SQ64(sq));
 				SETBIT(pos->pawns[BOTH],SQ64(sq));
-				//pos->pawn_ctrl[BLACK][sq-9]++;
-	    		//pos->pawn_ctrl[BLACK][sq-11]++;
 			}
 		}
 	}
@@ -265,6 +278,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
 		int converted;
 		converted = sscanf(fen, "%d", &ply);
 		pos->fiftyMove = ply;
+		ASSERT(pos->fiftyMove>=0 && pos->fiftyMove<=50);
 		//printf("fiftyMove %d\n",pos->fiftyMove );
     }
     fen += 2;
@@ -274,6 +288,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
 		converted = sscanf(fen, "%d", &ply);
 		pos->gamePly = ply;
 		pos->hisPly = ply;
+		ASSERT(pos->hisPly>=0 && pos->hisPly<=MAXGAMEMOVES);
 		//printf("hisPly %d\n",pos->hisPly );
     }
 
@@ -305,8 +320,8 @@ void ResetBoard(S_BOARD *pos) {
 		pos->minPce[index] = 0;
 		pos->material[index] = 0;
 		pos->materialeg[index] = 0;
-		pos->pcsq_mg[index] = 0;
-	    pos->pcsq_eg[index] = 0;
+		pos->mPhases[index] = 0;
+		pos->PSQT[index] = 0;
 	}
 
 	for(index = 0; index < 3; ++index) {

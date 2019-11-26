@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef DEFS_H
 #define DEFS_H
 
@@ -39,6 +57,7 @@ typedef unsigned long long U64;
 #define MAXDEPTH 64
 
 #define INFINITE 32000
+#define VALUE_NONE 32001
 #define ISMATE (INFINITE - 2 * MAXPLY)
 #define MATE_IN_MAX (INFINITE - MAXPLY)
 #define MATED_IN_MAX (-INFINITE + MAXPLY)
@@ -47,6 +66,7 @@ typedef unsigned long long U64;
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
 enum { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+
 enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NONE };
 enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NONE };
 
@@ -77,7 +97,6 @@ enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 typedef struct {
 	int move;
 	int score;
-	int mobility;
 } S_MOVE;
 
 typedef struct {
@@ -92,6 +111,7 @@ typedef struct {
 	U64 posKey;
 	int move;
 	int score;
+	int eval;
 	int depth;
 	int flags;
 } S_HASHENTRY;
@@ -120,8 +140,6 @@ typedef struct {
 	int pieces[BRD_SQ_NUM];
 	U64 pawns[3];
 	int pawn_ctrl[2][120];
-	int pawns_on_file[2][8];
-	int pawns_on_rank[2][8];
 
 	int KingSq[2];
 
@@ -142,6 +160,7 @@ typedef struct {
 	int bigPce[2];
 	int majPce[2];
 	int minPce[2];
+	int mPhases[2];
 	int material[2];
 	int materialeg[2];
 
@@ -150,8 +169,7 @@ typedef struct {
 	// piece list
 	int pList[13][10];
 
-	int pcsq_mg[2];
-	int pcsq_eg[2];
+	int PSQT[2];
 
 	S_HASHTABLE HashTable[1];
 	int PvArray[MAXDEPTH];
@@ -185,6 +203,7 @@ typedef struct {
 	float fh;
 	float fhf;
 	int nullCut;
+	int probCut;
 
 	int GAME_MODE;
 	int POST_THINKING;
@@ -197,34 +216,26 @@ typedef struct {
 
 typedef struct {
 	int phase;
-	int mgMob[2];
-	int egMob[2];
-	int mob[2];
+	int Mob[2];
 	int attCnt[2];
 	int attckersCnt[2];
 	int attWeight[2];
 	U64 kingAreas[2];
-	int KD[2];
-	int KDE[2];
-	int mgTropism[2];
-	int egTropism[2];
 	int adjustMaterial[2];
 	int blockages[2];
-	int blockagesEG[2];
-	int positionalThemes[2];
-	int positionalThemesEG[2];
 	int pkeval[2];
-	int pawnsMG[2];
-	int pawnsEG[2];
-	int PSQTMG[2];
-	int PSQTEG[2];
+	int pawns[2];
+	int knights[2];
+	int bishops[2];
+	int	rooks[2];
+	int queens[2];
+	int KingDanger[2];
 
 } eval_info;
 
 typedef struct {
 	int sqNearK [2][120][120];
-	int mgPst[13][120];
-	int egPst[13][120];
+	int PSQT[13][120];
 } EVAL_DATA;
 /* GAME MOVE */
 
@@ -277,7 +288,7 @@ typedef struct {
 #define MFLAGPROM 0xF00000
 
 #define NOMOVE 0
-
+#define NULL_MOVE 15
 
 /* MACROS */
 
@@ -324,6 +335,7 @@ extern int PieceBig[13];
 extern int PieceMaj[13];
 extern int PieceMin[13];
 extern int PieceVal[13];
+extern int PieceValPhases[13];
 extern int PieceValEG[13];
 extern int PieceCol[13];
 extern int PiecePawn[13];
@@ -354,10 +366,9 @@ extern const U64 CenterFiles;
 extern const U64 KingSide;
 extern const U64 Center;
 
-extern U64 BlackPassedMask[64];
-extern U64 WhitePassedMask[64];
+extern U64 PassedPawnMasks[2][64];
+extern U64 OutpostSquareMasks[2][64];
 extern U64 IsolatedMask[64];
-extern U64 SqBlocker[2][64];
 extern U64 PawnAttacks[2][64];
 
 extern U64 KingAreaMasks[BOTH][64];
@@ -365,6 +376,7 @@ extern void KingAreaMask();
 extern U64 kingAreaMasks(int colour, int sq);
 extern void PawnAttacksMasks();
 extern U64 pawnAttacks(int colour, int sq);
+extern U64 outpostSquareMasks(int colour, int sq);
 
 extern int LMRTable[64][64]; // Init LMR Table 
 
@@ -379,7 +391,6 @@ extern void AllInit();
 
 // bitboards.c
 extern void PrintBitBoard(U64 bb);
-extern void PrintSNK(U64 bb);
 extern int PopBit(U64 *bb);
 extern int CountBits(U64 b);
 
@@ -397,9 +408,6 @@ extern void PrintNonBits(const S_BOARD *pos, int side);
 
 // attack.c
 extern int SqAttacked(const int sq, const int side, const S_BOARD *pos);
-extern int MobilityCountWhiteKn(const S_BOARD *pos,int pce);
-extern int MobilityCountBlackKn(const S_BOARD *pos,int pce);
-extern int MobilityCountWhiteBi(const S_BOARD *pos,int pce);
 extern int SqAttackedByPawn(const int sq, const int side, const S_BOARD *pos);
 extern int SqAttackedByBishopQueen(const int sq, const int side, const S_BOARD *pos);
 extern int SqAttackedByRookQueen(const int sq, const int side, const S_BOARD *pos);
@@ -432,16 +440,6 @@ extern int MoveExists(S_BOARD *pos, const int move);
 extern void InitMvvLva();
 extern void setSquaresNearKing();
 extern int moveBestCaseValue(const S_BOARD *pos);
-extern int KingSqAttackedbyPawnB(const S_BOARD *pos);
-extern int KingSqAttackedbyPawnW(const S_BOARD *pos);
-extern int KingSqAttackedbyKnightB(const S_BOARD *pos);
-extern int KingSqAttackedbyKnightW(const S_BOARD *pos);
-extern int KingSqAttackedbyRookQueenB(const S_BOARD *pos);
-extern int KingSqAttackedbyRookQueenW(const S_BOARD *pos);
-extern int KingSqAttackedbyBishopQueenB(const S_BOARD *pos);
-extern int KingSqAttackedbyBishopQueenW(const S_BOARD *pos);
-extern void fillSq(const int sq, S_BOARD *pos);
-extern void clearSq(const int sq, S_BOARD *pos);
 
 // makemove.c
 extern int MakeMove(S_BOARD *pos, int move);
@@ -455,29 +453,25 @@ extern void PerftTest(int depth, S_BOARD *pos);
 // search.c
 extern void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info);
 extern void initLMRTable();
-extern void printLMR();
 
 // misc.c
 extern int GetTimeMs();
 extern void ReadInput(S_SEARCHINFO *info);
 extern void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, int movestogo);
+
 // pvtable.c
 extern void InitHashTable(S_HASHTABLE *table, const int MB);
-extern void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, const int depth);
-extern int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int alpha, int beta, int depth);
+extern void StoreHashEntry(S_BOARD *pos, const int move, int score, const int eval, const int flags, const int depth);
+extern int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int *eval, int *depth, int *flag);
 extern int ProbePvMove(const S_BOARD *pos);
 extern int GetPvLine(const int depth, S_BOARD *pos);
 extern void ClearHashTable(S_HASHTABLE *table);
 
 // evaluate.c
-extern int EvalPosition(S_BOARD *pos);
-extern void printEval(S_BOARD *pos);
-extern void EvaluateKnights(const S_BOARD *pos);
-extern void EvaluateBishops(const S_BOARD *pos);
-extern void EvaluateRooks(const S_BOARD *pos);
-extern void EvaluateQueens(const S_BOARD *pos);
-extern void EvaluateKings(const S_BOARD *pos);
+extern int EvalPosition(const S_BOARD *pos);
+extern void printEval(const S_BOARD *pos);
 extern void MirrorEvalTest(S_BOARD *pos);
+extern void setPcsq32();
 
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
@@ -487,7 +481,6 @@ extern void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern int ThreeFoldRep(const S_BOARD *pos);
 extern int DrawMaterial(const S_BOARD *pos);
-const int Tempo = 0;
 
 // polybook.c
 extern int GetBookMove(S_BOARD *board);

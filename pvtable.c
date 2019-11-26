@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // pvtable.c
 
 #include "stdio.h"
@@ -40,6 +58,7 @@ void ClearHashTable(S_HASHTABLE *table) {
     tableEntry->move = NOMOVE;
     tableEntry->depth = 0;
     tableEntry->score = 0;
+    tableEntry->eval  = 0;
     tableEntry->flags = 0;
   }
   table->newWrite=0;
@@ -66,60 +85,39 @@ void InitHashTable(S_HASHTABLE *table, const int MB) {
 	
 }
 
-int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int alpha, int beta, int depth) {
+int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int *eval, int *depth, int *flag) {
 
 	int index = pos->posKey % pos->HashTable->numEntries;
 	
 	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
-    ASSERT(depth>=1&&depth<=MAXDEPTH);
-    ASSERT(alpha<beta);
-    ASSERT(alpha>=-INFINITE&&alpha<=INFINITE);
-   	ASSERT(beta>=-INFINITE&&beta<=INFINITE);
     ASSERT(pos->ply>=0&&pos->ply<MAXPLY);
-	
-	if( pos->HashTable->pTable[index].posKey == pos->posKey ) {
-		*move = pos->HashTable->pTable[index].move;
-		if(pos->HashTable->pTable[index].depth >= depth){
-			pos->HashTable->hit++;
-			
-			ASSERT(pos->HashTable->pTable[index].depth>=1&&pos->HashTable->pTable[index].depth<MAXDEPTH);
-            ASSERT(pos->HashTable->pTable[index].flags>=HFALPHA&&pos->HashTable->pTable[index].flags<=HFEXACT);
-			
-			*score = pos->HashTable->pTable[index].score;
-			if(*score > ISMATE) *score -= pos->ply;
-            else if(*score < -ISMATE) *score += pos->ply;
-			
-			switch(pos->HashTable->pTable[index].flags) {
-				
-                ASSERT(*score>=-INFINITE&&*score<=INFINITE);
 
-                case HFALPHA: if(*score<=alpha) {
-                    *score=alpha;
-                    return TRUE;
-                    }
-                    break;
-                case HFBETA: if(*score>=beta) {
-                    *score=beta;
-                    return TRUE;
-                    }
-                    break;
-                case HFEXACT:
-                    return TRUE;
-                    break;
-                default: ASSERT(FALSE); break;
-            }
-		}
+    if( pos->HashTable->pTable[index].posKey == pos->posKey ) {
+		ASSERT(pos->HashTable->pTable[index].depth>=0&&pos->HashTable->pTable[index].depth<MAXDEPTH);
+        ASSERT(pos->HashTable->pTable[index].flags>=HFALPHA&&pos->HashTable->pTable[index].flags<=HFEXACT);
+        pos->HashTable->hit++;
+
+		*move  = pos->HashTable->pTable[index].move;
+		*score = pos->HashTable->pTable[index].score;
+		*eval  = pos->HashTable->pTable[index].eval;
+		*depth = pos->HashTable->pTable[index].depth;
+		*flag  = pos->HashTable->pTable[index].flags;
+
+		if(*score > ISMATE) *score -= pos->ply;
+        else if(*score < -ISMATE) *score += pos->ply;
+
+        return 1;
 	}
 	
-	return FALSE;
+	return 0;
 }
 
-void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, const int depth) {
+void StoreHashEntry(S_BOARD *pos, const int move, int score, const int eval, const int flags, const int depth) {
 
 	int index = pos->posKey % pos->HashTable->numEntries;
 	
 	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
-	ASSERT(depth>=1&&depth<MAXDEPTH);
+	ASSERT(depth>=0&&depth<MAXDEPTH);
     ASSERT(flags>=HFALPHA&&flags<=HFEXACT);
     ASSERT(score>=-INFINITE&&score<=INFINITE);
     ASSERT(pos->ply>=0&&pos->ply<MAXPLY);
@@ -137,6 +135,7 @@ void StoreHashEntry(S_BOARD *pos, const int move, int score, const int flags, co
     pos->HashTable->pTable[index].posKey = pos->posKey;
 	pos->HashTable->pTable[index].flags = flags;
 	pos->HashTable->pTable[index].score = score;
+	pos->HashTable->pTable[index].eval  = eval;
 	pos->HashTable->pTable[index].depth = depth;
 }
 

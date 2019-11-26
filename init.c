@@ -1,3 +1,21 @@
+/*
+ *  PayFleens is a UCI chess engine by Roberto Martinez.
+ * 
+ *  Copyright (C) 2019 Roberto Martinez
+ *
+ *  PayFleens is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  PayFleens is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // init.c
 
 #include "defs.h"
@@ -10,28 +28,6 @@
 					(U64)rand() << 30 | \
 					(U64)rand() << 45 | \
 					((U64)rand() & 0xf) << 60 )
-
-int index_black[64] = {
-    A8, B8, C8, D8, E8, F8, G8, H8,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A1, B1, C1, D1, E1, F1, G1, H1
-};
-
-int index_white[64] = {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8
-};
 
 int Sq120ToSq64[BRD_SQ_NUM];
 int Sq64ToSq120[64];
@@ -49,10 +45,9 @@ int RanksBrd[BRD_SQ_NUM];
 U64 FileBBMask[8];
 U64 RankBBMask[8];
 
-U64 BlackPassedMask[64];
-U64 WhitePassedMask[64];
+U64 PassedPawnMasks[2][64];
+U64 OutpostSquareMasks[2][64];
 U64 IsolatedMask[64];
-U64 SqBlocker[2][64];
 
 const U64 QueenSide   =  FileBBMask[FILE_A] | FileBBMask[FILE_B] | FileBBMask[FILE_C] | FileBBMask[FILE_D];
 const U64 CenterFiles =  FileBBMask[FILE_C] | FileBBMask[FILE_D] | FileBBMask[FILE_E] | FileBBMask[FILE_F];
@@ -67,7 +62,6 @@ const U64 KingFlank[FILE_NONE] = {
 
 int SquareDistance[120][120];
 S_OPTIONS EngineOptions[1];
-//EVAL_DATA e[1];
 
 void InitEvalMasks() {
 
@@ -88,24 +82,24 @@ void InitEvalMasks() {
 
 	for(sq = 0; sq < 64; ++sq) {
 		IsolatedMask[sq] = 0ULL;
-		WhitePassedMask[sq] = 0ULL;
-		BlackPassedMask[sq] = 0ULL;
-		SqBlocker[WHITE][sq] = 0ULL;
-		SqBlocker[BLACK][sq] = 0ULL;
+		PassedPawnMasks[WHITE][sq] = 0ULL;
+		PassedPawnMasks[BLACK][sq] = 0ULL;
+		OutpostSquareMasks[WHITE][sq] = 0ULL;
+		OutpostSquareMasks[BLACK][sq] = 0ULL;
     }
 
 	for(sq = 0; sq < 64; ++sq) {
 		tsq = sq + 8;
-		SqBlocker[WHITE][sq] |= (1ULL << tsq);
+		
         while(tsq < 64) {
-            WhitePassedMask[sq] |= (1ULL << tsq);
+            PassedPawnMasks[WHITE][sq] |= (1ULL << tsq);
             tsq += 8;        
         }
 
         tsq = sq - 8;
-        SqBlocker[BLACK][sq] |= (1ULL << tsq);
+     
         while(tsq >= 0) {
-            BlackPassedMask[sq] |= (1ULL << tsq);
+            PassedPawnMasks[BLACK][sq] |= (1ULL << tsq);
             tsq -= 8;
         }
 
@@ -114,13 +108,13 @@ void InitEvalMasks() {
 
             tsq = sq + 7;
             while(tsq < 64) {
-                WhitePassedMask[sq] |= (1ULL << tsq);
+                PassedPawnMasks[WHITE][sq] |= (1ULL << tsq);
                 tsq += 8;
             }
 
             tsq = sq - 9;
             while(tsq >= 0) {
-                BlackPassedMask[sq] |= (1ULL << tsq);
+                PassedPawnMasks[BLACK][sq] |= (1ULL << tsq);
                 tsq -= 8;
             }
         }
@@ -130,17 +124,22 @@ void InitEvalMasks() {
 
             tsq = sq + 9;
             while(tsq < 64) {
-                WhitePassedMask[sq] |= (1ULL << tsq);
+                PassedPawnMasks[WHITE][sq] |= (1ULL << tsq);
                 tsq += 8;
             }
 
             tsq = sq - 7;
             while(tsq >= 0) {
-                BlackPassedMask[sq] |= (1ULL << tsq);
+                PassedPawnMasks[BLACK][sq] |= (1ULL << tsq);
                 tsq -= 8;
             }
         }
 	}
+
+	for (int colour = WHITE; colour <= BLACK; colour++) { 
+        for (int sq = 0; sq < 64; sq++) 
+        	OutpostSquareMasks[colour][sq] = PassedPawnMasks[colour][sq] & ~FileBBMask[FilesBrd[SQ120(sq)]];	
+    }
 }
 
 void InitFilesRanksBrd() {
@@ -233,75 +232,16 @@ U64 kingAreaMasks(int colour, int sq) {
     return KingAreaMasks[colour][sq];
 }
 
+U64 outpostSquareMasks(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < 64);
+    return OutpostSquareMasks[colour][sq];
+}
+
 U64 pawnAttacks(int colour, int sq) {
     ASSERT(0 <= colour && colour < BOTH);
     ASSERT(0 <= sq && sq < 64);
     return PawnAttacks[colour][sq];
-}
-
-void setPcsq() {
-
-    for (int i = 0; i < 120; ++i) {
-
-    	if(!SQOFFBOARD(i)) {
-	    	/* set the piece/square tables for each piece type */
-	    	for(int l = 0; l < 13; l++) {
-	    		e->mgPst[l][i] = 0;
-	    	}
-	    	e->mgPst[wP][i] = PawnTable[SQ64(i)];
-	        e->mgPst[bP][i] = PawnTable[MIRROR64(SQ64(i))];
-	        e->mgPst[wN][i] = KnightTable[SQ64(i)];
-	        e->mgPst[bN][i] = KnightTable[MIRROR64(SQ64(i))];
-	        e->mgPst[wB][i] = BishopTable[SQ64(i)];
-	        e->mgPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
-	        e->mgPst[wR][i] = RookTable[SQ64(i)];
-	        e->mgPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
-	        e->mgPst[wQ][i] = QueenTableMG[SQ64(i)];
-	        e->mgPst[bQ][i] = QueenTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wK][i] = KingMG[SQ64(i)];
-	        e->mgPst[bK][i] = KingMG[MIRROR64(SQ64(i))];
-
-	        e->egPst[wP][i] = PawnTable[SQ64(i)];
-	        e->egPst[bP][i] = PawnTable[MIRROR64(SQ64(i))];
-	        e->egPst[wN][i] = KnightTable[SQ64(i)];
-	        e->egPst[bN][i] = KnightTable[MIRROR64(SQ64(i))];
-	        e->egPst[wB][i] = BishopTable[SQ64(i)];
-	        e->egPst[bB][i] = BishopTable[MIRROR64(SQ64(i))];
-	        e->egPst[wR][i] = RookTable[SQ64(i)];
-	        e->egPst[bR][i] = RookTable[MIRROR64(SQ64(i))];
-	        e->egPst[wQ][i] = QueenTableEG[SQ64(i)];
-	        e->egPst[bQ][i] = QueenTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wK][i] = KingEG[SQ64(i)];
-	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];
-
-	        /*e->mgPst[wP][i] = PawnTableMG[SQ64(i)];
-	        e->mgPst[bP][i] = PawnTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wN][i] = KnightTableMG[SQ64(i)];
-	        e->mgPst[bN][i] = KnightTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wB][i] = BishopTableMG[SQ64(i)];
-	        e->mgPst[bB][i] = BishopTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wR][i] = RookTableMG[SQ64(i)];
-	        e->mgPst[bR][i] = RookTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wQ][i] = QueenTableMG[SQ64(i)];
-	        e->mgPst[bQ][i] = QueenTableMG[MIRROR64(SQ64(i))];
-	        e->mgPst[wK][i] = KingMG[SQ64(i)];
-	        e->mgPst[bK][i] = KingMG[MIRROR64(SQ64(i))];
-
-	        e->egPst[wP][i] = PawnTableEG[SQ64(i)];
-	        e->egPst[bP][i] = PawnTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wN][i] = KnightTableEG[SQ64(i)];
-	        e->egPst[bN][i] = KnightTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wB][i] = BishopTableEG[SQ64(i)];
-	        e->egPst[bB][i] = BishopTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wR][i] = RookTableEG[SQ64(i)];
-	        e->egPst[bR][i] = RookTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wQ][i] = QueenTableEG[SQ64(i)];
-	        e->egPst[bQ][i] = QueenTableEG[MIRROR64(SQ64(i))];
-	        e->egPst[wK][i] = KingEG[SQ64(i)];
-	        e->egPst[bK][i] = KingEG[MIRROR64(SQ64(i))];*/
-    	}
-        
-    }
 }
 
 void AllInit() {
@@ -315,6 +255,6 @@ void AllInit() {
 	//InitPolyBook();
 	setSquaresNearKing();
 	KingAreaMask();
-	PawnAttacksMasks();
-	setPcsq();
+	//PawnAttacksMasks();
+	setPcsq32();
 }
