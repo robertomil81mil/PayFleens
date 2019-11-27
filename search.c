@@ -175,7 +175,7 @@ int boardDrawnByRepetition(S_BOARD *board, int height) {
         // Check for matching hash with a fold after the root,
         // or a three fold which occurs in part before the root move
         if ( board->posKey == board->history[i].posKey
-            && (i > board->hisPly - height || ++reps == 2))
+        && (i > board->hisPly - height || ++reps == 2))
             return 1;
     }
 
@@ -233,41 +233,29 @@ static int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
 
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-	int InCheck, MoveNum = 0, played = 0;
-	int eval, value, best, margin;
-	int ttMove = NOMOVE;
-
 	const int PvNode = (alpha != beta - 1);
+
+	info->nodes++;
+	info->seldepth = MAX(info->seldepth, height);
 
 	if(( info->nodes & 1023 ) == 0) {
 		CheckUp(info);
 	}
 
-	info->nodes++;
-	info->seldepth = MAX(info->seldepth, height);
-
-	//printf("pos-ply in QS %d\n",pos->ply );
-
-	InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
+	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
 	if(IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck) {
 		return 0;
 	}
 
 	if(pos->ply > MAXDEPTH - 1) {
-		return eval;
+		return EvalPosition(pos);
 	}
 
-	/*if ((ttHit = ProbeHashEntry(pos, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
-
-        if (     ttBound == HFEXACT
-             || (ttBound == HFALPHA && ttValue >= beta)
-             || (ttBound == HFBETA  && ttValue <= alpha)) {
-        	pos->HashTable->cut++;
-            return ttValue;
-        }            
-    }*/
+	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
+	int MoveNum = 0, played = 0;
+	int eval, value, best, margin;
+	int ttMove = NOMOVE;
 
 	int TFDepth = ((InCheck || depth >= 0) ?  0  : -1);
 
@@ -364,33 +352,32 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
-	
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-	int MoveNum = 0, played = 0, cntMoves = 0;
-	int R, newDepth, rAlpha, rBeta, OldAlpha = alpha;
-	int InCheck, isQuiet, improving, extension, singular;
-	int eval, Score = -INFINITE, BestScore = -INFINITE;
-	int ttMove = NOMOVE, BestMove = NOMOVE;
-	bool excludedMove = false, singularExt = false;
 
-	const int PvNode = (alpha != beta - 1);
-	const int RootNode = (pos->ply == 0);
-	//int starttime = GetTimeMs();
-	InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
-	//printf("pos-ply %d\n",pos->ply );
+	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
 	if(depth <= 0 && !InCheck) {
 		return Quiescence(alpha, beta, depth, pos, info, height);
 	}
 
+	depth = MAX(0, depth);
+
+	info->nodes++;
+	info->seldepth = (height == 0) ? 0 : MAX(info->seldepth, height);
+
 	if(( info->nodes & 1023 ) == 0) {
 		CheckUp(info);
 	}
 
-	info->nodes++;
-	info->seldepth = RootNode ? 0 : MAX(info->seldepth, height);
-
-	MAX(0, depth);
+	const int PvNode = (alpha != beta - 1);
+	const int RootNode = (pos->ply == 0);
+	
+	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
+	int MoveNum = 0, played = 0, cntMoves = 0;
+	int R, newDepth, rAlpha, rBeta, OldAlpha = alpha;
+	int isQuiet, improving, extension, singular;
+	int eval, Score = -INFINITE, BestScore = -INFINITE;
+	int ttMove = NOMOVE, BestMove = NOMOVE;
+	bool excludedMove = false, singularExt = false;
 
 	if (!RootNode) {
 		if((IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck) && pos->ply) {
