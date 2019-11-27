@@ -233,8 +233,6 @@ static int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
 
-	const int PvNode = (alpha != beta - 1);
-
 	info->nodes++;
 	info->seldepth = MAX(info->seldepth, height);
 
@@ -251,6 +249,8 @@ static int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO
 	if(pos->ply > MAXDEPTH - 1) {
 		return EvalPosition(pos);
 	}
+
+	const int PvNode = (alpha != beta - 1);
 
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0;
