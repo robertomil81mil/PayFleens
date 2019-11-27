@@ -37,17 +37,9 @@ static const int ProbCutMargin = 100;
 static const int FutilityMargin = 9;
 static const int FutilityPruningDepth = 8;
 static const int QFutilityMargin = 100;
-static const int WindowDepth   = 5;
-static const int WindowSize    = 14;
+static const int WindowDepth   = 4;
+static const int WindowSize    = 23;
 static const int WindowTimerMS = 2500;
-
-static int MATE_IN(int ply) {
-  return INFINITE - ply;
-}
-               
-static int MATED_IN(int ply) {
-  return -INFINITE + ply;
-}
 
 static void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
@@ -236,40 +228,17 @@ void initLMRTable() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 }
 
-static int lmr( int move, bool InCheck, int depth, S_BOARD *pos) {
-
-	int from = FROMSQ(move);
-    int to = TOSQ(move);
-    int captured = CAPTURED(move);
-    int prPce = PROMOTED(move);
-    int side = pos->side;
-
-	int interesting = (InCheck || captured != EMPTY || prPce != EMPTY || 
-						pos->pieces[to] == wK ||
-						pos->pieces[to] == bK ||
-						side == WHITE && pos->pieces[from] == wP && RanksBrd[to] >= RANK_5 ||
-						side == BLACK && pos->pieces[from] == bP && RanksBrd[to] <= RANK_4);
-	int red = 0;
-	if(!interesting && depth >= 3) {
-		red = 1;
-		if(depth >= 5) {
-			red = depth / 3;
-		}
-	}
-	return red;
-}
-
-static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int height) {
+static int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, int height) {
 
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
 
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0, quiets = 0;
+	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int InCheck, MoveNum = 0, played = 0;
 	int eval, value, best, margin;
 	int ttMove = NOMOVE;
 
-	//const int PvNode = (alpha != beta - 1);
+	const int PvNode = (alpha != beta - 1);
 
 	if(( info->nodes & 1023 ) == 0) {
 		CheckUp(info);
@@ -290,7 +259,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 		return eval;
 	}
 
-	if ((ttHit = ProbeHashEntry(pos, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
+	/*if ((ttHit = ProbeHashEntry(pos, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
 
         if (     ttBound == HFEXACT
              || (ttBound == HFALPHA && ttValue >= beta)
@@ -298,23 +267,27 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
         	pos->HashTable->cut++;
             return ttValue;
         }            
+    }*/
+
+	int TFDepth = ((InCheck || depth >= 0) ?  0  : -1);
+
+    if ((ttHit = ProbeHashEntry(pos, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
+
+        if (ttDepth >= TFDepth && !PvNode) {
+       
+            if (    ttBound == HFEXACT
+                || (ttBound == HFALPHA && ttValue >= beta)
+                || (ttBound == HFBETA  && ttValue <= alpha)) {
+            	pos->HashTable->cut++;
+            	return ttValue;
+            }      
+        }
     }
 
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * TEMPO;
-
-    //int TDepth = InCheck || depth >= 0 ?  0
-    //                                   : -1;
-
-    /*if (  !PvNode
-        && ttHit
-        && ttDepth >= TDepth
-        && ttValue != VALUE_NONE // Only in case of TT access race
-        && (ttValue >= beta ? (ttBound == HFALPHA)
-                            : (ttBound == HFBETA)))
-        return ttValue;*/
+                                                    : -info->staticEval[height-1] + 2 * TEMPO;        
 
     if (ttHit) {
         if ( ttValue != VALUE_NONE
@@ -358,7 +331,7 @@ static int Quiescence(int alpha, int beta, S_BOARD *pos, S_SEARCHINFO *info, int
 		played +=1;
 		info->currentMove[height] = list->moves[MoveNum].move;
 
-		value = -Quiescence( -beta, -alpha, pos, info, height+1);
+		value = -Quiescence( -beta, -alpha, depth-1, pos, info, height+1);
         TakeMove(pos);
 
 		if(info->stopped == TRUE) {
@@ -392,7 +365,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
 	
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0, quiets = 0;
+	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0, cntMoves = 0;
 	int R, newDepth, rAlpha, rBeta, OldAlpha = alpha;
 	int InCheck, isQuiet, improving, extension, singular;
@@ -407,7 +380,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 	//printf("pos-ply %d\n",pos->ply );
 
 	if(depth <= 0 && !InCheck) {
-		return Quiescence(alpha, beta, pos, info, height);
+		return Quiescence(alpha, beta, depth, pos, info, height);
 	}
 
 	if(( info->nodes & 1023 ) == 0) {
@@ -461,8 +434,8 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
         improving = false;
     }
 
-	if( !PvNode && !InCheck && depth <= RazorDepth && eval + RazorDepth < alpha) {
-		return Quiescence(alpha, beta, pos, info, height);
+	if( !PvNode && !InCheck && depth <= RazorDepth && eval + RazorMargin < alpha) {
+		return Quiescence(alpha, beta, depth, pos, info, height);
 	}
 	if (   !PvNode
         && !InCheck
@@ -523,7 +496,7 @@ static int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO 
 
         	// Probcut failed high
             if (Score >= rBeta) {
-            	info->probCut++;
+            	//info->probCut++;
             	return Score;
             } 
         }
@@ -681,10 +654,13 @@ static int aspirationWindow( int depth, int lastValue, S_BOARD *pos, S_SEARCHINF
     beta  = depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
 
     // Keep trying larger windows until one works
+    int failedHighCnt = 0;
     while (1) {
 
+    	int adjustedDepth = MAX(1, depth - failedHighCnt);
+
         // Perform a search on the window, return if inside the window
-        value = AlphaBeta(alpha, beta, depth, pos, info, 0);
+        value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, 0);
         if (value > alpha && value < beta)
             return value;
 
@@ -692,16 +668,19 @@ static int aspirationWindow( int depth, int lastValue, S_BOARD *pos, S_SEARCHINF
         // Search failed low
         if (value <= alpha) {
             beta  = (alpha + beta) / 2;
-            alpha = MAX(-INFINITE, alpha - delta);
+            alpha = MAX(-INFINITE, value - delta);
+
+            failedHighCnt = 0;
         }
 
         // Search failed high
         if (value >= beta) { 
-            beta = MIN(INFINITE, beta + delta);
+            beta = MIN(INFINITE, value + delta);
+            failedHighCnt++;
         }
 
         // Expand the search window
-        delta = delta + delta / 2;
+        delta += delta / 4 + 5;
     }
 }
 
@@ -732,14 +711,8 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 			info->Value[currentDepth] = aspirationWindow(currentDepth, info->Value[currentDepth], pos, info);
 			bestScore = info->Value[currentDepth];
 			int thisValue = info->Value[currentDepth];
-	    	int stopValue = info->Value[currentDepth-4];
 	    	int stopSearchingMate = info->Value[currentDepth-2];
 
-	    	/*if(currentDepth >= 24) {
-	    		if(stopValue == thisValue) {
-	    			info->stopped = TRUE;
-	    		}
-	    	}*/
 	    	if(currentDepth >= 12 && abs(bestScore) >= MATE_IN_MAX ) {
 	    		if(stopSearchingMate == thisValue) {
 	    			info->stopped = TRUE;
