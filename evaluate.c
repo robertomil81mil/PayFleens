@@ -670,7 +670,7 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 int EvaluateKings(const S_BOARD *pos) {
 
-	int score = 0, side, center, ourRank, theirRank, bonus, d, count;
+	int score = 0, side, center, file, ourRank, theirRank, bonus, d, count;
 	U64 ours, theirs;
 
 	side = WHITE;
@@ -680,7 +680,7 @@ int EvaluateKings(const S_BOARD *pos) {
 	}
 
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
-  	for (int file = center - 1; file <= center + 1; ++file) {
+  	for (file = center - 1; file <= center + 1; ++file) {
 
   		ours = (pos->pawns[side] & FileBBMask[file]);
   		ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
@@ -708,7 +708,7 @@ int EvaluateKings(const S_BOARD *pos) {
 	}
 
 	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
-  	for (int file = center - 1; file <= center + 1; ++file) {
+  	for (file = center - 1; file <= center + 1; ++file) {
 
   		ours = (pos->pawns[side] & FileBBMask[file]);
   		ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
@@ -817,6 +817,34 @@ int EvaluatePieces(const S_BOARD *pos) {
 
 	return score;
 }
+
+int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
+
+    ASSERT(pos->material[weakSide] == PieceVal[wK]);
+
+    int winnerKSq, loserKSq, result, Queen, Rook, Bishop, Knight;
+
+    winnerKSq = pos->KingSq[strongSide];
+    loserKSq  = pos->KingSq[weakSide];
+
+    result =  pos->material[strongSide]
+            + PushToEdges[SQ64(loserKSq)]
+            + PushClose[distanceBetween(winnerKSq, loserKSq)];
+
+    Queen  = (strongSide == WHITE ? wQ : bQ);
+    Rook   = (strongSide == WHITE ? wR : bR);
+    Bishop = (strongSide == WHITE ? wB : bB);
+    Knight = (strongSide == WHITE ? wN : bN);
+
+    if (pos->pceNum[Queen ]
+    ||  pos->pceNum[Rook  ]
+    || (pos->pceNum[Bishop] && pos->pceNum[Knight])
+    || (   (SQ64(pos->pList[Bishop][0]) & ~BLACK_SQUARES)
+        && (SQ64(pos->pList[Bishop][1]) &  BLACK_SQUARES)) )
+        result = MIN(result + KNOWN_WIN, MATE_IN_MAX - 1);
+
+    return strongSide == pos->side ? result : -result;
+};
 
 void blockedPiecesW(const S_BOARD *pos) {
 
@@ -1123,6 +1151,10 @@ int EvalPosition(const S_BOARD *pos) {
                 && pos->material[weaker] == ( PieceVal[wB] || PieceVal[wN])) return 0;
     }
 	
+	if (pos->material[weaker] == PieceVal[wK]) {
+        return EndgameKXK(pos, weaker, stronger);
+    }
+	
 	//printf("Elapsed %d\n",GetTimeMs() - startTime);
     return pos->side == WHITE ? score : -score; 	
 }
@@ -1136,7 +1168,7 @@ void printEval(const S_BOARD *pos) {
     printf("      Total       (for side to move): %d \n", EvalPosition(pos) );
 	printf("      Term    |    White    |    Black    |    Total   \n");
 	printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
-	printf(" -------------+-------------+-------------+------------\n");
+	printf("--------------+-------------+-------------+------------\n");
 	printf("     Material "); printEvalFactor( ScoreMG(pos->mPhases[WHITE]),ScoreEG(pos->mPhases[WHITE]),ScoreMG(pos->mPhases[BLACK]),ScoreEG(pos->mPhases[BLACK]));
 	printf("         PSQT "); printEvalFactor( ScoreMG(pos->PSQT[WHITE]),ScoreEG(pos->PSQT[WHITE]),ScoreMG(pos->PSQT[BLACK]),ScoreEG(pos->PSQT[BLACK]));
 	printf("        Pawns "); printEvalFactor( ScoreMG(ei->pawns[WHITE]),ScoreEG(ei->pawns[WHITE]),ScoreMG(ei->pawns[BLACK]),ScoreEG(ei->pawns[BLACK]));

@@ -61,8 +61,7 @@ typedef unsigned long long U64;
 #define ISMATE (INFINITE - 2 * MAXPLY)
 #define MATE_IN_MAX (INFINITE - MAXPLY)
 #define MATED_IN_MAX (-INFINITE + MAXPLY)
-#define SUREWIN 10000
-
+#define KNOWN_WIN 10000
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
 enum { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
@@ -378,7 +377,7 @@ extern void PawnAttacksMasks();
 extern U64 pawnAttacks(int colour, int sq);
 extern U64 outpostSquareMasks(int colour, int sq);
 
-extern int LMRTable[64][64]; // Init LMR Table 
+extern int LMRTable[64][64];
 
 extern S_OPTIONS EngineOptions[1];
 extern EVAL_DATA e[1];
@@ -413,13 +412,11 @@ extern int SqAttackedByBishopQueen(const int sq, const int side, const S_BOARD *
 extern int SqAttackedByRookQueen(const int sq, const int side, const S_BOARD *pos);
 extern int SqAttackedByKnight(const int sq, const int side, const S_BOARD *pos);
 
-
 // io.c
 extern char *PrMove(const int move);
 extern char *PrSq(const int sq);
 extern void PrintMoveList(const S_MOVELIST *list);
 extern int ParseMove(char *ptrChar, S_BOARD *pos);
-
 
 //validate.c
 extern int SqOnBoard(const int sq);
