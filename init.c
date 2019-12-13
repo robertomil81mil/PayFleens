@@ -61,6 +61,8 @@ const U64 KingFlank[FILE_NONE] = {
 };
 
 int SquareDistance[120][120];
+int FileDistance[120][120];
+int RankDistance[120][120];
 S_OPTIONS EngineOptions[1];
 
 void InitEvalMasks() {
@@ -165,7 +167,9 @@ void InitFilesRanksBrd() {
 
 	for (s1 = 0; s1 < 120; ++s1) {
       	for (s2 = 0; s2 < 120; ++s2) { 
-            SquareDistance[s1][s2] = MAX(abs(FilesBrd[s1] - FilesBrd[s2]), abs(RanksBrd[s1] - RanksBrd[s2]));
+      		FileDistance[s1][s2]   = abs(FilesBrd[s1] - FilesBrd[s2]);
+            RankDistance[s1][s2]   = abs(RanksBrd[s1] - RanksBrd[s2]);
+            SquareDistance[s1][s2] = MAX(FileDistance[s1][s2], RankDistance[s1][s2]);
       	}
 	}
 }
