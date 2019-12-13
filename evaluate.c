@@ -295,11 +295,6 @@ const int RookSeventh = S(   8,  16);
 const int QueenPreDeveloped = S(  -2,  -2);
 const int PawnLessFlank = S(  -8, -44);
 
-const int ComplexityTotalPawns  = S(   0,   7);
-const int ComplexityPawnFlanks  = S(   0,  49);
-const int ComplexityPawnEndgame = S(   0,  34);
-const int ComplexityAdjustment  = S(   0,-110);
-
 #undef S
 
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
