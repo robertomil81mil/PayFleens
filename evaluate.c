@@ -80,6 +80,14 @@ static int distanceBetween(int s1, int s2) {
     return SquareDistance[s1][s2];
 }
 
+static int distanceByFile(int s1, int s2) {
+    return FileDistance[s1][s2];
+}
+
+static int distanceByRank(int s1, int s2) {
+    return RankDistance[s1][s2];
+}
+
 static int map_to_queenside(const int f) {
 	return MIN(f, FILE_H - f);
 }
@@ -287,6 +295,11 @@ const int RookSeventh = S(   8,  16);
 const int QueenPreDeveloped = S(  -2,  -2);
 const int PawnLessFlank = S(  -8, -44);
 
+const int ComplexityTotalPawns  = S(   0,   7);
+const int ComplexityPawnFlanks  = S(   0,  49);
+const int ComplexityPawnEndgame = S(   0,  34);
+const int ComplexityAdjustment  = S(   0,-110);
+
 #undef S
 
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
@@ -352,6 +365,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     if( (PassedPawnMasks[side][SQ64(sq)] & pos->pawns[side^1]) == 0) {
 		//printf("%c Passed:%s\n",PceChar[pce], PrSq(sq));
+        ei->passedCnt++;
 		score += PawnPassed[R];
 
 		if(support || pawnbrothers) {
@@ -771,7 +785,7 @@ int EvaluateKings(const S_BOARD *pos) {
 }
 
 
-int EvaluatePieces(const S_BOARD *pos) {
+int evaluatePieces(const S_BOARD *pos) {
 	int pce, pceNum, score = 0;
 	pce = wP;
 	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
@@ -816,6 +830,40 @@ int EvaluatePieces(const S_BOARD *pos) {
 	score += EvaluateKings(pos);
 
 	return score;
+}
+
+int evaluateComplexity(const S_BOARD *pos, int score) {
+
+    int complexity, outflanking, pawnsOnBothFlanks, pawnEndgame, almostUnwinnable, mg, eg, u, v;
+
+    mg = ScoreMG(score);
+    eg = ScoreEG(score);
+
+    outflanking =  distanceByFile(pos->KingSq[WHITE], pos->KingSq[BLACK])
+                 - distanceByRank(pos->KingSq[WHITE], pos->KingSq[BLACK]);
+
+    pawnsOnBothFlanks =    (pos->pawns[BOTH] & KING_FLANK )
+                        && (pos->pawns[BOTH] & QUEEN_FLANK);
+
+    pawnEndgame = !(pos->pceNum[wN] && pos->pceNum[wB] && pos->pceNum[wR] && pos->pceNum[wQ]
+                 && pos->pceNum[bN] && pos->pceNum[bB] && pos->pceNum[bR] && pos->pceNum[bQ]);
+
+    almostUnwinnable =   !ei->passedCnt
+                      &&  outflanking < 0
+                      && !pawnsOnBothFlanks;
+
+    complexity =   5 * ei->passedCnt
+                +  7 * popcount(pos->pawns[BOTH])
+                +  5 * outflanking
+                + 13 * pawnsOnBothFlanks
+                + 32 * pawnEndgame
+                - 27 * almostUnwinnable
+                - 60 ;
+
+    u = ((mg > 0) - (mg < 0)) * MAX(MIN(complexity + 50, 0), -abs(mg));
+    v = ((eg > 0) - (eg < 0)) * MAX(complexity, -abs(eg));
+
+    return MakeScore(u, v);
 }
 
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
@@ -1077,6 +1125,7 @@ int EvalPosition(const S_BOARD *pos) {
 		ei->adjustMaterial[side] = 0;
 		ei->blockages[side] = 0;
 		ei->pkeval[side] = 0;
+        ei->passedCnt = 0;
 		ei->pawns[side] = 0;
 		ei->knights[side] = 0;
 		ei->bishops[side] = 0;
@@ -1089,9 +1138,10 @@ int EvalPosition(const S_BOARD *pos) {
 	/*if(!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) {
 		return 0;
 	}*/
-	score   = EvaluatePieces(pos);
+	score   = evaluatePieces(pos);
 	score  += (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
     score  += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
+    score  += evaluateComplexity(pos, score);
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);

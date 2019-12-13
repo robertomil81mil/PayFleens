@@ -81,11 +81,6 @@ enum {
   A7 = 81, B7, C7, D7, E7, F7, G7, H7,
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
-enum {
-
-    WHITE_SQUARES = 0x55AA55AA55AA55AAull,
-    BLACK_SQUARES = 0xAA55AA55AA55AA55ull,
-};
 
 enum { OptimumTime, MaxTime };
 
@@ -223,6 +218,7 @@ typedef struct {
 	int adjustMaterial[2];
 	int blockages[2];
 	int pkeval[2];
+	int passedCnt;
 	int pawns[2];
 	int knights[2];
 	int bishops[2];
@@ -345,6 +341,8 @@ extern int FilesBrd[BRD_SQ_NUM];
 extern int RanksBrd[BRD_SQ_NUM];
 
 extern int SquareDistance[120][120];
+extern int FileDistance[120][120];
+extern int RankDistance[120][120];
 
 extern int PieceKnight[13];
 extern int PieceBishop[13];
@@ -359,6 +357,7 @@ extern int Mirror120[64];
 
 extern U64 FileBBMask[8];
 extern U64 RankBBMask[8];
+
 extern const U64 KingFlank[FILE_NONE];
 extern const U64 QueenSide;
 extern const U64 CenterFiles;
