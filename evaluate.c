@@ -677,108 +677,88 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;
 }
 
-int EvaluateKings(const S_BOARD *pos) {
+int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
 
-	int score = 0, side, center, file, ourRank, theirRank, bonus, d, count;
-	U64 ours, theirs;
+    int score, d, center, file, ourRank, theirRank;
+    U64 ours, theirs;
 
-	side = WHITE;
+    center = clamp(FilesBrd[KingSq], FILE_B, FILE_G);
+    for (file = center - 1; file <= center + 1; ++file) {
 
-	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) { 
-		score += PawnLessFlank;
-	}
+        ours = (pos->pawns[side] & FileBBMask[file]);
+        ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
 
-	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
-  	for (file = center - 1; file <= center + 1; ++file) {
+        theirs = (pos->pawns[side^1] & FileBBMask[file]);
+        theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
 
-  		ours = (pos->pawns[side] & FileBBMask[file]);
-  		ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
+        d = map_to_queenside(file);
+        score  = MakeScore(1, 1);
+        score += MakeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
 
-  	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
-      	theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
-
-      	d = map_to_queenside(file);
-      	bonus = MakeScore(1, 1);
-      	bonus += MakeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
-
-      	if (ourRank && (ourRank == theirRank - 1)) {
-      		bonus -= BlockedStorm * int(theirRank == RANK_3);
-      	} else {
-      		bonus -= MakeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
-      	}
-      	ei->pkeval[side] += bonus;
-        score += bonus;
-  	}
-
-	side = BLACK;
-
-	if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) { 
-		score -= PawnLessFlank;
-	}
-
-	center = clamp(FilesBrd[pos->KingSq[side]], FILE_B, FILE_G);
-  	for (file = center - 1; file <= center + 1; ++file) {
-
-  		ours = (pos->pawns[side] & FileBBMask[file]);
-  		ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
-
-  	 	theirs = (pos->pawns[side^1] & FileBBMask[file]);
-      	theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
-
-      	d = map_to_queenside(file);
-      	bonus = MakeScore(1, 1);
-      	bonus += MakeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
-
-      	if (ourRank && (ourRank == theirRank - 1)) {
-      		bonus -= BlockedStorm * int(theirRank == RANK_3);
-      	} else {
-      		bonus -= MakeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
-      	}
-      	ei->pkeval[side] += bonus;
-        score -= bonus;
-  	}
-
-  	//PrintBitBoard(ei->kingAreas[WHITE]);
-	//PrintBitBoard(ei->kingAreas[BLACK]);
-	if (ei->attckersCnt[BLACK] > 1 - pos->pceNum[bQ]) {
-	
-		float scaledAttackCounts = 9.0 * ei->attCnt[BLACK] / popcount(ei->kingAreas[WHITE]) + 1;
-		count = ei->attckersCnt[BLACK] * ei->attWeight[BLACK];
-		count += 32  * scaledAttackCounts //29 //32
-			  + -10  * popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE])
-			  + - 2  * ScoreMG(ei->pkeval[WHITE]) / 8
-			  +        ScoreMG(ei->Mob[BLACK] - ei->Mob[WHITE]) / 4;
-			  //+ -176 * !pos->pceNum[bQ];
-
-		//printf("BLACK attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[BLACK], ei->attckersCnt[BLACK], ei->attWeight[BLACK]);
-		//printf("scaledAttackCounts %f Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[WHITE] & ei->kingAreas[WHITE]) );
-		if(count > 0) {
-			//printf("count %d\n",count );
-			//ei->KingDanger[BLACK] = MakeScore(count * count / 720, count / 18);
-			score -= MakeScore(count * count / 720, count / 18);
-		}
-	}
-    if (ei->attckersCnt[WHITE] > 1 - pos->pceNum[wQ]) {
-    
-    	float scaledAttackCounts = 9.0 * ei->attCnt[WHITE] / popcount(ei->kingAreas[BLACK]) + 1;
-		count = ei->attckersCnt[WHITE] * ei->attWeight[WHITE];
-		count += 32  * scaledAttackCounts
-		      + -10  * popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK])
-		      + - 2  * ScoreMG(ei->pkeval[BLACK]) / 8
-		      +        ScoreMG(ei->Mob[WHITE] - ei->Mob[BLACK]) / 4;
-		      //+ -176 * !pos->pceNum[wQ];
-		//printf(" WHITE attacks %d attckersCnt %d attWeight %d \n", ei->attCnt[WHITE], ei->attckersCnt[WHITE], ei->attWeight[WHITE]);
-		//printf("scaledAttackCounts %f Panws & KA %d\n",scaledAttackCounts, popcount(pos->pawns[BLACK] & ei->kingAreas[BLACK]) );
-		if(count > 0) {
-			//printf("count %d\n",count );
-			//ei->KingDanger[WHITE] = MakeScore(count * count / 720, count / 18);
-			score += MakeScore(count * count / 720, count / 18);
-		}
+        if (ourRank && (ourRank == theirRank - 1)) {
+            score -= BlockedStorm * int(theirRank == RANK_3);
+        } else {
+            score -= MakeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
+        }
     }
 
     return score;
 }
 
+int evaluateShelter(const S_BOARD *pos, int side) {
+
+    int shelter = hypotheticalShelter(pos, side, pos->KingSq[side]);
+
+    if (side == WHITE) {
+
+        if (pos->castlePerm & WKCA)
+            shelter = MAX(shelter, hypotheticalShelter(pos, side, G1));
+
+        if (pos->castlePerm & WQCA) 
+            shelter = MAX(shelter, hypotheticalShelter(pos, side, C1));
+    } else {
+
+        if (pos->castlePerm & BKCA)
+            shelter = MAX(shelter, hypotheticalShelter(pos, side, G8));
+
+        if (pos->castlePerm & BQCA) 
+            shelter = MAX(shelter, hypotheticalShelter(pos, side, C8));
+    }
+    ei->pkeval[side] = shelter;
+
+    return shelter;
+}
+
+int evaluateKings(const S_BOARD *pos, int side) {
+
+    int score = 0, count, enemyQueen;
+
+    enemyQueen = (side == WHITE ? bQ : wQ);
+
+    if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) { 
+        score += PawnLessFlank;
+    }
+
+    score += evaluateShelter(pos, side);
+
+    if (ei->attckersCnt[side^1] > 1 - pos->pceNum[enemyQueen]) {
+    
+        float scaledAttackCounts = 9.0 * ei->attCnt[side^1] / popcount(ei->kingAreas[side]) + 1;
+
+        count =       ei->attckersCnt[side^1] * ei->attWeight[side^1]
+               +      ScoreMG( ei->Mob[side^1] - ei->Mob[side]) / 4
+               + 32 * scaledAttackCounts
+               - 10 * popcount(pos->pawns[side] & ei->kingAreas[side])
+               -  2 * ScoreMG( ei->pkeval[side]) / 8;
+
+        if(count > 0) {
+            score -= MakeScore(count * count / 720, count / 18);
+            //ei->KingDanger[side^1] = MakeScore(count * count / 720, count / 18);
+        }
+    }
+
+    return score;
+}
 
 int evaluatePieces(const S_BOARD *pos) {
 	int pce, pceNum, score = 0;
@@ -822,7 +802,8 @@ int evaluatePieces(const S_BOARD *pos) {
 	for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
 		score -= Queens(pos, BLACK, pce, pceNum);
 	}
-	score += EvaluateKings(pos);
+	score += evaluateKings(pos, WHITE);
+    score -= evaluateKings(pos, BLACK);
 
 	return score;
 }
@@ -857,6 +838,8 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
 
     u = ((mg > 0) - (mg < 0)) * MAX(MIN(complexity + 50, 0), -abs(mg));
     v = ((eg > 0) - (eg < 0)) * MAX(complexity, -abs(eg));
+
+    //ei->Complexity = MakeScore(u, v);
 
     return MakeScore(u, v);
 }
@@ -1209,8 +1192,11 @@ void printEvalFactor( int WMG, int WEG, int BMG, int BEG ) {
 }
 
 void printEval(const S_BOARD *pos) {
+
+    int v = EvalPosition(pos);
+    v = pos->side == WHITE ? v : -v;
+
 	printf("-------------------------------------------------------\n");
-    printf("      Total       (for side to move): %d \n", EvalPosition(pos) );
 	printf("      Term    |    White    |    Black    |    Total   \n");
 	printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
 	printf("--------------+-------------+-------------+------------\n");
@@ -1224,6 +1210,8 @@ void printEval(const S_BOARD *pos) {
 	printf("     Mobility "); printEvalFactor( ScoreMG(ei->Mob[WHITE]),ScoreEG(ei->Mob[WHITE]),ScoreMG(ei->Mob[BLACK]),ScoreEG(ei->Mob[BLACK]));
 	printf("  King safety "); printEvalFactor( ScoreMG(ei->KingDanger[WHITE]),ScoreEG(ei->KingDanger[WHITE]),ScoreMG(ei->KingDanger[BLACK]),ScoreEG(ei->KingDanger[BLACK]));
 	printf("  King shield "); printEvalFactor( ScoreMG(ei->pkeval[WHITE]),ScoreEG(ei->pkeval[WHITE]),ScoreMG(ei->pkeval[BLACK]),ScoreEG(ei->pkeval[BLACK]));
+    printf("   Initiative "); printf("| %4d  %4d  | %4d  %4d  | %4d  %4d \n",0, 0, 0, 0, ScoreMG(ei->Complexity), ScoreEG(ei->Complexity));
+    printf("\nTotal evaluation: %d (white side)\n", v );
 	printf("-------------------------------------------------------\n");
 	printf("\n");
 }

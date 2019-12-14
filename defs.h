@@ -224,6 +224,7 @@ typedef struct {
 	int bishops[2];
 	int	rooks[2];
 	int queens[2];
+	int Complexity;
 	int KingDanger[2];
 
 } eval_info;
