@@ -746,10 +746,10 @@ int evaluateKings(const S_BOARD *pos, int side) {
         float scaledAttackCounts = 9.0 * ei->attCnt[side^1] / popcount(ei->kingAreas[side]) + 1;
 
         count =       ei->attckersCnt[side^1] * ei->attWeight[side^1]
-               +      ScoreMG( ei->Mob[side^1] - ei->Mob[side]) / 4
                + 32 * scaledAttackCounts
-               - 10 * popcount(pos->pawns[side] & ei->kingAreas[side])
-               -  2 * ScoreMG( ei->pkeval[side]) / 8;
+               +      ScoreMG(ei->Mob[side^1] - ei->Mob[side]) / 4
+               -  6 * ScoreMG(ei->pkeval[side]) / 8
+               - 17 ;
 
         if(count > 0) {
             score -= MakeScore(count * count / 720, count / 18);

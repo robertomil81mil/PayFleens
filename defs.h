@@ -45,7 +45,7 @@ typedef unsigned long long U64;
 #define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
 #define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-#define NAME "PayFleens 1.0.1"
+#define NAME "PayFleens 1.0.3"
 #define BRD_SQ_NUM 120
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
