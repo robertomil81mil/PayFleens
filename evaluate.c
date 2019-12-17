@@ -24,32 +24,6 @@
 
 eval_info ei[1];
 
-// sjeng 11.2
-//setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
-int MaterialDraw(const S_BOARD *pos) {
-
-	ASSERT(CheckBoard(pos));
-	
-    if (!pos->pceNum[wR] && !pos->pceNum[bR] && !pos->pceNum[wQ] && !pos->pceNum[bQ]) {
-	  if (!pos->pceNum[bB] && !pos->pceNum[wB]) {
-	      if (pos->pceNum[wN] < 3 && pos->pceNum[bN] < 3) {  return TRUE; }
-	  } else if (!pos->pceNum[wN] && !pos->pceNum[bN]) {
-	     if (abs(pos->pceNum[wB] - pos->pceNum[bB]) < 2) { return TRUE; }
-	  } else if ((pos->pceNum[wN] < 3 && !pos->pceNum[wB]) || (pos->pceNum[wB] == 1 && !pos->pceNum[wN])) {
-	    if ((pos->pceNum[bN] < 3 && !pos->pceNum[bB]) || (pos->pceNum[bB] == 1 && !pos->pceNum[bN]))  { return TRUE; }
-	  }
-	} else if (!pos->pceNum[wQ] && !pos->pceNum[bQ]) {
-        if (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1) {
-            if ((pos->pceNum[wN] + pos->pceNum[wB]) < 2 && (pos->pceNum[bN] + pos->pceNum[bB]) < 2)	{ return TRUE; }
-        } else if (pos->pceNum[wR] == 1 && !pos->pceNum[bR]) {
-            if ((pos->pceNum[wN] + pos->pceNum[wB] == 0) && (((pos->pceNum[bN] + pos->pceNum[bB]) == 1) || ((pos->pceNum[bN] + pos->pceNum[bB]) == 2))) { return TRUE; }
-        } else if (pos->pceNum[bR] == 1 && !pos->pceNum[wR]) {
-            if ((pos->pceNum[bN] + pos->pceNum[bB] == 0) && (((pos->pceNum[wN] + pos->pceNum[wB]) == 1) || ((pos->pceNum[wN] + pos->pceNum[wB]) == 2))) { return TRUE; }
-        }
-    }
-  return FALSE;
-}
-
 int popcount(U64 bb) {
     return __builtin_popcountll(bb);
 }
@@ -843,6 +817,29 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
     return MakeScore(u, v);
 }
 
+int imbalance(const int pieceCount[2][6], int side) {
+
+    int bonus = 0, pt1, pt2;
+
+    // Adaptation of polynomial material imbalance, by Tord Romstad
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
+    {
+        if (!pieceCount[side][pt1])
+            continue;
+
+        int v = 0;
+
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2) 
+            v +=  QuadraticOurs[pt1][pt2] * pieceCount[side][pt2]
+                + QuadraticTheirs[pt1][pt2] * pieceCount[side^1][pt2];
+        
+        bonus += pieceCount[side][pt1] * v;
+    }
+    //ei->imbalance[side] = bonus;
+
+    return bonus;
+}
+
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
 
     ASSERT(pos->material[weakSide] == PieceVal[wK]);
@@ -1080,10 +1077,9 @@ void blockedPiecesB(const S_BOARD *pos) {
 }
 
 int EvalPosition(const S_BOARD *pos) {
-
 	// setboard 8/3k3p/6p1/3nK1P1/8/8/7P/8 b - - 3 64
-	// setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16 
-
+	// setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16
+    // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
 	//int startTime = GetTimeMs();
 
 	int score, phase, factor, stronger, weaker, PAWNST, PAWNWK;
@@ -1112,25 +1108,21 @@ int EvalPosition(const S_BOARD *pos) {
 		ei->kingAreas[side] = kingAreaMasks(side, SQ64(pos->KingSq[side]));
 	} 
 
-	/*if(!pos->pceNum[wP] && !pos->pceNum[bP] && MaterialDraw(pos) == TRUE) {
-		return 0;
-	}*/
-	score   = evaluatePieces(pos);
-	score  += (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
-    score  += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
-    score  += evaluateComplexity(pos, score);
+    const int pieceCount[2][6] = {
+        { pos->pceNum[wB] > 1, pos->pceNum[wP], pos->pceNum[wN],
+          pos->pceNum[wB]    , pos->pceNum[wR], pos->pceNum[wQ] },
+        { pos->pceNum[bB] > 1, pos->pceNum[bP], pos->pceNum[bN],
+          pos->pceNum[bB]    , pos->pceNum[bR], pos->pceNum[bQ] } 
+    };
+
+	score  = (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
+    score += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
+    score += int16_t((imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK)) / 16);
+    score += evaluatePieces(pos);
+    score += evaluateComplexity(pos, score);
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);
-
-	if(pos->pceNum[wB] > 1) ei->adjustMaterial[WHITE] += BishopPair;
-	if(pos->pceNum[bB] > 1) ei->adjustMaterial[BLACK] += BishopPair;
-	if(pos->pceNum[wN] > 1) ei->adjustMaterial[WHITE] -= KnightPair;
-	if(pos->pceNum[bN] > 1) ei->adjustMaterial[BLACK] -= KnightPair;
-	ei->adjustMaterial[WHITE] += n_adj[pos->pceNum[wP]] * pos->pceNum[wN];
-	ei->adjustMaterial[BLACK] += n_adj[pos->pceNum[bP]] * pos->pceNum[bN];
-	ei->adjustMaterial[WHITE] += r_adj[pos->pceNum[wP]] * pos->pceNum[wR];
-	ei->adjustMaterial[BLACK] += r_adj[pos->pceNum[bP]] * pos->pceNum[bR];
 
 	factor = evaluateScaleFactor(pos);
 
@@ -1138,7 +1130,6 @@ int EvalPosition(const S_BOARD *pos) {
           +  ScoreEG(score) * phase * factor / SCALE_NORMAL) / 256;
 
 	score += (ei->blockages[WHITE] - ei->blockages[BLACK]);
-	score += (ei->adjustMaterial[WHITE] - ei->adjustMaterial[BLACK]);
 
 	pos->side == WHITE ? score += TEMPO : score -= TEMPO;
 
@@ -1200,7 +1191,8 @@ void printEval(const S_BOARD *pos) {
 	printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
 	printf("--------------+-------------+-------------+------------\n");
 	printf("     Material "); printEvalFactor( ScoreMG(pos->mPhases[WHITE]),ScoreEG(pos->mPhases[WHITE]),ScoreMG(pos->mPhases[BLACK]),ScoreEG(pos->mPhases[BLACK]));
-	printf("         PSQT "); printEvalFactor( ScoreMG(pos->PSQT[WHITE]),ScoreEG(pos->PSQT[WHITE]),ScoreMG(pos->PSQT[BLACK]),ScoreEG(pos->PSQT[BLACK]));
+	printf("    Imbalance "); printf("|    %4d     |    %4d     |    %4d     \n",(ei->imbalance[WHITE]/16), (ei->imbalance[BLACK]/16), ((ei->imbalance[WHITE] - ei->imbalance[BLACK]) / 16));
+    printf("         PSQT "); printEvalFactor( ScoreMG(pos->PSQT[WHITE]),ScoreEG(pos->PSQT[WHITE]),ScoreMG(pos->PSQT[BLACK]),ScoreEG(pos->PSQT[BLACK]));
 	printf("        Pawns "); printEvalFactor( ScoreMG(ei->pawns[WHITE]),ScoreEG(ei->pawns[WHITE]),ScoreMG(ei->pawns[BLACK]),ScoreEG(ei->pawns[BLACK]));
 	printf("      Knights "); printEvalFactor( ScoreMG(ei->knights[WHITE]),ScoreEG(ei->knights[WHITE]),ScoreMG(ei->knights[BLACK]),ScoreEG(ei->knights[BLACK]));
 	printf("      Bishops "); printEvalFactor( ScoreMG(ei->bishops[WHITE]),ScoreEG(ei->bishops[WHITE]),ScoreMG(ei->bishops[BLACK]),ScoreEG(ei->bishops[BLACK]));

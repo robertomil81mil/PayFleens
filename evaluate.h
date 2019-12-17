@@ -26,6 +26,8 @@
 #define ScoreMG(s) ((int16_t)((uint16_t)((unsigned)((s)))))
 #define ScoreEG(s) ((int16_t)((uint16_t)((unsigned)((s) + 0x8000) >> 16)))
 
+enum { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+
 enum {
     RANKBB_1 = 0x00000000000000FFull,
     RANKBB_2 = 0x000000000000FF00ull,
@@ -123,8 +125,27 @@ const int PushToEdges[64] = {
 
 const int PushClose[8] = { 0, 0, 100, 80, 60, 40, 20, 10 };
 
-const int n_adj[9] = { -27, -22, -16, -10, -5,  0,  5, 10, 16};
-const int r_adj[9] = {  20,  16,  12,  8,  4,  0, -4, -8, -12}; 
+const int QuadraticOurs[][6] = {
+    //            OUR PIECES
+    // pair pawn knight bishop rook queen
+    { 796                               }, // Bishop pair
+    {  22,   21                         }, // Pawn
+    {  17,  141, -34                    }, // Knight      OUR PIECES
+    {   0,   57,   2,     0             }, // Bishop
+    { -14,   -1,  26,    58,  -115      }, // Rook
+    {-104,   13,  64,    73,   -74, -3  }  // Queen
+};
+
+const int QuadraticTheirs[][6] = {
+    //           THEIR PIECES
+    // pair pawn knight bishop rook queen
+    {   0                               }, // Bishop pair
+    {  19,    0                         }, // Pawn
+    {   4,   34,   0                    }, // Knight      OUR PIECES
+    {  32,   36,  23,     0             }, // Bishop
+    {  25,   21,  13,   -13,    0       }, // Rook
+    {  53,   55, -23,    75,  148,    0 }  // Queen
+};
 
 #define ENDGAME_MAT (1 * PieceVal[wR] + 2 * PieceVal[wN] + 2 * PieceVal[wP] + PieceVal[wK])
 

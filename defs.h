@@ -64,7 +64,6 @@ typedef unsigned long long U64;
 #define KNOWN_WIN 10000
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
-enum { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 
 enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NONE };
 enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NONE };
@@ -225,6 +224,7 @@ typedef struct {
 	int	rooks[2];
 	int queens[2];
 	int Complexity;
+	int imbalance[2];
 	int KingDanger[2];
 
 } eval_info;
