@@ -167,7 +167,8 @@ int evaluateScaleFactor(const S_BOARD *pos) {
 
 #define S(mg, eg) (MakeScore((mg), (eg)))
 
-int PieceValPhases[13] = { S( 0, 0), S( 105, 118), S( 450, 405), S( 473, 423), S( 669, 695), S(1295,1380), S( 0, 0), S( 105, 118), S( 450, 405), S( 473, 423), S( 669, 695), S(1295,1380), S( 0, 0)  };
+int PieceValPhases[13] = { S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), 
+                           S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), S( 0, 0)  };
 
 const int PawnPSQT32[32] = {
     S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
@@ -379,9 +380,8 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
             if (R != RANK_7) {
                 bonus -= ( king_proximity(side, blockSq + Up, pos) * w);
             }
-            bonus *= 100;
-            bonus /= 410;
 
+            bonus = (bonus * 100) / 410;
             score += MakeScore(0, bonus);
 		}
 		/*if (!PassedPawnMasks[side][SQ64(sq + Up)
@@ -393,8 +393,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 	if(support || pawnbrothers) {
 		int i =  Connected[R] * (2 + bool(pawnbrothers) - bool(opposed))
 				+ 21 * pos->pawn_ctrl[side][sq];
-        i *= 100;
-        i /= 1220;
+        i = (i * 100) / 1220;
         //printf("supportCount %d v %d v eg %d \n",pos->pawn_ctrl[side][sq], i, i * (R - 2) / 4);
 		score += MakeScore(i, i * (R - 2) / 4);
 	}
