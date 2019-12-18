@@ -133,7 +133,7 @@ int remaining(int T, int myTime, int movesToGo, int ply, int slowMover) {
 void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, int movestogo) {
 
     int minThinkingTime = 20;
-    int moveOverhead    = 100;
+    int moveOverhead    = 1000;
     int slowMover       = 84;
     int hypMyTime;
 
