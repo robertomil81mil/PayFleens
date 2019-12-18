@@ -835,9 +835,9 @@ int imbalance(const int pieceCount[2][6], int side) {
         
         bonus += pieceCount[side][pt1] * v;
     }
-    //ei->imbalance[side] = bonus;
+    //ei->imbalance[side] = MakeScore(bonus / 16, bonus / 16);
 
-    return bonus;
+    return MakeScore(bonus / 16, bonus / 16);
 }
 
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
@@ -1117,9 +1117,9 @@ int EvalPosition(const S_BOARD *pos) {
 
 	score  = (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
     score += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
-    score += int16_t((imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK)) / 16);
-    score += evaluatePieces(pos);
-    score += evaluateComplexity(pos, score);
+    score += (imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK));
+    score +=  evaluatePieces(pos);
+    score +=  evaluateComplexity(pos, score);
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);
@@ -1186,25 +1186,25 @@ void printEval(const S_BOARD *pos) {
     int v = EvalPosition(pos);
     v = pos->side == WHITE ? v : -v;
 
-	printf("-------------------------------------------------------\n");
-	printf("      Term    |    White    |    Black    |    Total   \n");
-	printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
-	printf("--------------+-------------+-------------+------------\n");
-	printf("     Material "); printEvalFactor( ScoreMG(pos->mPhases[WHITE]),ScoreEG(pos->mPhases[WHITE]),ScoreMG(pos->mPhases[BLACK]),ScoreEG(pos->mPhases[BLACK]));
-	printf("    Imbalance "); printf("|    %4d     |    %4d     |    %4d     \n",(ei->imbalance[WHITE]/16), (ei->imbalance[BLACK]/16), ((ei->imbalance[WHITE] - ei->imbalance[BLACK]) / 16));
+    printf("\n");
+    printf("      Term    |    White    |    Black    |    Total   \n");
+    printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
+    printf("--------------+-------------+-------------+------------\n");
+    printf("     Material "); printEvalFactor( ScoreMG(pos->mPhases[WHITE]),ScoreEG(pos->mPhases[WHITE]),ScoreMG(pos->mPhases[BLACK]),ScoreEG(pos->mPhases[BLACK]));
+    printf("    Imbalance "); printEvalFactor( ScoreMG(ei->imbalance[WHITE]),ScoreEG(ei->imbalance[WHITE]),ScoreMG(ei->imbalance[BLACK]),ScoreEG(ei->imbalance[BLACK]));
     printf("         PSQT "); printEvalFactor( ScoreMG(pos->PSQT[WHITE]),ScoreEG(pos->PSQT[WHITE]),ScoreMG(pos->PSQT[BLACK]),ScoreEG(pos->PSQT[BLACK]));
-	printf("        Pawns "); printEvalFactor( ScoreMG(ei->pawns[WHITE]),ScoreEG(ei->pawns[WHITE]),ScoreMG(ei->pawns[BLACK]),ScoreEG(ei->pawns[BLACK]));
-	printf("      Knights "); printEvalFactor( ScoreMG(ei->knights[WHITE]),ScoreEG(ei->knights[WHITE]),ScoreMG(ei->knights[BLACK]),ScoreEG(ei->knights[BLACK]));
-	printf("      Bishops "); printEvalFactor( ScoreMG(ei->bishops[WHITE]),ScoreEG(ei->bishops[WHITE]),ScoreMG(ei->bishops[BLACK]),ScoreEG(ei->bishops[BLACK]));
-	printf("        Rooks "); printEvalFactor( ScoreMG(ei->rooks[WHITE]),ScoreEG(ei->rooks[WHITE]),ScoreMG(ei->rooks[BLACK]),ScoreEG(ei->rooks[BLACK]));
-	printf("       Queens "); printEvalFactor( ScoreMG(ei->queens[WHITE]),ScoreEG(ei->queens[WHITE]),ScoreMG(ei->queens[BLACK]),ScoreEG(ei->queens[BLACK]));
-	printf("     Mobility "); printEvalFactor( ScoreMG(ei->Mob[WHITE]),ScoreEG(ei->Mob[WHITE]),ScoreMG(ei->Mob[BLACK]),ScoreEG(ei->Mob[BLACK]));
-	printf("  King safety "); printEvalFactor( ScoreMG(ei->KingDanger[WHITE]),ScoreEG(ei->KingDanger[WHITE]),ScoreMG(ei->KingDanger[BLACK]),ScoreEG(ei->KingDanger[BLACK]));
-	printf("  King shield "); printEvalFactor( ScoreMG(ei->pkeval[WHITE]),ScoreEG(ei->pkeval[WHITE]),ScoreMG(ei->pkeval[BLACK]),ScoreEG(ei->pkeval[BLACK]));
-    printf("   Initiative "); printf("| %4d  %4d  | %4d  %4d  | %4d  %4d \n",0, 0, 0, 0, ScoreMG(ei->Complexity), ScoreEG(ei->Complexity));
-    printf("\nTotal evaluation: %d (white side)\n", v );
-	printf("-------------------------------------------------------\n");
-	printf("\n");
+    printf("        Pawns "); printEvalFactor( ScoreMG(ei->pawns[WHITE]),ScoreEG(ei->pawns[WHITE]),ScoreMG(ei->pawns[BLACK]),ScoreEG(ei->pawns[BLACK]));
+    printf("      Knights "); printEvalFactor( ScoreMG(ei->knights[WHITE]),ScoreEG(ei->knights[WHITE]),ScoreMG(ei->knights[BLACK]),ScoreEG(ei->knights[BLACK]));
+    printf("      Bishops "); printEvalFactor( ScoreMG(ei->bishops[WHITE]),ScoreEG(ei->bishops[WHITE]),ScoreMG(ei->bishops[BLACK]),ScoreEG(ei->bishops[BLACK]));
+    printf("        Rooks "); printEvalFactor( ScoreMG(ei->rooks[WHITE]),ScoreEG(ei->rooks[WHITE]),ScoreMG(ei->rooks[BLACK]),ScoreEG(ei->rooks[BLACK]));
+    printf("       Queens "); printEvalFactor( ScoreMG(ei->queens[WHITE]),ScoreEG(ei->queens[WHITE]),ScoreMG(ei->queens[BLACK]),ScoreEG(ei->queens[BLACK]));
+    printf("     Mobility "); printEvalFactor( ScoreMG(ei->Mob[WHITE]),ScoreEG(ei->Mob[WHITE]),ScoreMG(ei->Mob[BLACK]),ScoreEG(ei->Mob[BLACK]));
+    printf("  King safety "); printEvalFactor( ScoreMG(ei->KingDanger[WHITE]),ScoreEG(ei->KingDanger[WHITE]),ScoreMG(ei->KingDanger[BLACK]),ScoreEG(ei->KingDanger[BLACK]));
+    printf("  King shield "); printEvalFactor( ScoreMG(ei->pkeval[WHITE]),ScoreEG(ei->pkeval[WHITE]),ScoreMG(ei->pkeval[BLACK]),ScoreEG(ei->pkeval[BLACK]));
+    printf("   Initiative "); printf("| ----  ----  | ----  ----  | %4d  %4d \n", ScoreMG(ei->Complexity), ScoreEG(ei->Complexity));
+    printf("--------------+-------------+-------------+------------\n");
+    printf("        Total "); printf("| ----  ----  | ----  ----  |    %4d     \n", v);
+    printf("\n");
 }
 
 void setPcsq32() {
