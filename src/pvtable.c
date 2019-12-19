@@ -21,34 +21,6 @@
 #include "stdio.h"
 #include "defs.h"
 
-int GetPvLine(const int depth, S_BOARD *pos) {
-
-	ASSERT(depth < MAXDEPTH && depth >= 1);
-
-	int move = ProbePvMove(pos);
-	int count = 0;
-	
-	while(move != NOMOVE && count < depth) {
-	
-		ASSERT(count < MAXDEPTH);
-	
-		if( MoveExists(pos, move) ) {
-			MakeMove(pos, move);
-			pos->PvArray[count++] = move;
-		} else {
-			break;
-		}		
-		move = ProbePvMove(pos);	
-	}
-	
-	while(pos->ply > 0) {
-		TakeMove(pos);
-	}
-	
-	return count;
-	
-}
-
 void ClearHashTable(S_HASHTABLE *table) {
 
   S_HASHENTRY *tableEntry;
@@ -137,16 +109,4 @@ void StoreHashEntry(S_BOARD *pos, const int move, int score, const int eval, con
 	pos->HashTable->pTable[index].score = score;
 	pos->HashTable->pTable[index].eval  = eval;
 	pos->HashTable->pTable[index].depth = depth;
-}
-
-int ProbePvMove(const S_BOARD *pos) {
-
-	int index = pos->posKey % pos->HashTable->numEntries;
-	ASSERT(index >= 0 && index <= pos->HashTable->numEntries - 1);
-	
-	if( pos->HashTable->pTable[index].posKey == pos->posKey ) {
-		return pos->HashTable->pTable[index].move;
-	}
-	
-	return NOMOVE;
 }

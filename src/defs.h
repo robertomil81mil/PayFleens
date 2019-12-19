@@ -21,6 +21,7 @@
 
 #include "stdlib.h"
 #include "stdio.h"
+#include <stdint.h>
 
 //#define DEBUG
 
@@ -83,6 +84,8 @@ enum {
 
 enum { OptimumTime, MaxTime };
 
+enum { NonPV, PVNode};
+
 enum { FALSE, TRUE };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
@@ -128,6 +131,11 @@ typedef struct {
 
 } S_UNDO;
 
+struct PVariation {
+    uint16_t line[MAXPLY];
+    int length;
+};
+
 typedef struct {
 
 	int pieces[BRD_SQ_NUM];
@@ -164,8 +172,8 @@ typedef struct {
 
 	int PSQT[2];
 
+	PVariation pv;
 	S_HASHTABLE HashTable[1];
-	int PvArray[MAXDEPTH];
 
 	int searchHistory[13][BRD_SQ_NUM];
 	int searchKillers[2][MAXDEPTH];
@@ -460,8 +468,6 @@ extern void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, in
 extern void InitHashTable(S_HASHTABLE *table, const int MB);
 extern void StoreHashEntry(S_BOARD *pos, const int move, int score, const int eval, const int flags, const int depth);
 extern int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int *eval, int *depth, int *flag);
-extern int ProbePvMove(const S_BOARD *pos);
-extern int GetPvLine(const int depth, S_BOARD *pos);
 extern void ClearHashTable(S_HASHTABLE *table);
 
 // evaluate.c
