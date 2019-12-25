@@ -18,10 +18,12 @@
 
 // PayFleens.c
 
+#include <string.h>
 #include "stdio.h"
-#include "defs.h"
 #include "stdlib.h"
-#include <cstring>
+
+#include "defs.h"
+#include "ttable.h"
 
 #define FEN1 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
 #define FEN2 "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2"
@@ -57,8 +59,7 @@ int main() {
 	S_BOARD pos[1];
     S_SEARCHINFO info[1];
     info->quit = FALSE;
-	pos->HashTable->pTable = NULL;
-    InitHashTable(pos->HashTable, 64);
+    initTTable(64);
 	setbuf(stdin, NULL);
     setbuf(stdout, NULL);
 
@@ -97,66 +98,7 @@ int main() {
 		}
 	}
 
-	free(pos->HashTable->pTable);
 	//CleanPolyBook();
 	
 	return 0;
 }
-
-/*int main() {	
-
-	AllInit();	
-	S_BOARD board[1];
-	S_MOVELIST list[1];
-	ParseFen(START_FEN,board);
-	PrintBoard(board);
-
-	
-	//GenerateAllMoves(board,list);
-
-	//PrintMoveList(list);
-	
-	//ParseFen(PERFTFEN,board);
-	char input[6];
-	int Move = NOMOVE;
-	int PvNum = 0;
-	int Max = 0;
-
-	while(TRUE) {
-		PrintBoard(board);
-		printf("Please enter a move > ");
-		fgets(input, 6, stdin);
-		int count = 0;
-		if(input[0]=='q') {
-			break;
-		} else if(input[0]=='t') {
-			TakeMove(board);
-		} else if(input[0]=='p') {
-			//TakeMove(board);
-			Max = GetPvLine(4, board);
-			printf("PvLine of %d Moves: ",Max);
-			for(PvNum = 0; PvNum < Max; ++PvNum) {
-				Move = board->PvArray[PvNum];
-				printf(" %s",PrMove(Move));
-			}
-			printf("\n");
-		} else {
-			Move = ParseMove(input, board);
-			if(Move != NOMOVE) {
-				StorePvMove(board, Move);
-				MakeMove(board,Move);
-				if(IsRepetition(board)) {
-					printf("3 REPETITIONs\n");
-				}
-				
-			} else {
-				printf("Move not parsed:%s\n",input);
-			}
-		}
-		fflush(stdin);
-	}
-	//PerftTest(6,board);
-	
-	
-	return 0;
-}*/

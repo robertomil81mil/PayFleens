@@ -20,6 +20,7 @@
 
 #include "stdio.h"
 #include "defs.h"
+#include "evaluate.h"
 
 int PceListOk(const S_BOARD *pos) {
 	int pce = wP;
@@ -142,7 +143,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 		    if( PieceMin[piece] == TRUE) pos->minPce[colour]++;
 		    if( PieceMaj[piece] == TRUE) pos->majPce[colour]++;
 
-		    pos->PSQT[colour] += e->PSQT[piece][sq];
+		    pos->PSQT[colour] += e.PSQT[piece][sq];
 
 			pos->material[colour] += PieceVal[piece];
 			pos->materialeg[colour] += PieceValEG[piece];

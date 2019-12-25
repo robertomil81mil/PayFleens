@@ -19,8 +19,11 @@
 // xboard.c
 
 #include "stdio.h"
-#include "defs.h"
 #include "string.h"
+#include "defs.h"
+#include "search.h"
+#include "evaluate.h"
+#include "ttable.h"
 
 void PrintNonBits2(S_BOARD *pos, int side, int sq) {
 
@@ -32,7 +35,7 @@ void PrintNonBits2(S_BOARD *pos, int side, int sq) {
 		printf("%d  ",rank+1);
 		for(file = FILE_A; file <= FILE_H; file++) {
 			tsq = FR2SQ(file,rank);	
-			printf("%3d",e->sqNearK[side][sq][tsq]);
+			printf("%3d",e.sqNearK[side][sq][tsq]);
 		}
 		printf("\n");
 	}
@@ -151,27 +154,13 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(pos->side == engineSide && checkresult(pos) == FALSE) {
 			info->starttime = GetTimeMs();
 			info->depth = depth;
+			updateTTable();
 
 			if(time != -1) {
 				info->timeset = TRUE;
 
 				//TimeManagementInit(info, time, inc, pos->gamePly, movestogo[pos->side]);
 				TimeManagementInit(info, time, inc, pos->gamePly, 30);
-				//printf("gamePly %d\n",pos->gamePly );
-				//printf("optimumTime %d\n",info->optimumTime );
-				//printf("maximumTime %d\n",info->maximumTime );
-				
-				/*if(inc != 0) {
-					idealUsage = time / movestogo[pos->side] + inc - 1;
-				} else {
-					idealUsage = (time + 1000) / 40;
-				}
-
-				idealUsage = MIN(idealUsage, time - MoveOverhead);
-				//printf("idealUsage %d\n", idealUsage);*/
-				//time /= movestogo[pos->side];
-				//time -= 50;
-
 				info->stoptime = info->starttime + info->optimumTime;
 			}
 
@@ -189,7 +178,6 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 					movestogo[pos->side^1] = mps;
 				}
 			}
-
 		}
 
 		fflush(stdout);
@@ -239,10 +227,8 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		
 		if(!strcmp(command, "memory")) {			
 			sscanf(inBuf, "memory %d", &MB);		
-		    if(MB < 4) MB = 4;
-			if(MB > MAX_HASH) MB = MAX_HASH;
+			initTTable(MB);
 			printf("Set Hash to %d MB\n",MB);
-			InitHashTable(pos->HashTable, MB);
 			continue;
 		}
 
@@ -271,7 +257,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		}
 
 		if(!strcmp(command, "new")) {
-			ClearHashTable(pos->HashTable);
+			clearTTable();
 			engineSide = BLACK;
 			ParseFen(START_FEN, pos);
 			depth = -1;
@@ -331,10 +317,10 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(pos->side == engineSide && checkresult(pos) == FALSE) {
 			info->starttime = GetTimeMs();
 			info->depth = depth;
+			updateTTable();
 
 			if(movetime != 0) {
 				info->timeset = TRUE;
-				info->optimumTime = movetime;
 				info->stoptime = info->starttime + movetime;
 			}
 
@@ -379,7 +365,7 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(!strcmp(command, "eval")) {
 			PrintBoard(pos);
 			printEval(pos);
-			printf("moveBestCaseValue %d\n", moveBestCaseValue(pos));
+			//printf("moveBestCaseValue %d\n", moveBestCaseValue(pos));
 			
 			/*for(int sq = 0; sq < 120; ++sq) {
 				if(!SQOFFBOARD(sq)) {
@@ -397,6 +383,11 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		if(!strcmp(command, "take")) {
 			engineSide = BOTH;
 			TakeMove(pos);
+			continue;
+		}
+
+		if(!strcmp(command, "perft")) {
+			PerftTest(2, pos);
 			continue;
 		}
 
@@ -466,7 +457,7 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		}
 
 		if(!strcmp(command, "new")) {
-			ClearHashTable(pos->HashTable);
+			clearTTable();
 			engineSide = BLACK;
 			ParseFen(START_FEN, pos);
 			continue;

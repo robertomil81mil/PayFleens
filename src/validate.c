@@ -18,9 +18,12 @@
 
 // validate.c
 
-#include "defs.h"
 #include "stdio.h"
 #include "string.h"
+#include "defs.h"
+#include "evaluate.h"
+#include "search.h"
+#include "ttable.h"
 
 int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos) {
 	if(list->count < 0 || list->count >= MAXPOSITIONMOVES) {
@@ -90,7 +93,7 @@ void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info) {
         while(fgets (lineIn , 1024 , file) != NULL) {
 			info->starttime = GetTimeMs();
 			info->stoptime = info->starttime + time;
-			ClearHashTable(pos->HashTable);
+			clearTTable();
             ParseFen(lineIn, pos);
             printf("\n%s\n",lineIn);
 			printf("time:%d start:%d stop:%d depth:%d timeset:%d\n",

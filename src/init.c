@@ -22,6 +22,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "evaluate.h"
+#include "search.h"
 
 #define RAND_64 	((U64)rand() | \
 					(U64)rand() << 15 | \
@@ -49,21 +50,16 @@ U64 PassedPawnMasks[2][64];
 U64 OutpostSquareMasks[2][64];
 U64 IsolatedMask[64];
 
-const U64 QueenSide   =  FileBBMask[FILE_A] | FileBBMask[FILE_B] | FileBBMask[FILE_C] | FileBBMask[FILE_D];
-const U64 CenterFiles =  FileBBMask[FILE_C] | FileBBMask[FILE_D] | FileBBMask[FILE_E] | FileBBMask[FILE_F];
-const U64 KingSide    =  FileBBMask[FILE_E] | FileBBMask[FILE_F] | FileBBMask[FILE_G] | FileBBMask[FILE_H];
-const U64 Center      = (FileBBMask[FILE_D] | FileBBMask[FILE_E]) & (RankBBMask[RANK_4] | RankBBMask[RANK_5]);
-
-const U64 KingFlank[FILE_NONE] = {
-	QueenSide ^ FileBBMask[FILE_D], QueenSide, QueenSide,
-	CenterFiles, CenterFiles,
-	KingSide, KingSide, KingSide ^ FileBBMask[FILE_E]
-};
-
 int SquareDistance[120][120];
 int FileDistance[120][120];
 int RankDistance[120][120];
 S_OPTIONS EngineOptions[1];
+
+const uint64_t KingFlank[8] = {
+	QUEEN_FLANK ^ FILEBB_D, QUEEN_FLANK, QUEEN_FLANK,
+	CENTER_FLANK, CENTER_FLANK,
+	KING_FLANK, KING_FLANK, KING_FLANK ^ FILEBB_E
+};
 
 void InitEvalMasks() {
 

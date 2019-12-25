@@ -20,10 +20,11 @@
 
 #include "stdio.h"
 #include "defs.h"
+#include "evaluate.h"
 
 #define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
 
-EVAL_DATA e[1];
+//EVAL_DATA e[1];
 
 const int LoopSlidePce[8] = {
  wB, wR, wQ, 0, bB, bR, bQ, 0
@@ -35,26 +36,6 @@ const int LoopNonSlidePce[6] = {
 
 const int LoopSlideIndex[2] = { 0, 4 };
 const int LoopNonSlideIndex[2] = { 0, 3 };
-
-const int PceDir[13][8] = {
-	{ 0, 0, 0, 0, 0, 0, 0, 0 },
-	{  9, 11, 0, 0, 0, 0, 0, 0 },
-	{ -8, -19,	-21, -12, 8, 19, 21, 12 },
-	{ -9, -11, 11, 9, 0, 0, 0, 0 },
-	{ -1, -10,	1, 10, 0, 0, 0, 0 },
-	{ -1, -10,	1, 10, -9, -11, 11, 9 },
-	{ -1, -10,	1, 10, -9, -11, 11, 9 },
-	{ -9, -11, 0, 0, 0, 0, 0, 0 },
-	{ -8, -19,	-21, -12, 8, 19, 21, 12 },
-	{ -9, -11, 11, 9, 0, 0, 0, 0 },
-	{ -1, -10,	1, 10, 0, 0, 0, 0 },
-	{ -1, -10,	1, 10, -9, -11, 11, 9 },
-	{ -1, -10,	1, 10, -9, -11, 11, 9 }
-};
-
-const int NumDir[13] = {
- 0, 2, 8, 4, 4, 8, 8, 2, 8, 4, 4, 8, 8
-};
 
 /*
 PV Move
@@ -547,19 +528,24 @@ void setSquaresNearKing() {
     for (int i = 0; i < 120; ++i)
         for (int j = 0; j < 120; ++j)
         {
-            e->sqNearK[WHITE][i][j] = 0;
-            e->sqNearK[BLACK][i][j] = 0;
-            // e->sqNearK[side^1] [ KingSq[side^1] ] [t_sq] 
+            e.sqNearK[WHITE][i][j] = 0;
+            e.sqNearK[BLACK][i][j] = 0;
+            // e.sqNearK[side^1] [ KingSq[side^1] ] [t_sq] 
 
             if ( !SQOFFBOARD(i) && !SQOFFBOARD(j) ) {
+
+            	if (j == i) {
+            		e.sqNearK[WHITE][i][j] = 1;
+                    e.sqNearK[BLACK][i][j] = 1;
+            	}
 
                 /* squares constituting the ring around both kings */
                 if (j == i + NORTH || j == i + SOUTH 
 				||  j == i + EAST  || j == i + WEST 
 				||  j == i + NW    || j == i + NE 
 				||  j == i + SW    || j == i + SE) {
-                	e->sqNearK[WHITE][i][j] = 1;
-                    e->sqNearK[BLACK][i][j] = 1;
+                	e.sqNearK[WHITE][i][j] = 1;
+                    e.sqNearK[BLACK][i][j] = 1;
                 }
 
                 if (FilesBrd[i] == FILE_A && FilesBrd[j] == FILE_C) {
@@ -567,8 +553,8 @@ void setSquaresNearKing() {
                 	if (j == i + 12
                 	||  j == i + 2 
                 	||  j == i - 8) {
-                		e->sqNearK[WHITE][i][j] = 1;
-                    	e->sqNearK[BLACK][i][j] = 1;
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
                 	}
                 }
                 if (FilesBrd[i] == FILE_H && FilesBrd[j] == FILE_F) {
@@ -576,8 +562,8 @@ void setSquaresNearKing() {
                 	if (j == i - 12
                 	||  j == i - 2 
                 	||  j == i + 8) {
-                		e->sqNearK[WHITE][i][j] = 1;
-                    	e->sqNearK[BLACK][i][j] = 1;
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
                 	}
                 }
                 if (RanksBrd[i] == RANK_1) {
@@ -585,19 +571,19 @@ void setSquaresNearKing() {
                 	if (j == i + 19
                 	||  j == i + 20 
                 	||  j == i + 21) {
-                		e->sqNearK[WHITE][i][j] = 1;
-                    	e->sqNearK[BLACK][i][j] = 1;
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
                     }
                     if (FilesBrd[i] == FILE_A) {
                     	if (j == i + 22) {
-                    		e->sqNearK[WHITE][i][j] = 1;
-                    		e->sqNearK[BLACK][i][j] = 1;
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
                     	}
                     }
                     if (FilesBrd[i] == FILE_H) {
                     	if (j == i + 18) {
-                    		e->sqNearK[WHITE][i][j] = 1;
-                    		e->sqNearK[BLACK][i][j] = 1;
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
                     	}
                     }
                 }
@@ -606,19 +592,19 @@ void setSquaresNearKing() {
                 	if (j == i - 19
                 	||  j == i - 20 
                 	||  j == i - 21) {
-                		e->sqNearK[WHITE][i][j] = 1;
-                    	e->sqNearK[BLACK][i][j] = 1;
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
                     }
                     if (FilesBrd[i] == FILE_A) {
                     	if (j == i - 18) {
-                    		e->sqNearK[WHITE][i][j] = 1;
-                    		e->sqNearK[BLACK][i][j] = 1;
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
                     	}
                     }
                     if (FilesBrd[i] == FILE_H) {
                     	if (j == i - 22) {
-                    		e->sqNearK[WHITE][i][j] = 1;
-                    		e->sqNearK[BLACK][i][j] = 1;
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
                     	}
                     }
                 }
@@ -648,6 +634,8 @@ void KingAreaMask() {
 			for(index = 0; index < NumDir[pce]; ++index) {
 				dir = PceDir[pce][index];
 				t_sq = sq + dir;
+				KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq));
+				KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq));
 				if(!SQOFFBOARD(t_sq)) {
 					KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 					KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));

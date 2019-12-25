@@ -18,10 +18,14 @@
 
 // uci.c
 
-#include "stdio.h"
-#include "defs.h"
-#include "string.h"
 #include <math.h>
+#include "stdio.h"
+#include "string.h"
+
+#include "defs.h"
+#include "search.h"
+#include "evaluate.h"
+#include "ttable.h"
 
 #define INPUTBUFFER 400 * 6
 
@@ -31,7 +35,7 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 	info->starttime = GetTimeMs();
 
 	int depth = -1, movestogo = 0,movetime = -1;
-	int time = -1, inc = 0, myTime = 0, idealUsage = 0, MoveOverhead = 200;
+	int time = -1, inc = 0;
     char *ptr = NULL;
 	info->timeset = FALSE;
 
@@ -67,8 +71,10 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 		depth = atoi(ptr + 6);
 	}
 
+	updateTTable();
+
 	if(movetime != -1) {
-		time = movetime;
+		info->stoptime = info->starttime + movetime;
 		movestogo = 1;
 	}
 
@@ -79,15 +85,6 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 		TimeManagementInit(info, time, inc, pos->gamePly, movestogo);
 
-		/*if(inc != 0) {
-			idealUsage = time / movestogo + inc - 4;
-		} else {
-			idealUsage = (time + 100 ) / 40;
-		}
-
-		idealUsage = MIN(idealUsage, time - 1000);*/
-		//time /= movestogo[pos->side];
-		//time -= 50;
 		info->stoptime = info->starttime + info->optimumTime;
 	} 
 
@@ -147,7 +144,7 @@ void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 	char line[INPUTBUFFER];
     printf("id name %s\n",NAME);
     printf("id author Roberto M\n");
-	printf("option name Hash type spin default 64 min 4 max %d\n",MAX_HASH);
+    printf("option name Hash type spin default 64 min 1 max 65536\n");
 	printf("option name Book type check default false\n");
     printf("uciok\n");
 	
@@ -182,13 +179,10 @@ void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
         } else if (!strncmp(line, "debug", 4)) {
             DebugAnalysisTest(pos,info);
             break;
-        } else if (!strncmp(line, "setoption name Hash value ", 26)) {			
-			sscanf(line,"%*s %*s %*s %*s %d",&MB);
-			if(MB < 4) MB = 4;
-			if(MB > MAX_HASH) MB = MAX_HASH;
-			printf("Set Hash to %d MB\n",MB);
-			InitHashTable(pos->HashTable, MB);
-		} else if (!strncmp(line, "setoption name Book value ", 26)) {
+        } else if (!strncmp(line, "setoption name Hash value ", 26)) {
+        	sscanf(line,"%*s %*s %*s %*s %d",&MB);
+        	initTTable(MB); printf("info string set Hash to %dMB\n", MB);
+    	} else if (!strncmp(line, "setoption name Book value ", 26)) {
 			char *ptrTrue = NULL;
 			ptrTrue = strstr(line, "true");
 			if(ptrTrue != NULL) {

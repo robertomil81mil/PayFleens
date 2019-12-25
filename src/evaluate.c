@@ -18,82 +18,82 @@
 
 // evaluate.c
 
+#include <stdbool.h>
 #include "stdio.h"
 #include "defs.h"
 #include "evaluate.h"
 
-eval_info ei[1];
+evalInfo ei;
+evalData e;
 
 int popcount(U64 bb) {
     return __builtin_popcountll(bb);
 }
 
 int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s) {
-	return popcount(pos->pawns[c] & ((BLACK_SQUARES & s) ? BLACK_SQUARES : ~BLACK_SQUARES));
+	return popcount(pos->pawns[c] & ((WHITE_SQUARES & (uint64_t)(s))) ? WHITE_SQUARES : BLACK_SQUARES);
 }
 
 bool opposite_colors(int s1, int s2) {
-	return bool(BLACK_SQUARES & s1) != bool(BLACK_SQUARES & s2);
+    return (bool)(WHITE_SQUARES & (uint64_t)(s1)) != (bool)(WHITE_SQUARES & (uint64_t)(s2));
 }
 
 bool opposite_bishops(const S_BOARD *pos) {
-	return  ( pos->pceNum[wB] == 1
+    return  ( pos->pceNum[wB] == 1
            && pos->pceNum[bB] == 1
            && opposite_colors(SQ64(pos->pList[wB][0]) , SQ64(pos->pList[bB][0])) );
 }
 
-static int getTropism(const int sq1, const int sq2) {
+int getTropism(const int sq1, const int sq2) {
 	return 7 - (abs(FilesBrd[(sq1)] - FilesBrd[(sq2)]) + abs(RanksBrd[(sq1)] - RanksBrd[(sq2)]));
 }
 
-static int king_proximity(const int c, const int s, const S_BOARD *pos) {
+int king_proximity(const int c, const int s, const S_BOARD *pos) {
     return MIN(SquareDistance[pos->KingSq[c]][s], 5);
 };
 
-static int distanceBetween(int s1, int s2) {
+int distanceBetween(int s1, int s2) {
     return SquareDistance[s1][s2];
 }
 
-static int distanceByFile(int s1, int s2) {
+int distanceByFile(int s1, int s2) {
     return FileDistance[s1][s2];
 }
 
-static int distanceByRank(int s1, int s2) {
+int distanceByRank(int s1, int s2) {
     return RankDistance[s1][s2];
 }
 
-static int map_to_queenside(const int f) {
+int map_to_queenside(const int f) {
 	return MIN(f, FILE_H - f);
 }
 
-static int clamp(const int v, const int lo, const int hi) {
+int clamp(const int v, const int lo, const int hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-static int isPiece(const int color, const int piece, const int sq, const S_BOARD *pos) {
+int isPiece(const int color, const int piece, const int sq, const S_BOARD *pos) {
     return ( (pos->pieces[sq] == piece) && (PieceCol[pos->pieces[sq]] == color) );
 }
 
-static int REL_SQ(const int sq120, const int side) {
+int REL_SQ(const int sq120, const int side) {
 	return side == WHITE ? sq120 : Mirror120[SQ64(sq120)];
 }
 
-static int rank_of(int s) {
+int rank_of(int s) {
 	return s / 8;
 }
 
-static int relative_rank2(const int c, const int r) {
-	return c == WHITE ? r : 7 - r;
-}
-
-static int relative_rank(const int c, const int s) {
-	return relative_rank2(c, rank_of(s));
+int relativeRank(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < 64);
+    return colour == WHITE ? rank_of(sq) : 7 - rank_of(sq);
 }
 
 int relativeSquare32(int c, int sq) {
     ASSERT(0 <= c && c < BOTH);
     ASSERT(0 <= sq && sq < 64);
-    return 4 * relative_rank(c, sq) + map_to_queenside(FilesBrd[SQ120(sq)]);
+    return 4 * relativeRank(c, sq) + map_to_queenside(FilesBrd[SQ120(sq)]);
 }
 
 int getlsb(U64 bb) {
@@ -139,7 +139,7 @@ int evaluateScaleFactor(const S_BOARD *pos) {
     return SCALE_NORMAL;
 }
 
-#define S(mg, eg) (MakeScore((mg), (eg)))
+#define S(mg, eg) (makeScore((mg), (eg)))
 
 int PieceValPhases[13] = { S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), 
                            S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), S( 0, 0)  };
@@ -258,11 +258,6 @@ const int Connected[8] = { 0, 7, 8, 12, 29, 48, 86, 0};
 const int KnightOutpost[2] = { S(   4, -16), S(  19,  -2) };
 const int BishopOutpost[2] = { S(   6,  -7), S(  25,   0) };
 
-const int PairOfBishops = S(  30,  42);
-const int BadBishop = S(  -1,  -2);
-
-const int KingDefender = S(  -1,  -1);
-
 const int RookOpen = S(  22,  11);
 const int RookSemi = S(  10,   3);
 const int RookSeventh = S(   8,  16);
@@ -286,13 +281,13 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 		dir = PceDir[pce][index];
 		t_sq = sq + dir;
 		if(!SQOFFBOARD(t_sq)) {
-			if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+			if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 				att++;
 			}    
 		}
 	}
 	if(att) {
-    	ei->attCnt[side] += att;	
+    	ei.attCnt[side] += att;	
     }
 
 	R  = (side == WHITE ? RanksBrd[sq] : 7 - RanksBrd[sq]);
@@ -303,9 +298,9 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 	support = (pos->pawn_ctrl[side][sq]);
 	pawnbrothers = (pos->pieces[sq-1] == pce || pos->pieces[sq+1] == pce);
 
-	//printf("opposed %d\n",bool(opposed) );
-	//printf("support %d\n",bool(support) );
-	//printf("pawnbrothers %d\n",bool(pawnbrothers) );
+	//printf("opposed %d\n", (bool)(opposed) );
+	//printf("support %d\n", (bool)(support) );
+	//printf("pawnbrothers %d\n",(bool)(pawnbrothers) );
 
 	if(pos->pieces[sq+Su] == pce) {
 		//printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
@@ -335,7 +330,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     if( (PassedPawnMasks[side][SQ64(sq)] & pos->pawns[side^1]) == 0) {
 		//printf("%c Passed:%s\n",PceChar[pce], PrSq(sq));
-        ei->passedCnt++;
+        ei.passedCnt++;
 		score += PawnPassed[R];
 
 		if(support || pawnbrothers) {
@@ -356,7 +351,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
             }
 
             bonus = (bonus * 100) / 410;
-            score += MakeScore(0, bonus);
+            score += makeScore(0, bonus);
 		}
 		/*if (!PassedPawnMasks[side][SQ64(sq + Up)
         || (pos->pawns[BOTH] & (SQ64(sq + Up)))) {
@@ -365,14 +360,13 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 	}
 
 	if(support || pawnbrothers) {
-		int i =  Connected[R] * (2 + bool(pawnbrothers) - bool(opposed))
+		int i =  Connected[R] * (2 + (bool)(pawnbrothers) - (bool)(opposed))
 				+ 21 * pos->pawn_ctrl[side][sq];
         i = (i * 100) / 1220;
-        //printf("supportCount %d v %d v eg %d \n",pos->pawn_ctrl[side][sq], i, i * (R - 2) / 4);
-		score += MakeScore(i, i * (R - 2) / 4);
+        //printf("supportCount %d v %d v eg %d R %d\n",pos->pawn_ctrl[side][sq], i, i * (R - 2) / 4, R);
+		score += makeScore(i, i * (R - 2) / 4);
 	}
-
-	//ei->pawns[side] += score;
+	//ei.pawns[side] += score;
 
 	return score;
 }
@@ -407,29 +401,27 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
 				mobility++;
 			}
 				
-			if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+			if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 				att++;
 			}    
 		}
 	}
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
-	score += MakeScore(3 * tropism, 3 * tropism);
-	score += KnightMobility[mobility];
-	ei->Mob[side] += KnightMobility[mobility];
+	score += makeScore(3 * tropism, 3 * tropism);
+	ei.Mob[side] += KnightMobility[mobility];
 
     Count = distanceBetween(sq, pos->KingSq[side]);
     P1 = (7 * Count) * 100 / 410;
     P2 = (8 * Count) * 100 / 410;
-   	score += MakeScore(-P1, -P2);
-    //score += KingDefender * Count;
+   	score += makeScore(-P1, -P2);
 
 	if(att) {
-    	ei->attCnt[side] += att;
-        ei->attckersCnt[side] += 1;
-        ei->attWeight[side] += Weight[pce];
+    	ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
     }
-    //ei->knights[side] += score;
+    //ei.knights[side] += score;
 
     return score;	
 }
@@ -464,7 +456,7 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 				if(!pos->pawn_ctrl[side^1][t_sq]) {
 					mobility++;
 				}
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+				if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 					att++;
 				}
 			} else { // non empty sq
@@ -472,7 +464,7 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 					if(!pos->pawn_ctrl[side^1][t_sq]) {
 						mobility++;
 					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+					if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 						att++;
 					}
 				}
@@ -483,38 +475,35 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 	}
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
-	score += MakeScore(2 * tropism, 1 * tropism);
-	score += BishopMobility[mobility];
-	ei->Mob[side] += BishopMobility[mobility];
+	score += makeScore(2 * tropism, 1 * tropism);
+	ei.Mob[side] += BishopMobility[mobility];
 
     if(mobility <= 3) {
 
     	Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
-    	P1 = (3 * Count) * 100 / 210;
-    	P2 = (7 * Count) * 100 / 210;
+    	P1 = (3 * Count) * 100 / 310;
+    	P2 = (7 * Count) * 100 / 310;
 
-    	score += MakeScore(-P1, -P2);
+    	score += makeScore(-P1, -P2);
     } 
 
     Count = distanceBetween(sq, pos->KingSq[side]);
     P1 = (7 * Count) * 100 / 410;
     P2 = (8 * Count) * 100 / 410;
 
-    score += MakeScore(-P1, -P2);
-
-    //if(pos->pceNum[pce] > 1) score += PairOfBishops;
+    score += makeScore(-P1, -P2);
   
     if(att) {
-    	ei->attCnt[side] += att;
-        ei->attckersCnt[side] += 1;
-        ei->attWeight[side] += Weight[pce];
+    	ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
     }
-    //ei->bishops[side] += score;
+    //ei.bishops[side] += score;
 
     return score;
 }
 
-int Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
+int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 	int score = 0, att = 0, mobility = 0, tropism;
 	int sq, t_sq, dir, index, R, KR;
@@ -535,7 +524,7 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 				if(!pos->pawn_ctrl[side^1][t_sq]) {
 					mobility++;
 				}
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+				if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 					att++;
 				}
 			} else { // non empty sq
@@ -543,7 +532,7 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 					if(!pos->pawn_ctrl[side^1][t_sq]) {
 						mobility++;
 					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+					if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 						att++;
 					}
 				}
@@ -565,16 +554,15 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum ) {
 	}
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
-	score += MakeScore(2 * tropism, 1 * tropism);
-	score += RookMobility[mobility];
-	ei->Mob[side] += RookMobility[mobility];
+	score += makeScore(2 * tropism, 1 * tropism);
+	ei.Mob[side] += RookMobility[mobility];
 
 	if (att) {
-		ei->attCnt[side] += att;
-        ei->attckersCnt[side] += 1;
-        ei->attWeight[side] += Weight[pce];
+		ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
     }
-    //ei->rooks[side] += score;
+    //ei.rooks[side] += score;
 
     return score;
 }
@@ -602,7 +590,7 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 				if(!pos->pawn_ctrl[side^1][t_sq]) {
 					mobility++;
 				}
-				if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+				if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 					att++;
 				}
 			} else { // non empty sq
@@ -610,7 +598,7 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 					if(!pos->pawn_ctrl[side^1][t_sq]) {
 						mobility++;
 					}
-					if ( e->sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
+					if ( e.sqNearK[side^1] [pos->KingSq[side^1] ] [t_sq] ) {
 						att++;
 					}
 				}
@@ -636,16 +624,15 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	}
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
-	score += MakeScore(2 * tropism, 4 * tropism);
-	score += QueenMobility[mobility];
-	ei->Mob[side] += QueenMobility[mobility];
+	score += makeScore(2 * tropism, 4 * tropism);
+	ei.Mob[side] += QueenMobility[mobility];
 
 	if (att) {
-		ei->attCnt[side] += att;
-        ei->attckersCnt[side] += 1;
-        ei->attWeight[side] += Weight[pce];
+		ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
     }
-    //ei->queens[side] += score;
+    //ei.queens[side] += score;
 
     return score;
 }
@@ -659,19 +646,19 @@ int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
     for (file = center - 1; file <= center + 1; ++file) {
 
         ours = (pos->pawns[side] & FileBBMask[file]);
-        ourRank = ours ? relative_rank(side, frontmost(side^1, ours)) : 0;
+        ourRank = ours ? relativeRank(side, frontmost(side^1, ours)) : 0;
 
         theirs = (pos->pawns[side^1] & FileBBMask[file]);
-        theirRank = theirs ? relative_rank(side, frontmost(side^1, theirs)) : 0;
+        theirRank = theirs ? relativeRank(side, frontmost(side^1, theirs)) : 0;
 
         d = map_to_queenside(file);
-        score  = MakeScore(1, 1);
-        score += MakeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
+        score  = makeScore(1, 1);
+        score += makeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
 
         if (ourRank && (ourRank == theirRank - 1)) {
-            score -= BlockedStorm * int(theirRank == RANK_3);
+            score -= BlockedStorm * (int)(theirRank == RANK_3);
         } else {
-            score -= MakeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
+            score -= makeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
         }
     }
 
@@ -697,7 +684,7 @@ int evaluateShelter(const S_BOARD *pos, int side) {
         if (pos->castlePerm & BQCA) 
             shelter = MAX(shelter, hypotheticalShelter(pos, side, C8));
     }
-    ei->pkeval[side] = shelter;
+    ei.pkeval[side] = shelter;
 
     return shelter;
 }
@@ -708,25 +695,25 @@ int evaluateKings(const S_BOARD *pos, int side) {
 
     enemyQueen = (side == WHITE ? bQ : wQ);
 
-    if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) { 
+    if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) {
         score += PawnLessFlank;
     }
 
     score += evaluateShelter(pos, side);
 
-    if (ei->attckersCnt[side^1] > 1 - pos->pceNum[enemyQueen]) {
+    if (ei.attckersCnt[side^1] > 1 - pos->pceNum[enemyQueen]) {
     
-        float scaledAttackCounts = 9.0 * ei->attCnt[side^1] / popcount(ei->kingAreas[side]) + 1;
+        float scaledAttackCounts = 9.0 * ei.attCnt[side^1] / popcount(ei.kingAreas[side]);
 
-        count =       ei->attckersCnt[side^1] * ei->attWeight[side^1]
+        count =       ei.attckersCnt[side^1] * ei.attWeight[side^1]
                + 32 * scaledAttackCounts
-               +      ScoreMG(ei->Mob[side^1] - ei->Mob[side]) / 4
-               -  6 * ScoreMG(ei->pkeval[side]) / 8
+               +      mgScore(ei.Mob[side^1] - ei.Mob[side]) / 4
+               -  6 * mgScore(ei.pkeval[side]) / 8
                - 17 ;
 
         if(count > 0) {
-            score -= MakeScore(count * count / 720, count / 18);
-            //ei->KingDanger[side^1] = MakeScore(count * count / 720, count / 18);
+            score -= makeScore(count * count / 720, count / 18);
+            //ei.KingDanger[side^1] = makeScore(count * count / 720, count / 18);
         }
     }
 
@@ -785,8 +772,8 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
 
     int complexity, outflanking, pawnsOnBothFlanks, pawnEndgame, almostUnwinnable, mg, eg, u, v;
 
-    mg = ScoreMG(score);
-    eg = ScoreEG(score);
+    mg = mgScore(score);
+    eg = egScore(score);
 
     outflanking =  distanceByFile(pos->KingSq[WHITE], pos->KingSq[BLACK])
                  - distanceByRank(pos->KingSq[WHITE], pos->KingSq[BLACK]);
@@ -797,11 +784,11 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
     pawnEndgame = !(pos->pceNum[wN] && pos->pceNum[wB] && pos->pceNum[wR] && pos->pceNum[wQ]
                  && pos->pceNum[bN] && pos->pceNum[bB] && pos->pceNum[bR] && pos->pceNum[bQ]);
 
-    almostUnwinnable =   !ei->passedCnt
+    almostUnwinnable =   !ei.passedCnt
                       &&  outflanking < 0
                       && !pawnsOnBothFlanks;
 
-    complexity =   5 * ei->passedCnt
+    complexity =   5 * ei.passedCnt
                 +  7 * popcount(pos->pawns[BOTH])
                 +  5 * outflanking
                 + 13 * pawnsOnBothFlanks
@@ -812,9 +799,9 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
     u = ((mg > 0) - (mg < 0)) * MAX(MIN(complexity + 50, 0), -abs(mg));
     v = ((eg > 0) - (eg < 0)) * MAX(complexity, -abs(eg));
 
-    //ei->Complexity = MakeScore(u, v);
+    //ei.Complexity = makeScore(u, v);
 
-    return MakeScore(u, v);
+    return makeScore(u, v);
 }
 
 int imbalance(const int pieceCount[2][6], int side) {
@@ -835,9 +822,9 @@ int imbalance(const int pieceCount[2][6], int side) {
         
         bonus += pieceCount[side][pt1] * v;
     }
-    //ei->imbalance[side] = MakeScore(bonus / 16, bonus / 16);
+    //ei.imbalance[side] = makeScore(bonus / 16, bonus / 16);
 
-    return MakeScore(bonus / 16, bonus / 16);
+    return makeScore(bonus / 16, bonus / 16);
 }
 
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
@@ -876,36 +863,36 @@ void blockedPiecesW(const S_BOARD *pos) {
     if (pos->pieces[C1] == wB
 	&&  pos->pieces[D2] == wP
 	&& pos->pieces[D3] != EMPTY) {
-       ei->blockages[side] -= P_BLOCK_CENTRAL_PAWN;
+       ei.blockages[side] -= P_BLOCK_CENTRAL_PAWN;
 	}
 
 	if (pos->pieces[F1] == wB
 	&& pos->pieces[E2] == wP
 	&& pos->pieces[E3] != EMPTY) {
-	   ei->blockages[side] -= P_BLOCK_CENTRAL_PAWN;
+	   ei.blockages[side] -= P_BLOCK_CENTRAL_PAWN;
 	}
 
 	// trapped knight
 	if ( pos->pieces[A8] == wN
 	&&  ( pos->pieces[A7] == bP || pos->pieces[C7] == bP) ) {
-		ei->blockages[side] -= P_KNIGHT_TRAPPED_A8;
+		ei.blockages[side] -= P_KNIGHT_TRAPPED_A8;
 	}
 
 	if ( pos->pieces[H8] == wN
 	&& ( pos->pieces[H7] == bP || pos->pieces[F7] == bP)) {
-		ei->blockages[side] -= P_KNIGHT_TRAPPED_A8;
+		ei.blockages[side] -= P_KNIGHT_TRAPPED_A8;
 	}
 
 	if (pos->pieces[A7] == wN
 	&&  pos->pieces[A6] == bP
 	&&  pos->pieces[B7] == bP) {
-	    ei->blockages[side] -= P_KNIGHT_TRAPPED_A7;
+	    ei.blockages[side] -= P_KNIGHT_TRAPPED_A7;
 	}
 
 	if (pos->pieces[H7] == wN
 	&&  pos->pieces[H6] == bP
 	&&  pos->pieces[G7] == bP) {
-	    ei->blockages[side] -= P_KNIGHT_TRAPPED_A7;
+	    ei.blockages[side] -= P_KNIGHT_TRAPPED_A7;
 	}
 
 	 // knight blocking queenside pawns
@@ -913,62 +900,62 @@ void blockedPiecesW(const S_BOARD *pos) {
 	&&  pos->pieces[C2] == wP
 	&& (pos->pieces[D4] == wP || pos->pieces[D2] == wP)
 	&&  pos->pieces[E4] != wP) {
-	    ei->blockages[side] -= P_C3_KNIGHT;
+	    ei.blockages[side] -= P_C3_KNIGHT;
 	}
 
 	 // trapped bishop
 	if (pos->pieces[A7] == wB
 	&&  pos->pieces[B6] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[H7] == wB
 	&&  pos->pieces[G6] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[B8] == wB
 	&&  pos->pieces[C7] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[G8] == wB
 	&&  pos->pieces[F7] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[A6] == wB
 	&&  pos->pieces[B5] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A6;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A6;
 	}
 
 	if (pos->pieces[H6] == wB
 	&&  pos->pieces[G5] == bP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A6;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A6;
 	}
 
 	 // bishop on initial square supporting castled king
 	if (pos->pieces[F1] == wB
 	&&  pos->pieces[G1] == wK) {
-	    ei->blockages[side] += RETURNING_BISHOP;
+	    ei.blockages[side] += RETURNING_BISHOP;
 	}
 
 	if (pos->pieces[C1] == wB
 	&&  pos->pieces[B1] == wK) {
-	    ei->blockages[side] += RETURNING_BISHOP;
+	    ei.blockages[side] += RETURNING_BISHOP;
 	}
 
     // uncastled king blocking own rook
 	if ( (pos->pieces[F1] == wK || pos->pieces[G1] == wK)
 	&&  (pos->pieces[H1] == wR || pos->pieces[G1] == wR)) {
 	//&& (pos->pieces[F2] == wP || pos->pieces[G2] == wP || pos->pieces[H2] == wP)) {
-	   	ei->blockages[side] -= P_KING_BLOCKS_ROOK;
+	   	ei.blockages[side] -= P_KING_BLOCKS_ROOK;
 	}
 
 	if ( (pos->pieces[C1] == wK || pos->pieces[B1] == wK)
 	&&  (pos->pieces[A1] == wR || pos->pieces[B1] == wR)) {
 	//&& (pos->pieces[F2] == wP || pos->pieces[G2] == wP || pos->pieces[H2] == wP)) {
-	   	ei->blockages[side] -= P_KING_BLOCKS_ROOK;
+	   	ei.blockages[side] -= P_KING_BLOCKS_ROOK;
 	}
 }
 
@@ -980,36 +967,36 @@ void blockedPiecesB(const S_BOARD *pos) {
     if (pos->pieces[C8] == bB
 	&&  pos->pieces[D7] == bP
 	&& pos->pieces[D6] != EMPTY) {
-       ei->blockages[side] -= P_BLOCK_CENTRAL_PAWN;
+       ei.blockages[side] -= P_BLOCK_CENTRAL_PAWN;
 	}
 
 	if (pos->pieces[F8] == bB
 	&& pos->pieces[E7] == bP
 	&& pos->pieces[E6] != EMPTY) {
-	   ei->blockages[side] -= P_BLOCK_CENTRAL_PAWN;
+	   ei.blockages[side] -= P_BLOCK_CENTRAL_PAWN;
 	}
 
 	// trapped knight
 	if ( pos->pieces[A1] == bN
 	&& ( pos->pieces[A2] == wP || pos->pieces[C2] == wP)) {
-		ei->blockages[side] -= P_KNIGHT_TRAPPED_A8;
+		ei.blockages[side] -= P_KNIGHT_TRAPPED_A8;
 	}
 
 	if ( pos->pieces[H1] == bN
 	&& ( pos->pieces[H2] == wP || pos->pieces[F2] == wP)) {
-		ei->blockages[side] -= P_KNIGHT_TRAPPED_A8;
+		ei.blockages[side] -= P_KNIGHT_TRAPPED_A8;
 	}
 
 	if (pos->pieces[A2] == bN
 	&&  pos->pieces[A3] == wP
 	&&  pos->pieces[B2] == wP) {
-	    ei->blockages[side] -= P_KNIGHT_TRAPPED_A7;
+	    ei.blockages[side] -= P_KNIGHT_TRAPPED_A7;
 	}
 
 	if (pos->pieces[H2] == bN
 	&&  pos->pieces[H3] == wP
 	&&  pos->pieces[G2] == wP) {
-	    ei->blockages[side] -= P_KNIGHT_TRAPPED_A7;
+	    ei.blockages[side] -= P_KNIGHT_TRAPPED_A7;
 	}
 
 	 // knight blocking queenside pawns
@@ -1017,62 +1004,62 @@ void blockedPiecesB(const S_BOARD *pos) {
 	&&  pos->pieces[C7] == bP
 	&& (pos->pieces[D5] == bP || pos->pieces[D7] == bP)
 	&&  pos->pieces[E5] != bP) {
-	    ei->blockages[side] -= P_C3_KNIGHT;
+	    ei.blockages[side] -= P_C3_KNIGHT;
 	}
 
 	 // trapped bishop
 	if (pos->pieces[A2] == bB
 	&&  pos->pieces[B3] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[H2] == bB
 	&&  pos->pieces[G3] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[B1] == bB
 	&&  pos->pieces[C2] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[G1] == bB
 	&&  pos->pieces[F2] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A7;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A7;
 	}
 
 	if (pos->pieces[A3] == bB
 	&&  pos->pieces[B4] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A6;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A6;
 	}
 
 	if (pos->pieces[H3] == bB
 	&&  pos->pieces[G4] == wP) {
-	    ei->blockages[side] -= P_BISHOP_TRAPPED_A6;
+	    ei.blockages[side] -= P_BISHOP_TRAPPED_A6;
 	}
 
 	 // bishop on initial square supporting castled king
 	if (pos->pieces[F8] == bB
 	&&  pos->pieces[G8] == bK) {
-	    ei->blockages[side] += RETURNING_BISHOP;
+	    ei.blockages[side] += RETURNING_BISHOP;
 	}
 
 	if (pos->pieces[C8] == bB
 	&&  pos->pieces[B8] == bK) {
-	    ei->blockages[side] += RETURNING_BISHOP;
+	    ei.blockages[side] += RETURNING_BISHOP;
 	}
 
     // uncastled king blocking own rook
 	if ((pos->pieces[F8] == bK || pos->pieces[G8] == bK)
  	&& (pos->pieces[H8] == bR || pos->pieces[G8] == bR)) {
 	//&& (pos->pieces[F7] == bP || pos->pieces[G7] == bP || pos->pieces[H7] == bP)) {
-	   	ei->blockages[side] -= P_KING_BLOCKS_ROOK;
+	   	ei.blockages[side] -= P_KING_BLOCKS_ROOK;
 	}
 
 	if ((pos->pieces[C8] == bK || pos->pieces[B8] == bK)
 	&& (pos->pieces[A8] == bR || pos->pieces[B8] == bR)) { 
 	//&& (pos->pieces[F7] == bP || pos->pieces[G7] == bP || pos->pieces[H7] == bP)) {
-	   	ei->blockages[side] -= P_KING_BLOCKS_ROOK;
+	   	ei.blockages[side] -= P_KING_BLOCKS_ROOK;
 	}
 }
 
@@ -1091,21 +1078,20 @@ int EvalPosition(const S_BOARD *pos) {
     phase = (phase * 256 + 12) / 24;
 			
 	for(int side = WHITE; side <= BLACK; side++) {
-		ei->Mob[side] = 0;
-		ei->attCnt[side] = 0;
-		ei->attckersCnt[side] = 0;
-		ei->attWeight[side] = 0;
-		ei->adjustMaterial[side] = 0;
-		ei->blockages[side] = 0;
-		ei->pkeval[side] = 0;
-        ei->passedCnt = 0;
-		ei->pawns[side] = 0;
-		ei->knights[side] = 0;
-		ei->bishops[side] = 0;
-		ei->rooks[side] = 0;
-		ei->queens[side] = 0;
-		ei->KingDanger[side] = 0;
-		ei->kingAreas[side] = kingAreaMasks(side, SQ64(pos->KingSq[side]));
+		ei.Mob[side] = 0;
+		ei.attCnt[side] = 0;
+		ei.attckersCnt[side] = 0;
+		ei.attWeight[side] = 0;
+		ei.blockages[side] = 0;
+		ei.pkeval[side] = 0;
+        ei.passedCnt = 0;
+		ei.pawns[side] = 0;
+		ei.knights[side] = 0;
+		ei.bishops[side] = 0;
+		ei.rooks[side] = 0;
+		ei.queens[side] = 0;
+		ei.KingDanger[side] = 0;
+		ei.kingAreas[side] = kingAreaMasks(side, SQ64(pos->KingSq[side]));
 	} 
 
     const int pieceCount[2][6] = {
@@ -1117,6 +1103,7 @@ int EvalPosition(const S_BOARD *pos) {
 
 	score  = (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
     score += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
+    score += (ei.Mob[WHITE] - ei.Mob[BLACK]);
     score += (imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK));
     score +=  evaluatePieces(pos);
     score +=  evaluateComplexity(pos, score);
@@ -1126,12 +1113,12 @@ int EvalPosition(const S_BOARD *pos) {
 
 	factor = evaluateScaleFactor(pos);
 
-	score = (ScoreMG(score) * (256 - phase)
-          +  ScoreEG(score) * phase * factor / SCALE_NORMAL) / 256;
+	score = (mgScore(score) * (256 - phase)
+          +  egScore(score) * phase * factor / SCALE_NORMAL) / 256;
 
-	score += (ei->blockages[WHITE] - ei->blockages[BLACK]);
+	score += (ei.blockages[WHITE] - ei.blockages[BLACK]);
 
-	pos->side == WHITE ? score += TEMPO : score -= TEMPO;
+	score += pos->side == WHITE ? TEMPO : -TEMPO;
 
     stronger = (score > 0 ? WHITE : BLACK);
     weaker   = (score > 0 ? BLACK : WHITE);
@@ -1190,18 +1177,18 @@ void printEval(const S_BOARD *pos) {
     printf("      Term    |    White    |    Black    |    Total   \n");
     printf("              |   MG    EG  |   MG    EG  |   MG    EG \n");
     printf("--------------+-------------+-------------+------------\n");
-    printf("     Material "); printEvalFactor( ScoreMG(pos->mPhases[WHITE]),ScoreEG(pos->mPhases[WHITE]),ScoreMG(pos->mPhases[BLACK]),ScoreEG(pos->mPhases[BLACK]));
-    printf("    Imbalance "); printEvalFactor( ScoreMG(ei->imbalance[WHITE]),ScoreEG(ei->imbalance[WHITE]),ScoreMG(ei->imbalance[BLACK]),ScoreEG(ei->imbalance[BLACK]));
-    printf("         PSQT "); printEvalFactor( ScoreMG(pos->PSQT[WHITE]),ScoreEG(pos->PSQT[WHITE]),ScoreMG(pos->PSQT[BLACK]),ScoreEG(pos->PSQT[BLACK]));
-    printf("        Pawns "); printEvalFactor( ScoreMG(ei->pawns[WHITE]),ScoreEG(ei->pawns[WHITE]),ScoreMG(ei->pawns[BLACK]),ScoreEG(ei->pawns[BLACK]));
-    printf("      Knights "); printEvalFactor( ScoreMG(ei->knights[WHITE]),ScoreEG(ei->knights[WHITE]),ScoreMG(ei->knights[BLACK]),ScoreEG(ei->knights[BLACK]));
-    printf("      Bishops "); printEvalFactor( ScoreMG(ei->bishops[WHITE]),ScoreEG(ei->bishops[WHITE]),ScoreMG(ei->bishops[BLACK]),ScoreEG(ei->bishops[BLACK]));
-    printf("        Rooks "); printEvalFactor( ScoreMG(ei->rooks[WHITE]),ScoreEG(ei->rooks[WHITE]),ScoreMG(ei->rooks[BLACK]),ScoreEG(ei->rooks[BLACK]));
-    printf("       Queens "); printEvalFactor( ScoreMG(ei->queens[WHITE]),ScoreEG(ei->queens[WHITE]),ScoreMG(ei->queens[BLACK]),ScoreEG(ei->queens[BLACK]));
-    printf("     Mobility "); printEvalFactor( ScoreMG(ei->Mob[WHITE]),ScoreEG(ei->Mob[WHITE]),ScoreMG(ei->Mob[BLACK]),ScoreEG(ei->Mob[BLACK]));
-    printf("  King safety "); printEvalFactor( ScoreMG(ei->KingDanger[WHITE]),ScoreEG(ei->KingDanger[WHITE]),ScoreMG(ei->KingDanger[BLACK]),ScoreEG(ei->KingDanger[BLACK]));
-    printf("  King shield "); printEvalFactor( ScoreMG(ei->pkeval[WHITE]),ScoreEG(ei->pkeval[WHITE]),ScoreMG(ei->pkeval[BLACK]),ScoreEG(ei->pkeval[BLACK]));
-    printf("   Initiative "); printf("| ----  ----  | ----  ----  | %4d  %4d \n", ScoreMG(ei->Complexity), ScoreEG(ei->Complexity));
+    printf("     Material "); printEvalFactor( mgScore(pos->mPhases[WHITE]),egScore(pos->mPhases[WHITE]),mgScore(pos->mPhases[BLACK]),egScore(pos->mPhases[BLACK]));
+    printf("    Imbalance "); printEvalFactor( mgScore(ei.imbalance[WHITE]),egScore(ei.imbalance[WHITE]),mgScore(ei.imbalance[BLACK]),egScore(ei.imbalance[BLACK]));
+    printf("         PSQT "); printEvalFactor( mgScore(pos->PSQT[WHITE]),egScore(pos->PSQT[WHITE]),mgScore(pos->PSQT[BLACK]),egScore(pos->PSQT[BLACK]));
+    printf("        Pawns "); printEvalFactor( mgScore(ei.pawns[WHITE]),egScore(ei.pawns[WHITE]),mgScore(ei.pawns[BLACK]),egScore(ei.pawns[BLACK]));
+    printf("      Knights "); printEvalFactor( mgScore(ei.knights[WHITE]),egScore(ei.knights[WHITE]),mgScore(ei.knights[BLACK]),egScore(ei.knights[BLACK]));
+    printf("      Bishops "); printEvalFactor( mgScore(ei.bishops[WHITE]),egScore(ei.bishops[WHITE]),mgScore(ei.bishops[BLACK]),egScore(ei.bishops[BLACK]));
+    printf("        Rooks "); printEvalFactor( mgScore(ei.rooks[WHITE]),egScore(ei.rooks[WHITE]),mgScore(ei.rooks[BLACK]),egScore(ei.rooks[BLACK]));
+    printf("       Queens "); printEvalFactor( mgScore(ei.queens[WHITE]),egScore(ei.queens[WHITE]),mgScore(ei.queens[BLACK]),egScore(ei.queens[BLACK]));
+    printf("     Mobility "); printEvalFactor( mgScore(ei.Mob[WHITE]),egScore(ei.Mob[WHITE]),mgScore(ei.Mob[BLACK]),egScore(ei.Mob[BLACK]));
+    printf("  King safety "); printEvalFactor( mgScore(ei.KingDanger[WHITE]),egScore(ei.KingDanger[WHITE]),mgScore(ei.KingDanger[BLACK]),egScore(ei.KingDanger[BLACK]));
+    printf("  King shield "); printEvalFactor( mgScore(ei.pkeval[WHITE]),egScore(ei.pkeval[WHITE]),mgScore(ei.pkeval[BLACK]),egScore(ei.pkeval[BLACK]));
+    printf("   Initiative "); printf("| ----  ----  | ----  ----  | %4d  %4d \n", mgScore(ei.Complexity), egScore(ei.Complexity));
     printf("--------------+-------------+-------------+------------\n");
     printf("        Total "); printf("| ----  ----  | ----  ----  |    %4d     \n", v);
     printf("\n");
@@ -1218,18 +1205,18 @@ void setPcsq32() {
 	    	const int w32 = relativeSquare32(WHITE, SQ64);
         	const int b32 = relativeSquare32(BLACK, SQ64);
 
-        	e->PSQT[wP][i] =    PawnPSQT32[w32]; 
-	        e->PSQT[bP][i] =    PawnPSQT32[b32];
-	        e->PSQT[wN][i] =  KnightPSQT32[w32];
-	        e->PSQT[bN][i] =  KnightPSQT32[b32];
-	        e->PSQT[wB][i] =  BishopPSQT32[w32];
-	        e->PSQT[bB][i] =  BishopPSQT32[b32];
-	        e->PSQT[wR][i] =    RookPSQT32[w32];
-	        e->PSQT[bR][i] =    RookPSQT32[b32];
-	        e->PSQT[wQ][i] =   QueenPSQT32[w32];
-	        e->PSQT[bQ][i] =   QueenPSQT32[b32];
-	        e->PSQT[wK][i] =    KingPSQT32[w32];
-	        e->PSQT[bK][i] =    KingPSQT32[b32];
+        	e.PSQT[wP][i] =    PawnPSQT32[w32]; 
+	        e.PSQT[bP][i] =    PawnPSQT32[b32];
+	        e.PSQT[wN][i] =  KnightPSQT32[w32];
+	        e.PSQT[bN][i] =  KnightPSQT32[b32];
+	        e.PSQT[wB][i] =  BishopPSQT32[w32];
+	        e.PSQT[bB][i] =  BishopPSQT32[b32];
+	        e.PSQT[wR][i] =    RookPSQT32[w32];
+	        e.PSQT[bR][i] =    RookPSQT32[b32];
+	        e.PSQT[wQ][i] =   QueenPSQT32[w32];
+	        e.PSQT[bQ][i] =   QueenPSQT32[b32];
+	        e.PSQT[wK][i] =    KingPSQT32[w32];
+	        e.PSQT[bK][i] =    KingPSQT32[b32];
     	}        
     }
 }

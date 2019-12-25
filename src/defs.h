@@ -16,16 +16,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEFS_H
-#define DEFS_H
+#pragma once
 
 #include "stdlib.h"
 #include "stdio.h"
 #include <stdint.h>
 
 //#define DEBUG
-
-#define MAX_HASH 1024
 
 #ifndef DEBUG
 #define ASSERT(n)
@@ -46,7 +43,7 @@ typedef unsigned long long U64;
 #define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
 #define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-#define NAME "PayFleens 1.3"
+#define NAME "PayFleens 1.4"
 #define BRD_SQ_NUM 120
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
@@ -90,6 +87,18 @@ enum { FALSE, TRUE };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 
+typedef struct evalInfo evalInfo;
+typedef struct evalData evalData;
+typedef struct PVariation PVariation;
+typedef struct TT_Entry TT_Entry;
+typedef struct TT_Cluster TT_Cluster;
+typedef struct TTable TTable;
+
+struct PVariation {
+    int line[MAXPLY];
+    int length;
+};
+
 typedef struct {
 	int move;
 	int score;
@@ -101,26 +110,6 @@ typedef struct {
 	int quiets;
 } S_MOVELIST;
 
-enum {  HFNONE, HFALPHA, HFBETA, HFEXACT};
-
-typedef struct {
-	U64 posKey;
-	int move;
-	int score;
-	int eval;
-	int depth;
-	int flags;
-} S_HASHENTRY;
-
-typedef struct {
-	S_HASHENTRY *pTable;
-	int numEntries;
-	int newWrite;
-	int overWrite;
-	int hit;
-	int cut;
-} S_HASHTABLE;
-
 typedef struct {
 
 	int move;
@@ -130,11 +119,6 @@ typedef struct {
 	U64 posKey;
 
 } S_UNDO;
-
-struct PVariation {
-    uint16_t line[MAXPLY];
-    int length;
-};
 
 typedef struct {
 
@@ -173,7 +157,6 @@ typedef struct {
 	int PSQT[2];
 
 	PVariation pv;
-	S_HASHTABLE HashTable[1];
 
 	int searchHistory[13][BRD_SQ_NUM];
 	int searchKillers[2][MAXDEPTH];
@@ -205,6 +188,7 @@ typedef struct {
 	float fhf;
 	int nullCut;
 	int probCut;
+	int TTCut;
 
 	int GAME_MODE;
 	int POST_THINKING;
@@ -214,33 +198,6 @@ typedef struct {
 typedef struct {
 	int UseBook;
 } S_OPTIONS;
-
-typedef struct {
-	int phase;
-	int Mob[2];
-	int attCnt[2];
-	int attckersCnt[2];
-	int attWeight[2];
-	U64 kingAreas[2];
-	int adjustMaterial[2];
-	int blockages[2];
-	int pkeval[2];
-	int passedCnt;
-	int pawns[2];
-	int knights[2];
-	int bishops[2];
-	int	rooks[2];
-	int queens[2];
-	int Complexity;
-	int imbalance[2];
-	int KingDanger[2];
-
-} eval_info;
-
-typedef struct {
-	int sqNearK [2][120][120];
-	int PSQT[13][120];
-} EVAL_DATA;
 /* GAME MOVE */
 
 /*
@@ -292,7 +249,7 @@ typedef struct {
 #define MFLAGPROM 0xF00000
 
 #define NOMOVE 0
-#define NULL_MOVE 15
+#define NULL_MOVE 22
 
 /* MACROS */
 
@@ -367,12 +324,6 @@ extern int Mirror120[64];
 extern U64 FileBBMask[8];
 extern U64 RankBBMask[8];
 
-extern const U64 KingFlank[FILE_NONE];
-extern const U64 QueenSide;
-extern const U64 CenterFiles;
-extern const U64 KingSide;
-extern const U64 Center;
-
 extern U64 PassedPawnMasks[2][64];
 extern U64 OutpostSquareMasks[2][64];
 extern U64 IsolatedMask[64];
@@ -385,11 +336,7 @@ extern void PawnAttacksMasks();
 extern U64 pawnAttacks(int colour, int sq);
 extern U64 outpostSquareMasks(int colour, int sq);
 
-extern int LMRTable[64][64];
-
 extern S_OPTIONS EngineOptions[1];
-extern EVAL_DATA e[1];
-extern eval_info ei[1];
 
 /* FUNCTIONS */
 
@@ -455,26 +402,10 @@ extern void TakeNullMove(S_BOARD *pos);
 // perft.c
 extern void PerftTest(int depth, S_BOARD *pos);
 
-// search.c
-extern void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info);
-extern void initLMRTable();
-
 // misc.c
 extern int GetTimeMs();
 extern void ReadInput(S_SEARCHINFO *info);
 extern void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, int movestogo);
-
-// pvtable.c
-extern void InitHashTable(S_HASHTABLE *table, const int MB);
-extern void StoreHashEntry(S_BOARD *pos, const int move, int score, const int eval, const int flags, const int depth);
-extern int ProbeHashEntry(S_BOARD *pos, int *move, int *score, int *eval, int *depth, int *flag);
-extern void ClearHashTable(S_HASHTABLE *table);
-
-// evaluate.c
-extern int EvalPosition(const S_BOARD *pos);
-extern void printEval(const S_BOARD *pos);
-extern void MirrorEvalTest(S_BOARD *pos);
-extern void setPcsq32();
 
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
@@ -489,5 +420,3 @@ extern int DrawMaterial(const S_BOARD *pos);
 extern int GetBookMove(S_BOARD *board);
 extern void CleanPolyBook();
 extern void InitPolyBook();
-
-#endif
