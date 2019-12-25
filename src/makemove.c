@@ -18,8 +18,9 @@
 
 // makemove.c
 
-#include "defs.h"
 #include "stdio.h"
+#include "defs.h"
+#include "evaluate.h"
 
 #define HASH_PCE(pce,sq) (pos->posKey ^= (PieceKeys[(pce)][(sq)]))
 #define HASH_CA (pos->posKey ^= (CastleKeys[(pos->castlePerm)]))
@@ -83,11 +84,7 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 		//CLRBIT(PawnAttacks[col][SQ64(sq + nw)]);
 	}
 
-	if(pce != EMPTY) {
-		pos->PSQT[col] -= e->PSQT[pce][sq];
-		//pos->pcsq_mg[col] -= e->mgPst[pce][sq];
-    	//pos->pcsq_eg[col] -= e->egPst[pce][sq];
-	}
+	pos->PSQT[col] -= e.PSQT[pce][sq];
     
 	for(index = 0; index < pos->pceNum[pce]; ++index) {
 		if(pos->pList[pce][index] == sq) {
@@ -139,11 +136,7 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 	}
 
     // update piece-square value
-    if(pce != EMPTY) {
-    	pos->PSQT[col] += e->PSQT[pce][sq];
-    	//pos->pcsq_mg[col] += e->mgPst[pce][sq];
-    	//pos->pcsq_eg[col] += e->egPst[pce][sq];
-    }    
+    pos->PSQT[col] += e.PSQT[pce][sq];  
 	
 	pos->mPhases[col] += PieceValPhases[pce];
 	pos->material[col] += PieceVal[pce];
@@ -169,19 +162,14 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 
 	HASH_PCE(pce,from);
 	pos->pieces[from] = EMPTY;
-
-    pos->PSQT[col] -= e->PSQT[pce][from];
-	//pos->pcsq_mg[col] -= e->mgPst[pce][from];
-	//pos->pcsq_eg[col] -= e->egPst[pce][from];
+	
+	pos->PSQT[col] -= e.PSQT[pce][from];
 
 	HASH_PCE(pce,to);
 	pos->pieces[to] = pce;
 
     // update piece-square value
-    pos->PSQT[col] += e->PSQT[pce][to];
-	//pos->pcsq_mg[col] += e->mgPst[pce][to];
-	//pos->pcsq_eg[col] += e->egPst[pce][to];
-
+    pos->PSQT[col] += e.PSQT[pce][to];
 	
 	if(!PieceBig[pce]) {
 		CLRBIT(pos->pawns[col],SQ64(from));
@@ -240,19 +228,15 @@ int MakeMove(S_BOARD *pos, int move) {
         switch(to) {
             case C1:
                 MovePiece(A1, D1, pos);
-            
 			break;
             case C8:
                 MovePiece(A8, D8, pos);
-      
 			break;
             case G1:
                 MovePiece(H1, F1, pos);
-
 			break;
             case G8:
                 MovePiece(H8, F8, pos);
-   
 			break;
             default: ASSERT(FALSE); break;
         }
@@ -338,6 +322,9 @@ void TakeMove(S_BOARD *pos) {
     pos->ply--;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
+	int plyok = pos->ply >= 0 && pos->ply < MAXPLY;
+	if(!plyok) 
+		printf("pos->ply %d\n", pos->ply);
 	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 	
     int move = pos->history[pos->hisPly].move;
@@ -424,7 +411,6 @@ void MakeNullMove(S_BOARD *pos) {
 
     pos->side ^= 1;
     pos->hisPly++;
-    pos->gamePly++;
     HASH_SIDE;
    
     ASSERT(CheckBoard(pos));
@@ -438,7 +424,6 @@ void TakeNullMove(S_BOARD *pos) {
     ASSERT(CheckBoard(pos));
 
     pos->hisPly--;
-    pos->gamePly--;
     pos->ply--;
 
     if(pos->enPas != NO_SQ) HASH_EP;
