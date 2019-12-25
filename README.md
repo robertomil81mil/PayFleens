@@ -1,7 +1,10 @@
 # PayFleens
-PayFleens is a UCI/EXBOARD Chess Engine forked from Vice by Bluefever (Really I was learning C with Bluefever Youtube series)
+PayFleens is an UCI and xboard Chess Engine, it started as a goal to learn C with the YouTube video series by Bluefever and his engine Vice. At the moment PayFleens is using Vice as codebase, but it is greatly inspired by Ethereal and Stockfish.
 
-Compile using this command if you have gcc or g++ compiler
-`g++ xboard.c PayFleens.c uci.c evaluate.c pvtable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c misc.c -o PayFleens -O2 -s`
+I haven't a makefile (I'll make it soon) so you can compile with this command:
+`gcc xboard.c PayFleens.c uci.c evaluate.c ttable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c misc.c polybook.c polykeys.c -o PayFleens -O2 -s`
 
-Enjoy and have fun :)
+# Special Thanks
+I want Thank you to:
+Bluefever 
+Andrew Grant
