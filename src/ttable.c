@@ -138,12 +138,12 @@ void storeTTEntry(uint64_t key, uint16_t move, int value, int eval, int depth, i
         return;
 
     // Finally, copy the new data into the replaced slot
-    replace->key16      = (uint16_t)key16;
-    replace->move       = (uint16_t)move;
+    replace->depth      = (int8_t)depth;
     replace->generation = (uint8_t)bound | TT.generation;
     replace->value      = (int16_t)value;
     replace->eval       = (int16_t)eval;
-    replace->depth      = (int8_t)depth;
+    replace->move       = (uint16_t)move;
+    replace->key16      = (uint16_t)key16;
 }
 
 int valueFromTT(int value, int ply) {
