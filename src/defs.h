@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "stdlib.h"
-#include "stdio.h"
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 //#define DEBUG
 
@@ -43,23 +43,28 @@ typedef unsigned long long U64;
 #define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
 #define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-#define NAME "PayFleens 1.4"
-#define BRD_SQ_NUM 120
+#define NAME "PayFleens 1.5"
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
 
-#define MAXGAMEMOVES 2048
-#define MAXPOSITIONMOVES 256
-#define MAXPLY 128
-#define MAXDEPTH 64
+enum {
+	BRD_SQ_NUM = 120,
+	MAXPOSITIONMOVES = 256, 
+	MAXGAMEMOVES = 2048
+};
 
-#define INFINITE 32000
-#define VALUE_NONE 32001
-#define ISMATE (INFINITE - 2 * MAXPLY)
-#define MATE_IN_MAX (INFINITE - MAXPLY)
-#define MATED_IN_MAX (-INFINITE + MAXPLY)
-#define KNOWN_WIN 10000
+enum {
+	MAXDEPTH = 64, 
+	MAXPLY = 128,
+	KNOWN_WIN = 10000,
+    INFINITE = 32000,
+    MATE_IN_MAX = INFINITE - MAXPLY,
+    MATED_IN_MAX = MAXPLY - INFINITE,
+    VALUE_NONE = 32001
+};
+
+enum { NOMOVE = 0, NULL_MOVE = 22 };
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
 
@@ -170,7 +175,7 @@ typedef struct {
 	int depth;
 	int seldepth;
 
-	int Value[MAXDEPTH];
+	int values[MAXDEPTH];
 	int currentMove[MAXDEPTH];
 	int staticEval[MAXDEPTH];
 
@@ -247,9 +252,6 @@ typedef struct {
 
 #define MFLAGCAP 0x7C000
 #define MFLAGPROM 0xF00000
-
-#define NOMOVE 0
-#define NULL_MOVE 22
 
 /* MACROS */
 
