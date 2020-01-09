@@ -135,7 +135,7 @@ void InitEvalMasks() {
 	}
 
 	for (int colour = WHITE; colour <= BLACK; colour++) { 
-        for (int sq = 0; sq < 64; sq++) 
+        for (sq = 0; sq < 64; sq++) 
         	OutpostSquareMasks[colour][sq] = PassedPawnMasks[colour][sq] & ~FileBBMask[FilesBrd[SQ120(sq)]];	
     }
 }

@@ -18,7 +18,9 @@
 
 // board.c
 
-#include "stdio.h"
+#include <inttypes.h>
+#include <stdio.h>
+
 #include "defs.h"
 #include "evaluate.h"
 
@@ -49,7 +51,7 @@ int CheckBoard(const S_BOARD *pos) {
 	int t_minPce[2] = { 0, 0};
 	int t_material[2] = { 0, 0};
 
-	int sq64,t_piece,t_pce_num,sq120,colour,pcount;
+	int sq64,t_piece,t_pce_num,sq120,colour;
 
 	U64 t_pawns[3] = {0ULL, 0ULL, 0ULL};
 
@@ -82,6 +84,8 @@ int CheckBoard(const S_BOARD *pos) {
 		ASSERT(t_pceNum[t_piece]==pos->pceNum[t_piece]);
 	}
 
+#ifdef DEBUG
+	int pcount;
 	// check bitboards count
 	pcount = CNT(t_pawns[WHITE]);
 	ASSERT(pcount == pos->pceNum[wP]);
@@ -89,6 +93,7 @@ int CheckBoard(const S_BOARD *pos) {
 	ASSERT(pcount == pos->pceNum[bP]);
 	pcount = CNT(t_pawns[BOTH]);
 	ASSERT(pcount == (pos->pceNum[bP] + pos->pceNum[wP]));
+#endif
 
 	// check bitboards squares
 	while(t_pawns[WHITE]) {
@@ -276,8 +281,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
 
     if (*fen != ' ') {
     	int ply = 0;
-		int converted;
-		converted = sscanf(fen, "%d", &ply);
+		sscanf(fen, "%d", &ply);
 		pos->fiftyMove = ply;
 		ASSERT(pos->fiftyMove>=0 && pos->fiftyMove<=50);
 		//printf("fiftyMove %d\n",pos->fiftyMove );
@@ -285,8 +289,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
     fen += 2;
     if (*fen != ' ') {
     	int ply = 0;
-		int converted;
-		converted = sscanf(fen, "%d", &ply);
+    	sscanf(fen, "%d", &ply);
 		pos->gamePly = ply;
 		pos->hisPly = ply;
 		ASSERT(pos->hisPly>=0 && pos->hisPly<=MAXGAMEMOVES);
@@ -376,12 +379,12 @@ void PrintBoard(const S_BOARD *pos) {
 			pos->castlePerm & BKCA ? 'k' : '-',
 			pos->castlePerm & BQCA ? 'q' : '-'
 			);
-	printf("PosKey:%llX\n",pos->posKey);
+	printf("PosKey:%"PRIu64"",pos->posKey);
 }
 
 void PrintNonBits(const S_BOARD *pos, int side) {
 
-	int sq,file,rank,piece;
+	int sq,file,rank;
 
 	printf("\n%c:\n\n",SideChar[side]);
 

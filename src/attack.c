@@ -164,8 +164,6 @@ int SqAttackedByKnight(const int sq, const int side, const S_BOARD *pos) {
 	ASSERT(SideValid(side));
 	ASSERT(CheckBoard(pos));
 	int index;
-	int t_sq;
-	int dir;
 	int pce;
 	// knights
 	for(index = 0; index < 8; ++index) {		

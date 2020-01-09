@@ -98,8 +98,8 @@ int badCapture(int move, const S_BOARD *pos) {
     int to = TOSQ(move);
     int captured = CAPTURED(move);
 
-    int Knight = (pos->side^1 == WHITE ? wN : bN);
-    int Bishop = (pos->side^1 == WHITE ? wB : bB);
+    int Knight = (pos->side == WHITE ? bN : wN);
+    int Bishop = (pos->side == WHITE ? bB : wB);
 
     // Captures by pawn do not lose material
     if (pos->pieces[from] == wP || pos->pieces[from] == bP) return 0;
@@ -196,7 +196,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 
 	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
-	if (IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck)
+	if (IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
 		return 0;
 
 	if (pos->ply > MAXDEPTH - 1)
@@ -206,7 +206,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0;
-	int eval, value, best, margin;
+	int eval, value, best;
 	uint16_t ttMove = NOMOVE;
 
 	int TFDepth = ((InCheck || depth >= 0) ?  0  : -1);
@@ -330,12 +330,12 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0, cntMoves = 0, excludedMove = 0, singularExt = 0;
 	int R, newDepth, rAlpha, rBeta, OldAlpha = alpha;
-	int isQuiet, improving, extension, singular;
+	int isQuiet, improving, extension;
 	int eval, Score = -INFINITE, BestScore = -INFINITE;
 	uint16_t ttMove = NOMOVE; int BestMove = NOMOVE;
 
 	if (!RootNode) {
-		if (info->stopped || IsRepetition(pos) || pos->fiftyMove > 99 && !InCheck)
+		if (info->stopped || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
 			return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 
 		if (pos->ply > MAXDEPTH - 1)
@@ -426,7 +426,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
     	S_MOVELIST list[1];
     	GenerateAllCaps(pos,list);
 
-		for(int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+		for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
 
 			PickNextMove(MoveNum, list);
 
@@ -651,10 +651,10 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
         		&& info->values[currentDepth-2] == info->values[currentDepth])
 	    		break;
 	    	
-	    	if (currentDepth == MAXDEPTH - 1)
-	    		info->stopped = 1;
+	    	else if (currentDepth == MAXDEPTH - 1)
+	    		break;
 
-			if (info->stopped)
+			else if (info->stopped)
 				break;
 
 			int elapsed = GetTimeMs()-info->starttime;
@@ -671,7 +671,7 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 					bestScore,currentDepth,info->seldepth,info->nodes,nps,GetTimeMs()-info->starttime,hashfullTTable());
 			}
 			if(info->GAME_MODE == UCIMODE || info->POST_THINKING == TRUE) {
-				if(!info->GAME_MODE == XBOARDMODE) {
+				if(!(info->GAME_MODE == XBOARDMODE)) {
 					printf("pv");
 				}
 				for (int pvNum = 0; pvNum < pos->pv.length; pvNum++) {

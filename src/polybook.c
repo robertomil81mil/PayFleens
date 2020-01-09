@@ -47,7 +47,7 @@ void InitPolyBook() {
 		fseek(pFile,0,SEEK_END);
 		long position = ftell(pFile);
 		
-		if(position < sizeof(S_POLY_BOOK_ENTRY)) {
+		if((unsigned int)(position) < sizeof(S_POLY_BOOK_ENTRY)) {
 			printf("No Entries Found\n");
 			return;
 		}
@@ -60,7 +60,7 @@ void InitPolyBook() {
 		
 		size_t returnValue;
 		returnValue = fread(entries, sizeof(S_POLY_BOOK_ENTRY), NumEntries, pFile);
-		printf("fread() %ld Entries Read in from file\n", returnValue);
+		printf("fread() %d Entries Read in from file\n", returnValue);
 		
 		/*if(NumEntries > 0) {
 			EngineOptions->UseBook = TRUE;

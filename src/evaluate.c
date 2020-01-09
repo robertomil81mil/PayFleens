@@ -117,23 +117,23 @@ int evaluateScaleFactor(const S_BOARD *pos) {
 
     if ( opposite_bishops(pos) ) {
 
-    	if (!pos->pceNum[wN] && !pos->pceNum[bN] ||
-    	    !pos->pceNum[wR] && !pos->pceNum[bR] ||
-    	    !pos->pceNum[wQ] && !pos->pceNum[bQ]) {
-    		return SCALE_OCB_BISHOPS_ONLY;
-    	}
+        if ((!pos->pceNum[wN] && !pos->pceNum[bN]) ||
+            (!pos->pceNum[wR] && !pos->pceNum[bR]) ||
+            (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
+            return SCALE_OCB_BISHOPS_ONLY;
+        }
 
-    	if (!pos->pceNum[wR] && !pos->pceNum[bR] || 
-    		!pos->pceNum[wQ] && !pos->pceNum[bQ] && 
-    		pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1 ) {
-    		return SCALE_OCB_ONE_KNIGHT;
-    	}
+        if ((!pos->pceNum[wR] && !pos->pceNum[bR]) || 
+            (!pos->pceNum[wQ] && !pos->pceNum[bQ] && 
+              pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
+            return SCALE_OCB_ONE_KNIGHT;
+        }
 
-    	if (!pos->pceNum[wN] && !pos->pceNum[bN] ||
-    	    !pos->pceNum[wQ] && !pos->pceNum[bQ] &&
-    	    pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1 ) {
-    		return SCALE_OCB_ONE_ROOK;
-    	}
+        if ((!pos->pceNum[wN] && !pos->pceNum[bN]) ||
+            (!pos->pceNum[wQ] && !pos->pceNum[bQ] &&
+              pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
+            return SCALE_OCB_ONE_ROOK;
+        }
     }
 
     return SCALE_NORMAL;
@@ -570,10 +570,10 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 	int score = 0, att = 0, mobility = 0, tropism;
-	int sq, t_sq, dir, index, R, KNIGHT, BISHOP;
+	int sq, t_sq, dir, index, R, Knight, Bishop;
 
-	KNIGHT = (side == WHITE ? wN : bN);
-	BISHOP = (side == WHITE ? wB : bB);
+	Knight = (side == WHITE ? wN : bN);
+    Bishop = (side == WHITE ? wB : bB);
 
 	sq = pos->pList[pce][pceNum];
 	ASSERT(SqOnBoard(sq));
@@ -609,19 +609,19 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 	}
 
 	if (R > RANK_2) {
-		if(isPiece(side, KNIGHT, REL_SQ(side,B1), pos)) {
-			score += QueenPreDeveloped;
-		}
-		if(isPiece(side, BISHOP, REL_SQ(side,C1), pos)) {
-			score += QueenPreDeveloped;
-		}
-		if(isPiece(side, BISHOP, REL_SQ(side,F1), pos)) {
-			score += QueenPreDeveloped;
-		}
-		if(isPiece(side, KNIGHT, REL_SQ(side,G1), pos)) {
-			score += QueenPreDeveloped;
-		}
-	}
+        if(isPiece(side, Knight, REL_SQ(side,B1), pos)) {
+            score += QueenPreDeveloped;
+        }
+        if(isPiece(side, Bishop, REL_SQ(side,C1), pos)) {
+            score += QueenPreDeveloped;
+        }
+        if(isPiece(side, Bishop, REL_SQ(side,F1), pos)) {
+            score += QueenPreDeveloped;
+        }
+        if(isPiece(side, Knight, REL_SQ(side,G1), pos)) {
+            score += QueenPreDeveloped;
+        }
+    }
 
 	tropism = getTropism(sq, pos->KingSq[side^1]);
 	score += makeScore(2 * tropism, 4 * tropism);

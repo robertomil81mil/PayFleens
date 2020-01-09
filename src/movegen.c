@@ -109,12 +109,11 @@ static void AddCaptureMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
 	list->count++;
 }
 
-static void AddEnPassantMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
+static void AddEnPassantMove( int move, S_MOVELIST *list ) {
 
 	ASSERT(SqOnBoard(FROMSQ(move)));
 	ASSERT(SqOnBoard(TOSQ(move)));
-	ASSERT(CheckBoard(pos));
-	ASSERT((RanksBrd[TOSQ(move)]==RANK_6 && pos->side == WHITE) || (RanksBrd[TOSQ(move)]==RANK_3 && pos->side == BLACK));
+	ASSERT((RanksBrd[TOSQ(move)]==RANK_6) || (RanksBrd[TOSQ(move)]==RANK_3));
 
 	list->moves[list->count].move = move;
 	list->moves[list->count].score = 105 + 1000000;
@@ -224,10 +223,10 @@ void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list) {
 
 			if(pos->enPas != NO_SQ) {
 				if(sq + 9 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq + 9,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq + 9,EMPTY,EMPTY,MFLAGEP), list);
 				}
 				if(sq + 11 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq + 11,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq + 11,EMPTY,EMPTY,MFLAGEP), list);
 				}
 			}
 		}
@@ -270,10 +269,10 @@ void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list) {
 			}
 			if(pos->enPas != NO_SQ) {
 				if(sq - 9 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq - 9,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq - 9,EMPTY,EMPTY,MFLAGEP), list);
 				}
 				if(sq - 11 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq - 11,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq - 11,EMPTY,EMPTY,MFLAGEP), list);
 				}
 			}
 		}
@@ -393,10 +392,10 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
 
 			if(pos->enPas != NO_SQ) {
 				if(sq + 9 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq + 9,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq + 9,EMPTY,EMPTY,MFLAGEP), list);
 				}
 				if(sq + 11 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq + 11,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq + 11,EMPTY,EMPTY,MFLAGEP), list);
 				}
 			}
 		}
@@ -416,10 +415,10 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
 			}
 			if(pos->enPas != NO_SQ) {
 				if(sq - 9 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq - 9,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq - 9,EMPTY,EMPTY,MFLAGEP), list);
 				}
 				if(sq - 11 == pos->enPas) {
-					AddEnPassantMove(pos, MOVE(sq,sq - 11,EMPTY,EMPTY,MFLAGEP), list);
+					AddEnPassantMove(MOVE(sq,sq - 11,EMPTY,EMPTY,MFLAGEP), list);
 				}
 			}
 		}
@@ -489,9 +488,6 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
     ASSERT(MoveListOk(list,pos));
 }
 
-static const int SEEPruningDepth = 8;
-static const int SEEQuietMargin = -80;
-static const int SEENoisyMargin = -18;
 static const int SEEPieceValues[13] = {
     0, 100, 450, 450, 675, 1300, 
     0, 100, 450, 450, 675, 1300, 0
@@ -618,9 +614,7 @@ U64 PawnAttacks[BOTH][64];
 void KingAreaMask() {
 	int sq;
 	int index;
-	int MobilityCount = 0;
 	int t_sq;
-	int SqAttackedbyThem;
 	int dir;
 	int pce;
 
@@ -728,9 +722,7 @@ void KingAreaMask() {
 void PawnAttacksMasks() {
 	int sq;
 	int index;
-	int MobilityCount = 0;
 	int t_sq;
-	int SqAttackedbyThem;
 	int dir;
 	int pce;
 

@@ -25,9 +25,9 @@
 #include "evaluate.h"
 #include "ttable.h"
 
-void PrintNonBits2(S_BOARD *pos, int side, int sq) {
+void PrintNonBits2(int side, int sq) {
 
-	int tsq,file,rank,piece;
+	int tsq,file,rank;
 
 	printf("\n%c:\n\n",SideChar[side]);
 
@@ -137,7 +137,6 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 	int timeLeft;
 	int sec;
 	int mps;
-	int idealUsage, MoveOverhead = 200;
 	int move = NOMOVE;
 	char inBuf[80], command[80];
 	int MB;
@@ -369,8 +368,8 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 			
 			/*for(int sq = 0; sq < 120; ++sq) {
 				if(!SQOFFBOARD(sq)) {
-					PrintNonBits2(pos, WHITE,sq);
-    				//PrintNonBits2(pos, BLACK,sq);
+					PrintNonBits2(WHITE,sq);
+    				//PrintNonBits2(BLACK,sq);
 				}
 			}*/
 			

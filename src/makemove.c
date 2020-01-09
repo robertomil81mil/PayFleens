@@ -322,9 +322,6 @@ void TakeMove(S_BOARD *pos) {
     pos->ply--;
 	
 	ASSERT(pos->hisPly >= 0 && pos->hisPly < MAXGAMEMOVES);
-	int plyok = pos->ply >= 0 && pos->ply < MAXPLY;
-	if(!plyok) 
-		printf("pos->ply %d\n", pos->ply);
 	ASSERT(pos->ply >= 0 && pos->ply < MAXPLY);
 	
     int move = pos->history[pos->hisPly].move;
