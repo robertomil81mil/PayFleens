@@ -639,7 +639,7 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
 
-    int score, d, center, file, ourRank, theirRank;
+    int score = 0, d, center, file, ourRank, theirRank;
     U64 ours, theirs;
 
     center = clamp(FilesBrd[KingSq], FILE_B, FILE_G);
