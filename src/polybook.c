@@ -16,6 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <inttypes.h>
+
 #include "defs.h"
 #include "polykeys.h"
 
@@ -58,7 +60,7 @@ void InitPolyBook() {
 		entries = (S_POLY_BOOK_ENTRY*)malloc(NumEntries * sizeof(S_POLY_BOOK_ENTRY));
 		rewind(pFile);
 		
-		size_t returnValue;
+		long int returnValue;
 		returnValue = fread(entries, sizeof(S_POLY_BOOK_ENTRY), NumEntries, pFile);
 		printf("fread() %ld Entries Read in from file\n", returnValue);
 		

@@ -19,8 +19,8 @@
 // uci.c
 
 #include <math.h>
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "defs.h"
 #include "search.h"

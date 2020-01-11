@@ -18,7 +18,6 @@
 
 // board.c
 
-#include <inttypes.h>
 #include <stdio.h>
 
 #include "defs.h"
@@ -160,7 +159,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 			pos->pceNum[piece]++;
 
 			if(piece==wP||piece==bP) {
-				int ne = (colour == WHITE ? 9 : -9);
+				int ne = (colour == WHITE ?  9 :  -9);
 				int nw = (colour == WHITE ? 11 : -11);
 				pos->pawn_ctrl[colour][sq + ne]++;
 				pos->pawn_ctrl[colour][sq + nw]++;	
