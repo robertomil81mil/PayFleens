@@ -18,14 +18,6 @@
 
 #pragma once
 
-/*#if defined(_WIN32) || defined(_WIN64)
-    #include <windows.h>
-#else
-    #include <sys/time.h>
-    #include <sys/select.h>
-	#include <string.h>
-#endif*/
-
 #include "defs.h"
 
 enum { OptimumTime, MaxTime };
