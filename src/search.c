@@ -28,13 +28,14 @@
 #include "defs.h"
 #include "evaluate.h"
 #include "search.h"
+#include "time.h"
 #include "ttable.h"
 
 int LMRTable[64][64]; // Init LMR Table 
 
 void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
-	if(info->timeset == TRUE && GetTimeMs() > info->stoptime) {
+	if(info->timeset == TRUE && getTimeMs() > info->stoptime) {
 		info->stopped = TRUE;
 	}
 
@@ -515,7 +516,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 		played += 1;
 		info->currentMove[height] = list->moves[MoveNum].move;
 
-		//elapsed = GetTimeMs()-info->starttime;
+		//elapsed = getTimeMs()-info->startTime;
 
 		/*if(RootNode && elapsed >= 2500) {
 			printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(list->moves[MoveNum].move), MoveNum);
@@ -657,18 +658,18 @@ void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
 			else if (info->stopped)
 				break;
 
-			int elapsed = GetTimeMs()-info->starttime;
+			int elapsed = elapsedTime(info);
 			int nps = (1000 * (info->nodes / (1+elapsed)));
 			bestMove = pos->pv.line[0];
 			if(info->GAME_MODE == UCIMODE) {
 				printf("info score cp %d depth %d seldepth %d nodes %ld nps %d time %d hashfull %d ",
-					bestScore,currentDepth,info->seldepth,info->nodes,nps,GetTimeMs()-info->starttime,hashfullTTable() );
+					bestScore,currentDepth,info->seldepth,info->nodes,nps,elapsed,hashfullTTable() );
 			} else if(info->GAME_MODE == XBOARDMODE && info->POST_THINKING == TRUE) {
 				printf("%d %d %d %ld ",
-					currentDepth,bestScore,(GetTimeMs()-info->starttime)/10,info->nodes);
+					currentDepth,bestScore,elapsed/10,info->nodes);
 			} else if(info->POST_THINKING == TRUE) {
 				printf("score:%d depth:%d seldepth %d nodes:%ld nps %d time:%d(ms) hashfull %d ",
-					bestScore,currentDepth,info->seldepth,info->nodes,nps,GetTimeMs()-info->starttime,hashfullTTable());
+					bestScore,currentDepth,info->seldepth,info->nodes,nps,elapsed,hashfullTTable());
 			}
 			if(info->GAME_MODE == UCIMODE || info->POST_THINKING == TRUE) {
 				if(!(info->GAME_MODE == XBOARDMODE)) {

@@ -23,6 +23,7 @@
 #include "defs.h"
 #include "evaluate.h"
 #include "search.h"
+#include "time.h"
 #include "ttable.h"
 
 int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos) {
@@ -91,13 +92,13 @@ void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info) {
         return;
     }  else {
         while(fgets (lineIn , 1024 , file) != NULL) {
-			info->starttime = GetTimeMs();
-			info->stoptime = info->starttime + time;
+			info->startTime = getTimeMs();
+			info->stoptime = info->startTime + time;
 			clearTTable();
             ParseFen(lineIn, pos);
             printf("\n%s\n",lineIn);
-			printf("time:%d start:%d stop:%d depth:%d timeset:%d\n",
-				time,info->starttime,info->stoptime,info->depth,info->timeset);
+			printf("time:%d start:%f stop:%f depth:%d timeset:%d\n",
+				time,info->startTime,info->stoptime,info->depth,info->timeset);
 			SearchPosition(pos, info);
             memset(&lineIn[0], 0, sizeof(lineIn));
         }

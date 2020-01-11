@@ -25,6 +25,7 @@
 #include "defs.h"
 #include "search.h"
 #include "evaluate.h"
+#include "time.h"
 #include "ttable.h"
 
 #define INPUTBUFFER 400 * 6
@@ -32,10 +33,10 @@
 // go depth 6 wtime 180000 btime 100000 binc 1000 winc 1000 movetime 1000 movestogo 40
 void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
-	info->starttime = GetTimeMs();
+	info->startTime = getTimeMs();
 
-	int depth = -1, movestogo = 0,movetime = -1;
-	int time = -1, inc = 0;
+	int depth = -1, movestogo = 0;
+	int movetime = -1, time = -1, inc = 0;
     char *ptr = NULL;
 	info->timeset = FALSE;
 
@@ -74,7 +75,7 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 	updateTTable();
 
 	if(movetime != -1) {
-		info->stoptime = info->starttime + movetime;
+		info->stoptime = info->startTime + movetime;
 		movestogo = 1;
 	}
 
@@ -85,15 +86,15 @@ void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
 
 		TimeManagementInit(info, time, inc, pos->gamePly, movestogo);
 
-		info->stoptime = info->starttime + info->optimumTime;
+		info->stoptime = info->startTime + info->optimumTime;
 	} 
 
 	if(depth == -1) {
 		info->depth = MAXDEPTH;
 	}
 
-	printf("time:%d start:%d stop:%d depth:%d timeset:%d\n",
-		time,info->starttime,info->stoptime,info->depth,info->timeset);
+	printf("time:%d start:%f stop:%f depth:%d timeset:%d\n",
+		time,info->startTime,info->stoptime,info->depth,info->timeset);
 	SearchPosition(pos, info);
 }
 

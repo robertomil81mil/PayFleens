@@ -86,8 +86,6 @@ enum {
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
 
-enum { OptimumTime, MaxTime };
-
 enum { NonPV, PVNode};
 
 enum { FALSE, TRUE };
@@ -172,18 +170,15 @@ typedef struct {
 
 typedef struct {
 
-	int starttime;
-	int stoptime;
-	int depth;
-	int seldepth;
+	double startTime, stoptime;
+	int depth, seldepth;
 
-	int values[MAXDEPTH];
-	int currentMove[MAXDEPTH];
+	int values[MAXDEPTH]; 
+	int currentMove[MAXDEPTH]; 
 	int staticEval[MAXDEPTH];
 
 	int timeset;
-	int optimumTime;
-	int maximumTime;
+	double optimumTime, maximumTime;
 	int movestogo;
 
 	long nodes;
@@ -405,11 +400,6 @@ extern void TakeNullMove(S_BOARD *pos);
 
 // perft.c
 extern void PerftTest(int depth, S_BOARD *pos);
-
-// misc.c
-extern int GetTimeMs();
-extern void ReadInput(S_SEARCHINFO *info);
-extern void TimeManagementInit(S_SEARCHINFO *info, int myTime, int increment, int ply, int movestogo);
 
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);

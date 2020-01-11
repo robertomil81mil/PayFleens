@@ -23,6 +23,7 @@
 #include "defs.h"
 #include "search.h"
 #include "evaluate.h"
+#include "time.h"
 #include "ttable.h"
 
 void PrintNonBits2(int side, int sq) {
@@ -131,8 +132,8 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
     setbuf(stdout, NULL);
 	PrintOptions(); // HACK
 
-	int depth = -1, movestogo[2] = {0,0 }, movetime = -1;
-	int time = -1, inc = 0;
+	int depth = -1, movestogo[2] = {0,0 };
+	int movetime = -1, time = -1, inc = 0;
 	int engineSide = BOTH;
 	int timeLeft;
 	int sec;
@@ -151,7 +152,7 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		fflush(stdout);
 
 		if(pos->side == engineSide && checkresult(pos) == FALSE) {
-			info->starttime = GetTimeMs();
+			info->startTime = getTimeMs();
 			info->depth = depth;
 			updateTTable();
 
@@ -160,15 +161,15 @@ void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 
 				//TimeManagementInit(info, time, inc, pos->gamePly, movestogo[pos->side]);
 				TimeManagementInit(info, time, inc, pos->gamePly, 30);
-				info->stoptime = info->starttime + info->optimumTime;
+				info->stoptime = info->startTime + info->optimumTime;
 			}
 
 			if(depth == -1 || depth > MAXDEPTH) {
 				info->depth = MAXDEPTH;
 			}
 
-			printf("time:%d start:%d stop:%d depth:%d timeset:%d movestogo:%d mps:%d\n",
-				time,info->starttime,info->stoptime,info->depth,info->timeset, movestogo[pos->side], mps);
+			printf("time:%d start:%f stop:%f depth:%d timeset:%d movestogo:%d mps:%d\n",
+				time,info->startTime,info->stoptime,info->depth,info->timeset, movestogo[pos->side], mps);
 				SearchPosition(pos, info);
 
 			if(mps != 0) {
@@ -314,13 +315,13 @@ void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
 		fflush(stdout);
 
 		if(pos->side == engineSide && checkresult(pos) == FALSE) {
-			info->starttime = GetTimeMs();
+			info->startTime = getTimeMs();
 			info->depth = depth;
 			updateTTable();
 
 			if(movetime != 0) {
 				info->timeset = TRUE;
-				info->stoptime = info->starttime + movetime;
+				info->stoptime = info->startTime + movetime;
 			}
 
 			SearchPosition(pos, info);
