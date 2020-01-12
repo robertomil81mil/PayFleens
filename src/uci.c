@@ -18,183 +18,278 @@
 
 // uci.c
 
-#include <math.h>
+#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "defs.h"
-#include "search.h"
 #include "evaluate.h"
+#include "search.h"
 #include "time.h"
 #include "ttable.h"
+#include "uci.h"
 
-#define INPUTBUFFER 400 * 6
+EngineOptions Options; // Our global engine options
 
-// go depth 6 wtime 180000 btime 100000 binc 1000 winc 1000 movetime 1000 movestogo 40
-void ParseGo(char* line, S_SEARCHINFO *info, S_BOARD *pos) {
+int main() {
 
-	info->startTime = getTimeMs();
+	S_BOARD pos[1];
+    S_SEARCHINFO info[1];
+    info->quit = 0;
 
-	int depth = -1, movestogo = 0;
-	int movetime = -1, time = -1, inc = 0;
-    char *ptr = NULL;
-	info->timeset = FALSE;
+    // Set default options
+    Options.MinThinkingTime = 20;
+    Options.MoveOverHead    = 30;
+    Options.SlowMover       = 84;
+    Options.OwnBook         = 0;
 
-	if ((ptr = strstr(line,"infinite"))) {
-		;
-	}
+    char str[8192];
 
-	if ((ptr = strstr(line,"binc")) && pos->side == BLACK) {
-		inc = atoi(ptr + 5);
-	}
+    // Initialize components of PayFleens
+    AllInit(); ParseFen(START_FEN, pos);
 
-	if ((ptr = strstr(line,"winc")) && pos->side == WHITE) {
-		inc = atoi(ptr + 5);
-	}
+    while (getInput(str)) {
 
-	if ((ptr = strstr(line,"wtime")) && pos->side == WHITE) {
-		time = atoi(ptr + 6);
-	}
+        if (strEquals(str, "uci")) {
 
-	if ((ptr = strstr(line,"btime")) && pos->side == BLACK) {
-		time = atoi(ptr + 6);
-	}
+        	info->GAME_MODE = UCIMODE;
+			printf("id name %s\n", NAME);
+			printf("id author Roberto M\n");
+            printf("option name OwnBook type check default false\n");
+            printf("option name Hash type spin default 16 min 1 max 65536\n");
+            printf("option name Minimum Thinking Time type spin default 20 min 0 max 5000\n");
+            printf("option name Move Overhead type spin default 30 min 0 max 5000\n");
+            printf("option name Slow Mover type spin default 84 min 10 max 1000\n");
+            printf("uciok\n"), fflush(stdout);
+        }
 
-	if ((ptr = strstr(line,"movestogo"))) {
-		movestogo = atoi(ptr + 10);
-	}
+        else if (strEquals(str, "isready"))
+            printf("readyok\n"), fflush(stdout);
 
-	if ((ptr = strstr(line,"movetime"))) {
-		movetime = atoi(ptr + 9);
-	}
+        else if (strEquals(str, "ucinewgame"))
+            clearTTable();
 
-	if ((ptr = strstr(line,"depth"))) {
-		depth = atoi(ptr + 6);
-	}
+        else if (strStartsWith(str, "setoption"))
+            uciSetOption(str);
 
-	updateTTable();
+        else if (strStartsWith(str, "position"))
+        	uciPosition(str, pos);
 
-	if(movetime != -1) {
-		info->stoptime = info->startTime + movetime;
-		movestogo = 1;
-	}
+        else if (strStartsWith(str, "go"))
+            uciGo(str, info, pos);
 
-	info->depth = depth;
+        else if (strEquals(str, "quit") || info->quit)
+            break;
 
-	if(time != -1) {
-		info->timeset = TRUE;
+        else if (strStartsWith(str, "print"))
+            PrintBoard(pos), fflush(stdout);
 
-		TimeManagementInit(info, time, inc, pos->gamePly, movestogo);
+        else if (strStartsWith(str, "eval"))
+            printEval(pos), fflush(stdout);
+    }
 
-		info->stoptime = info->startTime + info->optimumTime;
-	} 
-
-	if(depth == -1) {
-		info->depth = MAXDEPTH;
-	}
-
-	printf("time:%d start:%f stop:%f depth:%d timeset:%d\n",
-		time,info->startTime,info->stoptime,info->depth,info->timeset);
-	SearchPosition(pos, info);
+    return 0;
 }
 
-// position fen fenstr
-// position startpos
-// ... moves e2e4 e7e5 b7b8q
-void ParsePosition(char* lineIn, S_BOARD *pos) {
+void uciGo(char *str, S_SEARCHINFO *info, S_BOARD *pos) {
 
-	lineIn += 9;
-    char *ptrChar = lineIn;
+    // Get our starting time as soon as possible
+    double start = getTimeMs();
 
-    if(strncmp(lineIn, "startpos", 8) == 0){
+    Limits limits;
+
+    int bestMove = NOMOVE;
+    int depth = 0, infinite = 0, mtg = 0;
+    double wtime = 0, btime = 0, movetime = 0;
+    double winc = 0, binc = 0;
+
+    // Init the tokenizer with spaces
+    char* ptr = strtok(str, " ");
+
+    // Parse any time control and search method information that was sent
+    for (ptr = strtok(NULL, " "); ptr != NULL; ptr = strtok(NULL, " ")) {
+        if (strEquals(ptr, "wtime")) wtime = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "btime")) btime = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "winc")) winc = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "binc")) binc = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "movestogo")) mtg = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "depth")) depth = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "movetime")) movetime = atoi(strtok(NULL, " "));
+        if (strEquals(ptr, "infinite")) infinite = 1;
+    }
+
+    // Initialize limits for the search
+    limits.limitedByNone  = infinite != 0;
+    limits.limitedByTime  = movetime != 0;
+    limits.limitedByDepth = depth    != 0;
+    limits.limitedBySelf  = !depth && !movetime && !infinite;
+    limits.timeLimit      = movetime;
+    limits.depthLimit     = depth;
+
+    info->timeset = (limits.limitedBySelf || limits.limitedByTime) ? 1 : 0;
+
+    // Pick the time values for the colour we are playing as
+    limits.start = (pos->side == WHITE) ? start : start;
+    limits.time  = (pos->side == WHITE) ? wtime : btime;
+    limits.inc   = (pos->side == WHITE) ?  winc :  binc;
+    limits.mtg   = (pos->side == WHITE) ?   mtg :   mtg;
+
+    // Execute search, return best and ponder moves
+    getBestMove(info, pos, &limits, &bestMove);
+
+    // Report best move ( we should always have one )
+    printf("bestmove %s", PrMove(bestMove));
+
+    // Make sure this all gets reported
+    printf("\n"); fflush(stdout);
+}
+
+void uciSetOption(char *str) {
+
+    // Handle setting UCI options in PayFleens. Options include:
+    //  Hash                  : Size of the Transposition Table in Megabyes
+    //  Minimum Thinking Time : Think for at least this ms per move
+    //  Move OverHead         : Overhead on time allocation to avoid time losses
+    //  OwnBook               : Precalculated opening moves
+    //  Slow Mover            : Lower values will make PayFleens think less time
+
+    if (strStartsWith(str, "setoption name Hash value ")) {
+        int megabytes = atoi(str + strlen("setoption name Hash value "));
+        initTTable(megabytes); printf("info string set Hash to %dMB\n", megabytes);
+    }
+
+    if (strStartsWith(str, "setoption name Minimum Thinking Time value ")) {
+        int minThinkingTime = atoi(str + strlen("setoption name Minimum Thinking Time value "));
+        printf("info string set Minimum Thinking Time to %d\n", minThinkingTime);
+        Options.MinThinkingTime = minThinkingTime;
+    }
+
+    if (strStartsWith(str, "setoption name Move Overhead value ")) {
+        int moveOverhead = atoi(str + strlen("setoption name Move Overhead value "));
+        printf("info string set Move Overhead to %d\n", moveOverhead);
+        Options.MoveOverHead = moveOverhead;
+    }
+
+    if (strStartsWith(str, "setoption name Slow Mover value ")) {
+        int slowMover = atoi(str + strlen("setoption name Slow Mover value "));
+        printf("info string set Slow Mover to %d\n", slowMover);
+        Options.SlowMover = slowMover;
+    }
+
+    if (strStartsWith(str, "setoption name OwnBook value ")) {
+        if (strStartsWith(str, "setoption name OwnBook value true")) {
+            printf("info string set OwnBook to true\n"), Options.OwnBook = 1;
+            InitPolyBook();
+        }
+        if (strStartsWith(str, "setoption name OwnBook value false"))
+            printf("info string set OwnBook to false\n"), Options.OwnBook = 0;
+    }
+
+    fflush(stdout);
+}
+
+void uciPosition(char* str, S_BOARD *pos) {
+
+    str += 9;
+    char *ptr = str;
+
+    if (strncmp(str, "startpos", 8) == 0) {
         ParseFen(START_FEN, pos);
     } else {
-        ptrChar = strstr(lineIn, "fen");
-        if(ptrChar == NULL) {
+        ptr = strstr(str, "fen");
+        if (ptr == NULL) {
             ParseFen(START_FEN, pos);
         } else {
-            ptrChar+=4;
-            ParseFen(ptrChar, pos);
+            ptr+=4;
+            ParseFen(ptr, pos);
         }
     }
 
-	ptrChar = strstr(lineIn, "moves");
-	int move;
+    ptr = strstr(str, "moves");
+    int move;
 
-	if(ptrChar != NULL) {
-        ptrChar += 6;
-        while(*ptrChar) {
-              move = ParseMove(ptrChar,pos);
-			  if(move == NOMOVE) break;
-			  MakeMove(pos, move);
+    if (ptr != NULL) {
+        ptr += 6;
+        while (*ptr) {
+              move = ParseMove(ptr,pos);
+              if (move == NOMOVE) break;
+              MakeMove(pos, move);
               pos->ply=0;
-              while(*ptrChar && *ptrChar!= ' ') ptrChar++;
-              ptrChar++;
+              while (*ptr && *ptr!= ' ') ptr++;
+              ptr++;
         }
     }
-	//PrintBoard(pos);
 }
 
-void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info) {
+void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value) {
 
-	info->GAME_MODE = UCIMODE;
+    // Gather all of the statistics that the UCI protocol would be
+    // interested in. Also, bound the value passed by alpha and
+    // beta, since we are using a mix of fail-hard and fail-soft
 
-	setbuf(stdin, NULL);
-    setbuf(stdout, NULL);
+    int hashfull    = hashfullTTable();
+    int depth       = info->depth;
+    int seldepth    = info->seldepth;
+    int elapsed     = elapsedTime(info);
+    int bounded     = MAX(alpha, MIN(value, beta));
+    uint64_t nodes  = info->nodes;
+    int nps         = (int)(1000 * (nodes / (1 + elapsed)));
 
-	char line[INPUTBUFFER];
-    printf("id name %s\n",NAME);
-    printf("id author Roberto M\n");
-    printf("option name Hash type spin default 64 min 1 max 65536\n");
-	printf("option name Book type check default false\n");
-    printf("uciok\n");
-	
-	int MB = 64;
+    // If the score is MATE or MATED in X, convert to X
+    int score   = bounded >=  MATE_IN_MAX ?  (INFINITE - bounded + 1) / 2
+                : bounded <= MATED_IN_MAX ? -(bounded + INFINITE)     / 2 : bounded;
 
-	while (TRUE) {
-		memset(&line[0], 0, sizeof(line));
-        fflush(stdout);
-        if (!fgets(line, INPUTBUFFER, stdin))
-        continue;
+    char *type  = bounded >=  MATE_IN_MAX ? "mate"
+                : bounded <= MATED_IN_MAX ? "mate" : "cp";
 
-        if (line[0] == '\n')
-        continue;
+    // Partial results from a windowed search have bounds
+    char *bound = bounded >=  beta ? " lowerbound "
+                : bounded <= alpha ? " upperbound " : " ";
 
-        if (!strncmp(line, "isready", 7)) {
-            printf("readyok\n");
-            continue;
-        } else if (!strncmp(line, "position", 8)) {
-            ParsePosition(line, pos);
-        } else if (!strncmp(line, "ucinewgame", 10)) {
-            ParsePosition("position startpos\n", pos);
-        } else if (!strncmp(line, "go", 2)) {
-            printf("Seen Go..\n");
-            ParseGo(line, info, pos);
-        } else if (!strncmp(line, "quit", 4)) {
-            info->quit = TRUE;
-            break;
-        } else if (!strncmp(line, "uci", 3)) {
-            printf("id name %s\n",NAME);
-            printf("id author Roberto M\n");
-            printf("uciok\n");
-        } else if (!strncmp(line, "debug", 4)) {
-            DebugAnalysisTest(pos,info);
-            break;
-        } else if (!strncmp(line, "setoption name Hash value ", 26)) {
-        	sscanf(line,"%*s %*s %*s %*s %d",&MB);
-        	initTTable(MB); printf("info string set Hash to %dMB\n", MB);
-    	} else if (!strncmp(line, "setoption name Book value ", 26)) {
-			char *ptrTrue = NULL;
-			ptrTrue = strstr(line, "true");
-			if(ptrTrue != NULL) {
-				// book on
-				EngineOptions->UseBook = TRUE;
-			} else {
-				// book off
-				EngineOptions->UseBook = FALSE;
-			}
-		}
+    printf("info depth %d seldepth %d score %s %d%stime %d "
+           "nodes %"PRIu64" nps %d hashfull %d pv ",
+           depth, seldepth, type, score, bound, elapsed, nodes, nps, hashfull);
 
-		if(info->quit) break;
-    }
+    // Iterate over the PV and print each move
+    for (int i = 0; i < pos->pv.length; i++)
+        printf("%s ",PrMove(pos->pv.line[i]));
+
+    // Send out a newline and flush
+    puts(""); fflush(stdout);
+}
+
+void uciReportCurrentMove(int move, int currmove, int depth) {
+
+    printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(move), currmove);
+    fflush(stdout);
+}
+
+int getInput(char *str) {
+
+    char *ptr;
+
+    if (fgets(str, 8192, stdin) == NULL)
+        return 0;
+
+    ptr = strchr(str, '\n');
+    if (ptr != NULL) *ptr = '\0';
+
+    ptr = strchr(str, '\r');
+    if (ptr != NULL) *ptr = '\0';
+
+    return 1;
+}
+
+int strEquals(char *str1, char *str2) {
+    return strcmp(str1, str2) == 0;
+}
+
+int strStartsWith(char *str, char *key) {
+    return strstr(str, key) == str;
+}
+
+int strContains(char *str, char *key) {
+    return strstr(str, key) != NULL;
 }

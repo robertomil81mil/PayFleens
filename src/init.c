@@ -23,6 +23,7 @@
 #include "stdlib.h"
 #include "evaluate.h"
 #include "search.h"
+#include "ttable.h"
 
 #define RAND_64 	((U64)rand() | \
 					(U64)rand() << 15 | \
@@ -53,7 +54,6 @@ U64 IsolatedMask[64];
 int SquareDistance[120][120];
 int FileDistance[120][120];
 int RankDistance[120][120];
-S_OPTIONS EngineOptions[1];
 
 const uint64_t KingFlank[8] = {
 	QUEEN_FLANK ^ FILEBB_D, QUEEN_FLANK, QUEEN_FLANK,
@@ -252,9 +252,9 @@ void AllInit() {
 	InitEvalMasks();
 	InitMvvLva();
 	initLMRTable();
-	//InitPolyBook();
 	setSquaresNearKing();
 	KingAreaMask();
 	//PawnAttacksMasks();
 	setPcsq32();
+	initTTable(16);
 }

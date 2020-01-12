@@ -58,11 +58,11 @@ enum {
 
 enum {
 	MAXDEPTH = 64, 
-	MAXPLY = 128,
+	MAX_PLY = 128,
 	KNOWN_WIN = 10000,
     INFINITE = 32000,
-    MATE_IN_MAX = INFINITE - MAXPLY,
-    MATED_IN_MAX = MAXPLY - INFINITE,
+    MATE_IN_MAX = INFINITE - MAX_PLY,
+    MATED_IN_MAX = MAX_PLY - INFINITE,
     VALUE_NONE = 32001
 };
 
@@ -98,9 +98,11 @@ typedef struct PVariation PVariation;
 typedef struct TT_Entry TT_Entry;
 typedef struct TT_Cluster TT_Cluster;
 typedef struct TTable TTable;
+typedef struct Limits Limits;
+typedef struct EngineOptions EngineOptions;
 
 struct PVariation {
-    int line[MAXPLY];
+    int line[MAX_PLY];
     int length;
 };
 
@@ -171,35 +173,26 @@ typedef struct {
 typedef struct {
 
 	double startTime, stoptime;
-	int depth, seldepth;
-
-	int values[MAXDEPTH]; 
-	int currentMove[MAXDEPTH]; 
-	int staticEval[MAXDEPTH];
-
-	int timeset;
 	double optimumTime, maximumTime;
-	int movestogo;
+	double previousTimeReduction, bestMoveChanges;
 
-	long nodes;
+	int depth, seldepth;
+	int quit, stopped, timeset;
 
-	int quit;
-	int stopped;
+	int values[MAX_PLY];
+	int currentMove[MAX_PLY];
+	int staticEval[MAX_PLY];
 
-	float fh;
-	float fhf;
-	int nullCut;
-	int probCut;
-	int TTCut;
+	uint64_t nodes;
+	float fh, fhf;
+
+	int nullCut, probCut, TTCut;
 
 	int GAME_MODE;
 	int POST_THINKING;
 
 } S_SEARCHINFO;
 
-typedef struct {
-	int UseBook;
-} S_OPTIONS;
 /* GAME MOVE */
 
 /*
@@ -335,8 +328,6 @@ extern void PawnAttacksMasks();
 extern U64 pawnAttacks(int colour, int sq);
 extern U64 outpostSquareMasks(int colour, int sq);
 
-extern S_OPTIONS EngineOptions[1];
-
 /* FUNCTIONS */
 
 // init.c
@@ -401,6 +392,7 @@ extern void TakeNullMove(S_BOARD *pos);
 // perft.c
 extern void PerftTest(int depth, S_BOARD *pos);
 
+/*
 // uci.c
 extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 
@@ -408,7 +400,7 @@ extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info);
 extern int ThreeFoldRep(const S_BOARD *pos);
-extern int DrawMaterial(const S_BOARD *pos);
+extern int DrawMaterial(const S_BOARD *pos);*/
 
 // polybook.c
 extern int GetBookMove(S_BOARD *board);

@@ -23,31 +23,35 @@
 
 #include "defs.h"
 
-void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info);
+void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
+void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
+
+int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info);
+int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
+int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
+
+void initLMRTable();
+void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);
 void CheckUp(S_SEARCHINFO *info);
 void PickNextMove(int moveNum, S_MOVELIST *list);
-void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);
-void initLMRTable();
-int KnightAttack( int side, int sq, const S_BOARD *pos);
-int BishopAttack(int side, int sq, int dir, const S_BOARD *pos);
+
 int badCapture(int move, const S_BOARD *pos);
 int move_canSimplify(int move, const S_BOARD *pos);
 int IsRepetition(const S_BOARD *pos);
-int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
-int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
-int aspirationWindow( int depth, int lastValue, S_BOARD *pos, S_SEARCHINFO *info);
 
-static const int RazorDepth = 1;
-static const int RazorMargin = 325;
+int KnightAttack(int side, int sq, const S_BOARD *pos);
+int BishopAttack(int side, int sq, int dir, const S_BOARD *pos);
 
-static const int BetaPruningDepth = 8;
-static const int BetaMargin = 85;
-static const int NullMovePruningDepth = 2;
-static const int ProbCutDepth = 5;
-static const int ProbCutMargin = 100;
-static const int FutilityMargin = 9;
+static const int BetaPruningDepth     = 8;
+static const int BetaMargin           = 85;
+static const int FutilityMargin       = 9;
 static const int FutilityPruningDepth = 8;
-static const int QFutilityMargin = 100;
-static const int WindowDepth   = 4;
-static const int WindowSize    = 23;
-static const int WindowTimerMS = 2500;
+static const int NullMovePruningDepth = 2;
+static const int ProbCutDepth         = 5;
+static const int ProbCutMargin        = 100;
+static const int QFutilityMargin      = 100;
+static const int RazorDepth           = 1;
+static const int RazorMargin          = 325;
+static const int WindowDepth          = 4;
+static const int WindowSize           = 23;
+static const int WindowTimerMS        = 2500;

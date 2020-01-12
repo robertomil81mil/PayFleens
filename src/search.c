@@ -30,13 +30,16 @@
 #include "search.h"
 #include "time.h"
 #include "ttable.h"
+#include "uci.h"
 
 int LMRTable[64][64]; // Init LMR Table 
 
 void CheckUp(S_SEARCHINFO *info) {
 	// .. check if time up, or interrupt from GUI
-	if(info->timeset == TRUE && getTimeMs() > info->stoptime) {
-		info->stopped = TRUE;
+	if (   info->timeset 
+		&& info->depth > 1 
+		&& elapsedTime(info) > info->maximumTime - 10) {
+		info->stopped = 1;
 	}
 
 	ReadInput(info);
@@ -65,7 +68,7 @@ void PickNextMove(int moveNum, S_MOVELIST *list) {
 	list->moves[bestNum] = temp;
 }
 
-int KnightAttack( int side, int sq, const S_BOARD *pos) {
+int KnightAttack(int side, int sq, const S_BOARD *pos) {
 	int t_sq, dir;
 	int Knight = side == WHITE ? wN : bN;
 
@@ -155,13 +158,9 @@ int IsRepetition(const S_BOARD *pos) {
 
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
-	int index = 0, index2 = 0;
-
-	for(index = 0; index < 13; ++index) {
-		for(index2 = 0; index2 < BRD_SQ_NUM; ++index2) {
+	for (int index = 0; index < 13; index++)
+		for (int index2 = 0; index2 < BRD_SQ_NUM; index2++)
 			pos->searchHistory[index][index2] = 0;
-		}
-	}
 	
 	pos->ply = 0;
 
@@ -171,6 +170,7 @@ void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 	info->fhf = 0;
 	info->nullCut = 0;
 	info->probCut = 0;
+	info->previousTimeReduction = 1.0;
 }
 
 void initLMRTable() {
@@ -179,6 +179,96 @@ void initLMRTable() {
     for (int depth = 1; depth < 64; depth++)
         for (int played = 1; played < 64; played++)
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
+}
+
+void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best) {
+
+    // Minor house keeping for starting a search
+    updateTTable(); // Table has an age component
+    TimeManagementInit(info, limits, pos->gamePly);
+    iterativeDeepening(pos, info, limits, best);
+}
+
+void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best) {
+
+	double timeReduction = 1;
+
+	// Return a book move if we have one
+	if (Options.OwnBook) {
+		int bookMove = GetBookMove(pos);
+		if (bookMove != NOMOVE) {
+			*best = bookMove; return;
+		}
+	}
+
+	ClearForSearch(pos, info);
+
+    // Perform iterative deepening until exit conditions 
+    for (info->depth = 1; info->depth <= MAX_PLY && !info->stopped; info->depth++) {
+
+        // Perform a search for the current depth
+        info->values[info->depth] = aspirationWindow(info->depth, info->values[info->depth], best, pos, info);
+
+		// Check for termination by any of the possible limits 
+        if (   (limits->limitedBySelf  && TerminateTimeManagement(pos, info, &timeReduction))
+        	|| (limits->limitedBySelf  && elapsedTime(info) > info->maximumTime - 10)
+            || (limits->limitedByTime  && elapsedTime(info) > limits->timeLimit)
+            || (limits->limitedByDepth && info->depth >= limits->depthLimit))
+            break;
+    }
+
+    info->previousTimeReduction = timeReduction;
+}
+
+int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info) {
+
+    ASSERT(CheckBoard(pos));
+
+    int alpha, beta, value, delta = WindowSize;
+    PVariation *const pv = &pos->pv;
+
+    // Create an aspiration window, unless still below the starting depth
+    alpha = depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
+    beta  = depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
+
+    // Keep trying larger windows until one works
+    int failedHighCnt = 0;
+    while (1) {
+
+    	int adjustedDepth = MAX(1, depth - failedHighCnt);
+
+        // Perform a search on the window, return if inside the window
+        value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, pv, 0);
+
+        if (info->stopped)
+        	return value;
+
+        if (   (value > alpha && value < beta)
+            || (elapsedTime(info) >= WindowTimerMS && info->GAME_MODE == UCIMODE))
+            uciReport(info, pos, alpha, beta, value);
+
+        if (value > alpha && value < beta) {
+        	*best = pos->pv.line[0];
+            return value;
+        }
+
+        // Search failed low
+        if (value <= alpha) {
+            beta  = (alpha + beta) / 2;
+            alpha = MAX(-INFINITE, value - delta);
+
+            failedHighCnt = 0;
+        }
+
+        // Search failed high
+        if (value >= beta) { 
+            beta = MIN(INFINITE, value + delta);
+            failedHighCnt++;
+        }
+
+        // Expand the search window
+        delta += delta / 4 + 5;
+    }
 }
 
 int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
@@ -422,7 +512,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
         &&  eval + moveBestCaseValue(pos) >= beta + ProbCutMargin) {
 
         // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, INFINITE - MAXPLY - 1);
+        rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
 
     	S_MOVELIST list[1];
     	GenerateAllCaps(pos,list);
@@ -516,11 +606,8 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 		played += 1;
 		info->currentMove[height] = list->moves[MoveNum].move;
 
-		//elapsed = getTimeMs()-info->startTime;
-
-		/*if(RootNode && elapsed >= 2500) {
-			printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(list->moves[MoveNum].move), MoveNum);
-		}*/
+		if (RootNode && elapsedTime(info) > WindowTimerMS && info->GAME_MODE == UCIMODE)
+            uciReportCurrentMove(list->moves[MoveNum].move, played, depth);
 
         extension =  (InCheck)
         		  || (singularExt);
@@ -582,117 +669,4 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 	storeTTEntry(pos->posKey, (uint16_t)(BestMove), valueToTT(BestScore, pos->ply), eval, depth, ttBound);
 
 	return BestScore;
-}
-
-int aspirationWindow(int depth, int lastValue, S_BOARD *pos, S_SEARCHINFO *info) {
-
-    ASSERT(CheckBoard(pos));
-
-    int alpha, beta, value, delta = WindowSize;
-    PVariation *const pv = &pos->pv;
-
-    // Create an aspiration window, unless still below the starting depth
-    alpha = depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
-    beta  = depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
-
-    // Keep trying larger windows until one works
-    int failedHighCnt = 0;
-    while (1) {
-
-    	int adjustedDepth = MAX(1, depth - failedHighCnt);
-
-        // Perform a search on the window, return if inside the window
-        value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, pv, 0);
-
-        if (info->stopped)
-        	return value;
-
-        if (value > alpha && value < beta)
-            return value;
-
-        // Search failed low
-        if (value <= alpha) {
-            beta  = (alpha + beta) / 2;
-            alpha = MAX(-INFINITE, value - delta);
-
-            failedHighCnt = 0;
-        }
-
-        // Search failed high
-        if (value >= beta) { 
-            beta = MIN(INFINITE, value + delta);
-            failedHighCnt++;
-        }
-
-        // Expand the search window
-        delta += delta / 4 + 5;
-    }
-}
-
-void SearchPosition(S_BOARD *pos, S_SEARCHINFO *info) {
-
-	int bestMove = NOMOVE;
-	int bestScore = -INFINITE;
-	int currentDepth = 0;
-
-	ClearForSearch(pos,info);
-
-	/*if(EngineOptions->UseBook == TRUE) {
-		bestMove = GetBookMove(pos);
-	}*/
-
-	// iterative deepening
-	if (bestMove == NOMOVE) { 
-		for (currentDepth = 1; currentDepth <= info->depth; ++currentDepth ) { 
-			info->values[currentDepth] = aspirationWindow(currentDepth, info->values[currentDepth], pos, info);
-			bestScore = info->values[currentDepth];
-
-			if (   abs(info->values[info->depth]) >= MATE_IN_MAX 
-        		&& currentDepth >= 12
-        		&& info->values[currentDepth-2] == info->values[currentDepth])
-	    		break;
-	    	
-	    	else if (currentDepth == MAXDEPTH - 1)
-	    		break;
-
-			else if (info->stopped)
-				break;
-
-			int elapsed = elapsedTime(info);
-			int nps = (1000 * (info->nodes / (1+elapsed)));
-			bestMove = pos->pv.line[0];
-			if(info->GAME_MODE == UCIMODE) {
-				printf("info score cp %d depth %d seldepth %d nodes %ld nps %d time %d hashfull %d ",
-					bestScore,currentDepth,info->seldepth,info->nodes,nps,elapsed,hashfullTTable() );
-			} else if(info->GAME_MODE == XBOARDMODE && info->POST_THINKING == TRUE) {
-				printf("%d %d %d %ld ",
-					currentDepth,bestScore,elapsed/10,info->nodes);
-			} else if(info->POST_THINKING == TRUE) {
-				printf("score:%d depth:%d seldepth %d nodes:%ld nps %d time:%d(ms) hashfull %d ",
-					bestScore,currentDepth,info->seldepth,info->nodes,nps,elapsed,hashfullTTable());
-			}
-			if(info->GAME_MODE == UCIMODE || info->POST_THINKING == TRUE) {
-				if(!(info->GAME_MODE == XBOARDMODE)) {
-					printf("pv");
-				}
-				for (int pvNum = 0; pvNum < pos->pv.length; pvNum++) {
-        			printf(" %s",PrMove(pos->pv.line[pvNum]));
-    			}
-				printf("\n");
-			}
-		}
-	}
-
-	if(info->GAME_MODE == UCIMODE) {
-		printf("bestmove %s\n",PrMove(bestMove));
-	} else if(info->GAME_MODE == XBOARDMODE) {
-		printf("move %s\n",PrMove(bestMove));
-		MakeMove(pos, bestMove);
-	} else {
-		printf("\nHits:%d Overwrite:%d NewWrite:%d TTCut:%d\nOrdering %.2f NullCut:%d Probcut:%d\n",0,0,0,info->TTCut,
-		(info->fhf/info->fh)*100,info->nullCut,info->probCut);
-		printf("\n\n***!! PayFleens makes move %s !!***\n\n",PrMove(bestMove));
-		MakeMove(pos, bestMove);
-		PrintBoard(pos);
-	}
 }

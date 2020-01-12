@@ -99,7 +99,6 @@ void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info) {
             printf("\n%s\n",lineIn);
 			printf("time:%d start:%f stop:%f depth:%d timeset:%d\n",
 				time,info->startTime,info->stoptime,info->depth,info->timeset);
-			SearchPosition(pos, info);
             memset(&lineIn[0], 0, sizeof(lineIn));
         }
     }

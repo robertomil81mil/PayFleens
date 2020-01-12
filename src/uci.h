@@ -20,19 +20,27 @@
 
 #include "defs.h"
 
-enum { OptimumTime, MaxTime };
+struct Limits {
+    double start, time, inc, timeLimit;
+    int limitedByNone, limitedByTime, limitedBySelf;
+    int limitedByDepth, depthLimit, mtg;
+};
 
-double getTimeMs();
-double elapsedTime(S_SEARCHINFO *info);
-double move_importance(int ply);
-double remaining(int T, double myTime, double slowMover, int movesToGo, int ply);
+struct EngineOptions {
+	int OwnBook;
+	double MinThinkingTime, MoveOverHead, SlowMover; 
+};
 
-void TimeManagementInit(S_SEARCHINFO *info, Limits *limits, int ply);
-int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduction);
+void uciGo(char *str, S_SEARCHINFO *info, S_BOARD *pos);
+void uciSetOption(char *str);
+void uciPosition(char* str, S_BOARD *pos);
 
-int InputWaiting();
-void ReadInput(S_SEARCHINFO *info);
+void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value);
+void uciReportCurrentMove(int move, int currmove, int depth);
 
-static const int MoveHorizon   = 50;
-static const double MaxRatio   = 7.3;
-static const double StealRatio = 0.34;
+int getInput(char *str);
+int strEquals(char *str1, char *str2);
+int strStartsWith(char *str, char *key);
+int strContains(char *str, char *key);
+
+extern EngineOptions Options;
