@@ -39,7 +39,7 @@ void CheckUp(S_SEARCHINFO *info) {
 	if (   info->timeset 
 		&& info->depth > 1 
 		&& elapsedTime(info) > info->maximumTime - 10) {
-		info->stopped = 1;
+		info->stop = 1;
 	}
 
 	ReadInput(info);
@@ -164,7 +164,7 @@ void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 	
 	pos->ply = 0;
 
-	info->stopped = 0;
+	info->stop = 0;
 	info->nodes = 0;
 	info->fh = 0;
 	info->fhf = 0;
@@ -204,7 +204,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
 	ClearForSearch(pos, info);
 
     // Perform iterative deepening until exit conditions 
-    for (info->depth = 1; info->depth <= MAX_PLY && !info->stopped; info->depth++) {
+    for (info->depth = 1; info->depth <= MAX_PLY && !info->stop; info->depth++) {
 
         // Perform a search for the current depth
         info->values[info->depth] = aspirationWindow(info->depth, info->values[info->depth], best, pos, info);
@@ -240,7 +240,7 @@ int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCH
         // Perform a search on the window, return if inside the window
         value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, pv, 0);
 
-        if (info->stopped)
+        if (info->stop)
         	return value;
 
         if (   (value > alpha && value < beta)
@@ -365,7 +365,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 		value = -Quiescence( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
         TakeMove(pos);
 
-		if (info->stopped)
+		if (info->stop)
 			return 0;
 
 		// Improved current value
@@ -426,7 +426,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 	uint16_t ttMove = NOMOVE; int BestMove = NOMOVE;
 
 	if (!RootNode) {
-		if (info->stopped || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
+		if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
 			return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 
 		if (pos->ply > MAXDEPTH - 1)
@@ -627,7 +627,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 		TakeMove(pos);
 		cntMoves++;
 
-		if (info->stopped)
+		if (info->stop)
 			return 0;
 
 		if (Score > BestScore) {

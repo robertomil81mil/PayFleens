@@ -76,36 +76,6 @@ int PieceValid(const int pce) {
 	return (pce >= wP && pce <= bK) ? 1 : 0;
 }
 
-void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info) {
-
-	FILE *file;
-    file = fopen("lct2.epd","r");
-    char lineIn [1024];
-
-	info->depth = MAXDEPTH;
-	info->timeset = TRUE;
-	int time = 1140000;
-
-
-    if(file == NULL) {
-        printf("File Not Found\n");
-        return;
-    }  else {
-        while(fgets (lineIn , 1024 , file) != NULL) {
-			info->startTime = getTimeMs();
-			info->stoptime = info->startTime + time;
-			clearTTable();
-            ParseFen(lineIn, pos);
-            printf("\n%s\n",lineIn);
-			printf("time:%d start:%f stop:%f depth:%d timeset:%d\n",
-				time,info->startTime,info->stoptime,info->depth,info->timeset);
-            memset(&lineIn[0], 0, sizeof(lineIn));
-        }
-    }
-}
-
-
-
 void MirrorEvalTest(S_BOARD *pos) {
     FILE *file;
     file = fopen("perftsuite.epd","r");

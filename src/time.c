@@ -95,7 +95,7 @@ void ReadInput(S_SEARCHINFO *info) {
     char input[256] = "", *endc;
 
     if (InputWaiting()) {
-        info->stopped = TRUE;
+        info->stop = TRUE;
         do {
             bytes=read(fileno(stdin),input,256);
         } while (bytes<0);
@@ -185,10 +185,10 @@ int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduct
     int completedDepth, lastBestMoveDepth, lastBestMove = NOMOVE;
     double TimeRdction = 1, totBestMoveChanges = 0;
 
-    if (info->stopped) 
+    if (info->stop) 
         return 1;
 
-    if (!info->stopped)
+    if (!info->stop)
         completedDepth = info->depth;
 
     if (pos->pv.line[0] != lastBestMove) {

@@ -45,7 +45,7 @@ typedef unsigned long long U64;
 #define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
 #define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 
-#define NAME "PayFleens 1.5"
+#define NAME "PayFleens 1.5.1"
 
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
@@ -166,18 +166,17 @@ typedef struct {
 	PVariation pv;
 
 	int searchHistory[13][BRD_SQ_NUM];
-	int searchKillers[2][MAXDEPTH];
+	int searchKillers[2][MAX_PLY];
 
 } S_BOARD;
 
 typedef struct {
 
-	double startTime, stoptime;
-	double optimumTime, maximumTime;
+	double startTime, optimumTime, maximumTime;
 	double previousTimeReduction, bestMoveChanges;
 
 	int depth, seldepth;
-	int quit, stopped, timeset;
+	int quit, stop, timeset;
 
 	int values[MAX_PLY];
 	int currentMove[MAX_PLY];
@@ -373,7 +372,6 @@ extern void MirrorEvalTest(S_BOARD *pos);
 extern int SqIs120(const int sq);
 extern int PceValidEmptyOffbrd(const int pce);
 extern int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos);
-extern void DebugAnalysisTest(S_BOARD *pos, S_SEARCHINFO *info);
 
 // movegen.c
 extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
