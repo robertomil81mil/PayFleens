@@ -207,7 +207,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
     for (info->depth = 1; info->depth <= MAX_PLY && !info->stop; info->depth++) {
 
         // Perform a search for the current depth
-        info->values[info->depth] = aspirationWindow(info->depth, info->values[info->depth], best, pos, info);
+        info->values[info->depth] = aspirationWindow(info->values[info->depth], best, pos, info);
 
 		// Check for termination by any of the possible limits 
         if (   (limits->limitedBySelf  && TerminateTimeManagement(pos, info, &timeReduction))
@@ -220,7 +220,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
     info->previousTimeReduction = timeReduction;
 }
 
-int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info) {
+int aspirationWindow(int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info) {
 
     ASSERT(CheckBoard(pos));
 
@@ -228,14 +228,14 @@ int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCH
     PVariation *const pv = &pos->pv;
 
     // Create an aspiration window, unless still below the starting depth
-    alpha = depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
-    beta  = depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
+    alpha = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
+    beta  = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
 
     // Keep trying larger windows until one works
     int failedHighCnt = 0;
     while (1) {
 
-    	int adjustedDepth = MAX(1, depth - failedHighCnt);
+    	int adjustedDepth = MAX(1, info->depth - (failedHighCnt / 2));
 
         // Perform a search on the window, return if inside the window
         value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, pv, 0);
@@ -256,14 +256,13 @@ int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCH
         if (value <= alpha) {
             beta  = (alpha + beta) / 2;
             alpha = MAX(-INFINITE, value - delta);
-
             failedHighCnt = 0;
         }
 
         // Search failed high
         if (value >= beta) { 
             beta = MIN(INFINITE, value + delta);
-            failedHighCnt++;
+           	failedHighCnt++;
         }
 
         // Expand the search window

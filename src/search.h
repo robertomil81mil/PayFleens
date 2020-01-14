@@ -26,7 +26,7 @@
 void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
 void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
 
-int aspirationWindow(int depth, int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info);
+int aspirationWindow(int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info);
 int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 
