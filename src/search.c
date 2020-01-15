@@ -207,7 +207,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
     for (info->depth = 1; info->depth <= MAX_PLY && !info->stop; info->depth++) {
 
         // Perform a search for the current depth
-        info->values[info->depth] = aspirationWindow(info->values[info->depth], best, pos, info);
+        info->values[info->depth] = aspirationWindow(pos, info, best);
 
 		// Check for termination by any of the possible limits 
         if (   (limits->limitedBySelf  && TerminateTimeManagement(pos, info, &timeReduction))
@@ -220,16 +220,18 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
     info->previousTimeReduction = timeReduction;
 }
 
-int aspirationWindow(int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info) {
+int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
 
     ASSERT(CheckBoard(pos));
 
-    int alpha, beta, value, delta = WindowSize;
+    int alpha, beta, value, lastValue, delta;
     PVariation *const pv = &pos->pv;
 
     // Create an aspiration window, unless still below the starting depth
-    alpha = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
-    beta  = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
+    lastValue = info->depth >= WindowDepth ? info->values[info->depth-1]       : -INFINITE;
+    delta     = info->depth >= WindowDepth ? WindowSize + abs(lastValue) / 256 : -INFINITE;
+    alpha     = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
+    beta      = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
 
     // Keep trying larger windows until one works
     int failedHighCnt = 0;
@@ -262,7 +264,7 @@ int aspirationWindow(int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info)
         // Search failed high
         if (value >= beta) { 
             beta = MIN(INFINITE, value + delta);
-           	failedHighCnt++;
+            failedHighCnt++;
         }
 
         // Expand the search window

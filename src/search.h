@@ -26,7 +26,7 @@
 void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
 void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
 
-int aspirationWindow(int lastValue, int *best, S_BOARD *pos, S_SEARCHINFO *info);
+int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best);
 int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 
@@ -53,5 +53,5 @@ static const int QFutilityMargin      = 100;
 static const int RazorDepth           = 1;
 static const int RazorMargin          = 325;
 static const int WindowDepth          = 4;
-static const int WindowSize           = 23;
+static const int WindowSize           = 21;
 static const int WindowTimerMS        = 2500;
