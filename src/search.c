@@ -229,7 +229,7 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
 
     // Create an aspiration window, unless still below the starting depth
     lastValue = info->depth >= WindowDepth ? info->values[info->depth-1]       : -INFINITE;
-    delta     = info->depth >= WindowDepth ? WindowSize + abs(lastValue) / 256 : -INFINITE;
+    delta     = info->depth >= WindowDepth ? WindowSize + abs(lastValue) / 141 : -INFINITE;
     alpha     = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
     beta      = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
 

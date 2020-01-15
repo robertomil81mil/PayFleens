@@ -53,5 +53,5 @@ static const int QFutilityMargin      = 100;
 static const int RazorDepth           = 1;
 static const int RazorMargin          = 325;
 static const int WindowDepth          = 4;
-static const int WindowSize           = 21;
+static const int WindowSize           = 11;
 static const int WindowTimerMS        = 2500;
