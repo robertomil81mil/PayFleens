@@ -224,14 +224,20 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
 
     ASSERT(CheckBoard(pos));
 
-    int alpha, beta, value, lastValue, delta;
+    int alpha, beta, value, lastValue, delta, dct;
     PVariation *const pv = &pos->pv;
+
+    dct = Options.Contempt * 118 / 100;
 
     // Create an aspiration window, unless still below the starting depth
     lastValue = info->depth >= WindowDepth ? info->values[info->depth-1]       : -INFINITE;
     delta     = info->depth >= WindowDepth ? WindowSize + abs(lastValue) / 141 : -INFINITE;
     alpha     = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
     beta      = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
+    dct       = info->depth >= WindowDepth ? dct + (25 - dct / 2) * lastValue / (abs(lastValue) + 39) : dct;
+
+    pos->contempt = (pos->side == WHITE ?  makeScore(dct, dct / 2)
+                                        : -makeScore(dct, dct / 2));
 
     // Keep trying larger windows until one works
     int failedHighCnt = 0;
@@ -321,7 +327,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * TEMPO;        
+                                                    : -info->staticEval[height-1] + 2 * Tempo;        
 
     if (ttHit) {
         if (ttValue != VALUE_NONE
@@ -456,7 +462,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * TEMPO;
+                                                    : -info->staticEval[height-1] + 2 * Tempo;
 
     improving = height >= 2 && eval > info->staticEval[height-2];
 

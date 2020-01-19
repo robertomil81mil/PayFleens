@@ -1104,6 +1104,7 @@ int EvalPosition(const S_BOARD *pos) {
 	score  = (pos->mPhases[WHITE] - pos->mPhases[BLACK]);
     score += (pos->PSQT[WHITE] - pos->PSQT[BLACK]);
     score += (ei.Mob[WHITE] - ei.Mob[BLACK]);
+    score +=  pos->contempt;
     score += (imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK));
     score +=  evaluatePieces(pos);
     score +=  evaluateComplexity(pos, score);
@@ -1118,7 +1119,7 @@ int EvalPosition(const S_BOARD *pos) {
 
 	score += (ei.blockages[WHITE] - ei.blockages[BLACK]);
 
-	score += pos->side == WHITE ? TEMPO : -TEMPO;
+	score += pos->side == WHITE ? Tempo : -Tempo;
 
     stronger = (score > 0 ? WHITE : BLACK);
     weaker   = (score > 0 ? BLACK : WHITE);
