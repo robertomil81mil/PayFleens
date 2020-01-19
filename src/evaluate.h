@@ -158,10 +158,8 @@ static const int P_BISHOP_TRAPPED_A6  = 50;
 static const int P_KNIGHT_TRAPPED_A8  = 150;
 static const int P_KNIGHT_TRAPPED_A7  = 100;
 static const int P_C3_KNIGHT = 30;
-static const int P_NO_FIANCHETTO = 4;
 static const int RETURNING_BISHOP = 20;
-static const int FIANCHETTO = 4;
-static const int TEMPO = 10;
+static const int Tempo = 14;
 
 static const int Weight[13] = { 0, 4, 16, 10, 8, 2, 0, 4, 16, 10, 8, 2, 0};
 
@@ -197,10 +195,10 @@ static const int QuadraticOurs[][6] = {
     // pair pawn knight bishop rook queen
     { 796                               }, // Bishop pair
     {  22,   21                         }, // Pawn
-    {  17,  141, -34                    }, // Knight      OUR PIECES
-    {   0,   57,   2,     0             }, // Bishop
-    { -14,   -1,  26,    58,  -115      }, // Rook
-    {-104,   13,  64,    73,   -74, -3  }  // Queen
+    {  17,  141,  -34                   }, // Knight      OUR PIECES
+    {   0,   57,    2,    0             }, // Bishop
+    { -14,   -1,   26,   58,  -115      }, // Rook
+    {-104,   13,   64,   73,   -74, -3  }  // Queen
 };
 
 static const int QuadraticTheirs[][6] = {
