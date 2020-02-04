@@ -27,8 +27,8 @@ void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
 void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
 
 int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best);
-int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
-int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
+int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
+int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 
 void initLMRTable();
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);

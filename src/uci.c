@@ -40,7 +40,6 @@ int main() {
     info->quit = 0;
 
     // Set default options
-    Options.Contempt        = 0;
     Options.MinThinkingTime = 20;
     Options.MoveOverHead    = 30;
     Options.SlowMover       = 84;
@@ -50,7 +49,6 @@ int main() {
 
     // Initialize components of PayFleens
     AllInit(); ParseFen(START_FEN, pos);
-    printf("%s by Roberto M.\n", NAME);
 
     while (getInput(str)) {
 
@@ -58,13 +56,12 @@ int main() {
 
         	info->GAME_MODE = UCIMODE;
 			printf("id name %s\n", NAME);
-			printf("id author Roberto M.\n");
-            printf("option name Contempt type spin default 0 min -100 max 100\n");
+			printf("id author Roberto M\n");
+            printf("option name OwnBook type check default false\n");
             printf("option name Hash type spin default 16 min 1 max 65536\n");
             printf("option name Minimum Thinking Time type spin default 20 min 0 max 5000\n");
             printf("option name Move Overhead type spin default 30 min 0 max 5000\n");
             printf("option name Slow Mover type spin default 84 min 10 max 1000\n");
-            printf("option name OwnBook type check default false\n");
             printf("uciok\n"), fflush(stdout);
         }
 
@@ -83,7 +80,7 @@ int main() {
         else if (strStartsWith(str, "go"))
             uciGo(str, info, pos);
 
-        else if (strEquals(str, "quit") || info->quit)
+        else if (strEquals(str, "quit"))
             break;
 
         else if (strStartsWith(str, "print"))
@@ -179,12 +176,6 @@ void uciSetOption(char *str) {
         int slowMover = atoi(str + strlen("setoption name Slow Mover value "));
         printf("info string set Slow Mover to %d\n", slowMover);
         Options.SlowMover = slowMover;
-    }
-
-    if (strStartsWith(str, "setoption name Contempt value ")) {
-        int Contempt = atoi(str + strlen("setoption name Contempt value "));
-        printf("info string set Contempt to %d\n", Contempt);
-        Options.Contempt = Contempt;
     }
 
     if (strStartsWith(str, "setoption name OwnBook value ")) {

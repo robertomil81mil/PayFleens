@@ -99,14 +99,10 @@ void ReadInput(S_SEARCHINFO *info) {
         do {
             bytes=read(fileno(stdin),input,256);
         } while (bytes<0);
+
         endc = strchr(input,'\n');
         if (endc) *endc=0;
 
-        if (strlen(input) > 0) {
-            if (!strncmp(input, "quit", 4)) {
-                info->quit = TRUE;
-            }
-        }
         return;
     }
 }

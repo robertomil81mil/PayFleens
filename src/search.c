@@ -49,12 +49,12 @@ void PickNextMove(int moveNum, S_MOVELIST *list) {
 
 	S_MOVE temp;
 	int index = 0;
-	int bestScore = 0;
+	int best = 0;
 	int bestNum = moveNum;
 
 	for (index = moveNum; index < list->count; ++index) {
-		if (list->moves[index].score > bestScore) {
-			bestScore = list->moves[index].score;
+		if (list->moves[index].score > best) {
+			best = list->moves[index].score;
 			bestNum = index;
 		}
 	}
@@ -224,20 +224,14 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
 
     ASSERT(CheckBoard(pos));
 
-    int alpha, beta, value, lastValue, delta, dct;
+    int alpha, beta, value, lastValue, delta;
     PVariation *const pv = &pos->pv;
-
-    dct = Options.Contempt * 118 / 100;
 
     // Create an aspiration window, unless still below the starting depth
     lastValue = info->depth >= WindowDepth ? info->values[info->depth-1]       : -INFINITE;
     delta     = info->depth >= WindowDepth ? WindowSize + abs(lastValue) / 141 : -INFINITE;
     alpha     = info->depth >= WindowDepth ? MAX(-INFINITE, lastValue - delta) : -INFINITE;
     beta      = info->depth >= WindowDepth ? MIN( INFINITE, lastValue + delta) :  INFINITE;
-    dct       = info->depth >= WindowDepth ? dct + (25 - dct / 2) * lastValue / (abs(lastValue) + 39) : dct;
-
-    pos->contempt = (pos->side == WHITE ?  makeScore(dct, dct / 2)
-                                        : -makeScore(dct, dct / 2));
 
     // Keep trying larger windows until one works
     int failedHighCnt = 0;
@@ -246,7 +240,7 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
     	int adjustedDepth = MAX(1, info->depth - (failedHighCnt / 2));
 
         // Perform a search on the window, return if inside the window
-        value = AlphaBeta(alpha, beta, adjustedDepth, pos, info, pv, 0);
+        value = search(alpha, beta, adjustedDepth, pos, info, pv, 0);
 
         if (info->stop)
         	return value;
@@ -278,7 +272,7 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
     }
 }
 
-int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
+int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
 
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
@@ -304,8 +298,8 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0;
-	int eval, value, best;
-	uint16_t ttMove = NOMOVE;
+	int eval, value, best, oldAlpha = alpha;
+	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
 	int TFDepth = ((InCheck || depth >= 0) ?  0  : -1);
 
@@ -327,7 +321,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * Tempo;        
+                                                    : -info->staticEval[height-1] + 2 * TEMPO;        
 
     if (ttHit) {
         if (ttValue != VALUE_NONE
@@ -337,12 +331,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 
 	best = eval;
 	alpha = MAX(alpha, eval);
-    if (alpha >= beta)
-    	return eval;
-
-    /*margin = alpha - eval - QFutilityMargin;
-    if (moveBestCaseValue(pos) < margin)
-        return eval;*/
+    if (alpha >= beta) return eval;
 
 	S_MOVELIST list[1];
     GenerateAllCaps(pos,list);
@@ -369,7 +358,7 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 		played +=1;
 		info->currentMove[height] = list->moves[MoveNum].move;
 
-		value = -Quiescence( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
+		value = -qsearch( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
         TakeMove(pos);
 
 		if (info->stop)
@@ -378,14 +367,15 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
 		// Improved current value
         if (value > best) {
             best = value;
+            bestMove = list->moves[MoveNum].move;
 
             // Improved current lower bound
             if (value > alpha) {
                 alpha = value;
 
                 pv->length = 1 + lpv.length;
-                pv->line[0] = list->moves[MoveNum].move;
-                memcpy(pv->line + 1, lpv.line, sizeof(list->moves[MoveNum].move) * lpv.length);
+                pv->line[0] = bestMove;
+                memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
             }
         }
 
@@ -398,10 +388,14 @@ int Quiescence(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info,
         }
     }
 
+    ttBound = (best >= beta    ? BOUND_LOWER
+            :  best > oldAlpha ? BOUND_EXACT : BOUND_UPPER);
+    storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, TFDepth, ttBound);
+
 	return best;
 }
 
-int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
+int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
 
 	ASSERT(CheckBoard(pos));
 	ASSERT(beta>alpha);
@@ -412,7 +406,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
 
 	if(depth <= 0 && !InCheck)
-		return Quiescence(alpha, beta, depth, pos, info, pv, height);
+		return qsearch(alpha, beta, depth, pos, info, pv, height);
 
 	depth = MAX(0, depth);
 
@@ -427,10 +421,10 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 	
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0, cntMoves = 0, excludedMove = 0, singularExt = 0;
-	int R, newDepth, rAlpha, rBeta, OldAlpha = alpha;
+	int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
 	int isQuiet, improving, extension;
-	int eval, Score = -INFINITE, BestScore = -INFINITE;
-	uint16_t ttMove = NOMOVE; int BestMove = NOMOVE;
+	int eval, value = -INFINITE, best = -INFINITE;
+	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
 	if (!RootNode) {
 		if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
@@ -462,7 +456,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * Tempo;
+                                                    : -info->staticEval[height-1] + 2 * TEMPO;
 
     improving = height >= 2 && eval > info->staticEval[height-2];
 
@@ -483,7 +477,7 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 		&& !InCheck 
 		&&  depth <= RazorDepth 
 		&&  eval + RazorMargin < alpha)
-		return Quiescence(alpha, beta, depth, pos, info, pv, height);
+		return qsearch(alpha, beta, depth, pos, info, pv, height);
 
 	if (   !PvNode
         && !InCheck
@@ -504,10 +498,10 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 
         MakeNullMove(pos);
         info->currentMove[height] = NULL_MOVE;
-        Score = -AlphaBeta( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
+        value = -search( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
         TakeNullMove(pos);
 
-        if (Score >= beta) {
+        if (value >= beta) {
         	info->nullCut++;
         	return beta;
         }
@@ -530,13 +524,13 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 
         	if ( !MakeMove(pos,list->moves[MoveNum].move)) continue;
         	info->currentMove[height] = list->moves[MoveNum].move;
-        	Score = -AlphaBeta( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
+        	value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
         	TakeMove(pos);
 
         	// Probcut failed high
-            if (Score >= rBeta) {
+            if (value >= rBeta) {
             	//info->probCut++;
-            	return Score;
+            	return value;
             } 
         }
     }   
@@ -597,14 +591,14 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 
           	rBeta = ttValue - 2 * depth;
           	excludedMove = 1;
-          	Score = AlphaBeta( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
+          	value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
           	excludedMove = 0;
 
-	        if (Score < rBeta) {
+	        if (value < rBeta) {
 	            singularExt = 1;
 	            R--;
 
-	            if (Score < rBeta - MIN(4 * depth, 36)) R--;
+	            if (value < rBeta - MIN(4 * depth, 36)) R--;
 	        } else if (eval >= beta && rBeta >= beta) return rBeta;
       	}
 
@@ -622,13 +616,13 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
         newDepth = depth + (extension && !RootNode);
 
 		if (R != 1)
-			Score = -AlphaBeta( -alpha-1, -alpha, newDepth-R, pos, info, &lpv, height+1);
+			value = -search( -alpha-1, -alpha, newDepth-R, pos, info, &lpv, height+1);
 		
-		if ((R != 1 && Score > alpha) || (R == 1 && !(PvNode && played == 1)))
-            Score = -AlphaBeta( -alpha-1, -alpha, newDepth-1, pos, info, &lpv, height+1);
+		if ((R != 1 && value > alpha) || (R == 1 && !(PvNode && played == 1)))
+            value = -search( -alpha-1, -alpha, newDepth-1, pos, info, &lpv, height+1);
 		
-		if (PvNode && (played == 1 || (Score > alpha && (RootNode || Score < beta))))
-			Score = -AlphaBeta( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
+		if (PvNode && (played == 1 || (value > alpha && (RootNode || value < beta))))
+			value = -search( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
 		
 		
 		TakeMove(pos);
@@ -637,21 +631,21 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 		if (info->stop)
 			return 0;
 
-		if (Score > BestScore) {
-			BestScore = Score;
-			BestMove = list->moves[MoveNum].move;
+		if (value > best) {
+			best = value;
+			bestMove = list->moves[MoveNum].move;
 
-			if (Score > alpha) {
-				alpha = Score;
+			if (value > alpha) {
+				alpha = value;
 
 				pv->length = 1 + lpv.length;
-                pv->line[0] = list->moves[MoveNum].move;
-                memcpy(pv->line + 1, lpv.line, sizeof(list->moves[MoveNum].move) * lpv.length);
+                pv->line[0] = bestMove;
+                memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
 
 				if (alpha >= beta) break;
 			}
 		}
-		if (Score > BestScore && Score >= beta) {
+		if (value > best && value >= beta) {
 			if(played==1)
 				info->fhf++;
 			info->fh++;
@@ -663,17 +657,17 @@ int AlphaBeta(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, 
 				pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
 			}
 			if (!(list->moves[MoveNum].move & MFLAGCAP))
-				pos->searchHistory[pos->pieces[FROMSQ(BestMove)]][TOSQ(BestMove)] += depth;
+				pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
 		}
     }
 
-    if (played == 0) BestScore = (InCheck ? -INFINITE + pos->ply : 0);
+    if (played == 0) best = (InCheck ? -INFINITE + pos->ply : 0);
 
-	ASSERT(alpha>=OldAlpha);
+	ASSERT(alpha>=oldAlpha);
 
-	ttBound = (BestScore >= beta    ? BOUND_LOWER
-			:  BestScore > OldAlpha ? BOUND_EXACT : BOUND_UPPER);
-	storeTTEntry(pos->posKey, (uint16_t)(BestMove), valueToTT(BestScore, pos->ply), eval, depth, ttBound);
+	ttBound = (best >= beta    ? BOUND_LOWER
+			:  best > oldAlpha ? BOUND_EXACT : BOUND_UPPER);
+	storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
 
-	return BestScore;
+	return best;
 }

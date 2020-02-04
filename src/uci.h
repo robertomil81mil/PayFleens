@@ -27,7 +27,7 @@ struct Limits {
 };
 
 struct EngineOptions {
-	int OwnBook, Contempt;
+	int OwnBook;
 	double MinThinkingTime, MoveOverHead, SlowMover; 
 };
 
