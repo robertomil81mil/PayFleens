@@ -1,9 +1,27 @@
 # PayFleens
-PayFleens is an UCI and xboard Chess Engine, it started as a goal to learn C with the YouTube video series by Bluefever and his engine Vice, at the moment PayFleens is using Vice as codebase. PayFleens is greatly inspired by Ethereal and Stockfish.
+PayFleens is an UCI Chess Enginew which uses the alpha-beta framework. PayFleens started as a goal to learn C watching the BlueFeverSoft's YouTube video serie programing Vice ([Video Instructional Chess Engine](https://www.chessprogramming.org/Vice)) and for the moment it's using Vice as codebase for move generation. PayFleens is also greatly inspired by [Ethereal](https://github.com/AndyGrant/Ethereal) and [Stockfish](https://stockfishchess.org/). You can compile PayFleens using the make file inside of `src` file with gcc or g++.
 
-I haven't a makefile (I'll make it soon) so you can compile with this command:
-`gcc xboard.c PayFleens.c uci.c evaluate.c ttable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c misc.c polybook.c polykeys.c -o PayFleens -O2 -s`
+# UCI parameters
+
+Currently, PayFleens has the following UCI options:
+
+### Hash
+
+The size of the hash table in megabytes. For analysis the more hash given the better.
+
+### Move Overhead
+
+Amount of miliseconds used as time delay. This is useful to avoid losses on time
+due to network and GUI overheads.
+
+### Minimum Thinking Time
+
+The minimum number of miliseconds to search per move.
+
+### Slow Mover
+
+Multipletor used in time management. Lower values will make PayFleens take less time in games, higher values will
+make it think longer.
 
 # Special Thanks
-Thank you guys:
-Bluefever & Andrew Grant.
+Thank you BlueFeverSoft, Andrew Grant and the Stockfish team for all of your help.
