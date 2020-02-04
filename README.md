@@ -5,18 +5,18 @@ PayFleens is an UCI Chess Enginew which uses the alpha-beta framework. PayFleens
 
 Currently, PayFleens has the following UCI options:
 
-* #### Hash
+* ### Hash
   The size of the hash table in megabytes. For analysis the more hash given the better.
 
-* #### Move Overhead
+* ### Move Overhead
   Amount of miliseconds used as time delay. This is useful to avoid losses on time
   due to network and GUI overheads.
 
-* #### Minimum Thinking Time
+* ### Minimum Thinking Time
   The minimum number of miliseconds to search per move.
 
-* #### Slow Mover
+* ### Slow Mover
   Multipletor used in time management. Lower values will make PayFleens take less time in games, higher values will make it think longer.
 
-# Special Thanks
-Thank you BlueFeverSoft, Andrew Grant and the Stockfish team for all of your help.
+## Special Thanks
+#### Thank you BlueFeverSoft, Andrew Grant and the Stockfish team for all of your help.
