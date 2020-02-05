@@ -49,6 +49,7 @@ int main() {
 
     // Initialize components of PayFleens
     AllInit(); ParseFen(START_FEN, pos);
+    printf("%s by Roberto M.\n", NAME);
 
     while (getInput(str)) {
 
