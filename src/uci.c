@@ -32,7 +32,7 @@
 #include "uci.h"
 
 #define startFen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define version "1.41"
+#define version "1.42"
 
 EngineOptions Options; // Our global engine options
 
@@ -92,6 +92,10 @@ int main() {
 
         else if (strStartsWith(str, "eval"))
             printEval(pos), fflush(stdout);
+
+        else if (strStartsWith(str, "stats"))
+            printStats(info), fflush(stdout);
+
     }
 
     return 0;
@@ -268,6 +272,10 @@ void uciReportCurrentMove(int move, int currmove, int depth) {
 
     printf("info depth %d currmove %s currmovenumber %d\n", depth, PrMove(move), currmove);
     fflush(stdout);
+}
+
+void printStats(S_SEARCHINFO *info) {
+    printf("TTCut:%d Ordering:%.2f NullCut:%d\n",info->TTCut,(info->fhf/info->fh)*100,info->nullCut);
 }
 
 int getInput(char *str) {

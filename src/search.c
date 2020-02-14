@@ -657,22 +657,22 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
                 pv->line[0] = bestMove;
                 memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
 
-				if (alpha >= beta) break;
-			}
-		}
-		if (value > best && value >= beta) {
-			if (played==1)
-				info->fhf++;
-			info->fh++;
+				if (alpha >= beta) {
+                    if (played == 1)
+                        info->fhf++;
+                    info->fh++;
 
-            if (!(list->moves[MoveNum].move & MFLAGCAP)) {
-                pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
+                    if (!(list->moves[MoveNum].move & MFLAGCAP)) {
+                        pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
 
-                if (pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
-                    pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
-                    pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
+                        if (pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
+                            pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
+                            pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
+                        }
+                    }
+                    break;
                 }
-            }
+			}
 		}
     }
 
