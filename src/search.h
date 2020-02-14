@@ -23,6 +23,12 @@
 
 #include "defs.h"
 
+enum {
+ 	DEPTH_QS_CHECKS     =  0,
+ 	DEPTH_QS_NO_CHECKS  = -1,
+ 	DEPTH_NONE          = -6,
+};
+
 void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
 void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
 

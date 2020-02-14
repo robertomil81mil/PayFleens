@@ -41,12 +41,6 @@ typedef unsigned long long U64;
 
 #define PRIu64 "I64u"
 
-#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define FEN3 "4rrk1/1p3qbp/p2n1p2/2NP2p1/1P1B4/3Q1R2/P5PP/5RK1 b - - 7 30"
-#define FEN4 "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
-
-#define NAME "PayFleens 1.40"
-
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
 
@@ -85,8 +79,6 @@ enum {
   A7 = 81, B7, C7, D7, E7, F7, G7, H7,
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
-
-enum { NonPV, PVNode};
 
 enum { FALSE, TRUE };
 
@@ -142,7 +134,6 @@ typedef struct {
 	int ply;
 	int hisPly;
 	int gamePly;
-	int reps;
 
 	int castlePerm;
 
@@ -203,29 +194,6 @@ typedef struct {
 0000 1111 0000 0000 0000 0000 0000 -> Promoted Piece >> 20, 0xF
 0001 0000 0000 0000 0000 0000 0000 -> Castle 0x1000000
 */
-
-/*		2	C
-0000 0000 0000 0000 0000 0011 1111 -> From 0x6F
-0000 0000 0000 0000 1111 1100 0000 -> To >> 6, 0x6F
-0000 0000 0000 1111 0000 0000 0000 -> Captured >> 9, 0xF
-0000 0000 0001 0000 0000 0000 0000 -> EP 0x10000
-0000 0000 0010 0000 0000 0000 0000 -> Pawn Start 0x20000
-0000 0011 1100 0000 0000 0000 0000 -> Promoted Piece >> 14, 0xF
-0000 0100 0000 0000 0000 0000 0000 -> Castle 0x400000
-*/
-
-
-/*#define FROMSQ(m) (((m)>>0) & 0x6F)
-#define TOSQ(m) (((m)>>6) & 0x6F) //(((m)>>7) & 0x7F)
-#define CAPTURED(m) (((m)>>9) & 0xF)
-#define PROMOTED(m) (((m)>>14)& 0xF)
-
-#define MFLAGEP 0x10000
-#define MFLAGPS 0x20000
-#define MFLAGCA 0x400000
-
-#define MFLAGCAP 0x2F000
-#define MFLAGPROM 0x2C0000*/
 
 #define MFLAGCAP 0x7C000
 #define MFLAGPROM 0xF00000
@@ -389,16 +357,6 @@ extern void TakeNullMove(S_BOARD *pos);
 
 // perft.c
 extern void PerftTest(int depth, S_BOARD *pos);
-
-/*
-// uci.c
-extern void Uci_Loop(S_BOARD *pos, S_SEARCHINFO *info);
-
-// xboard.c
-extern void XBoard_Loop(S_BOARD *pos, S_SEARCHINFO *info);
-extern void Console_Loop(S_BOARD *pos, S_SEARCHINFO *info);
-extern int ThreeFoldRep(const S_BOARD *pos);
-extern int DrawMaterial(const S_BOARD *pos);*/
 
 // polybook.c
 extern int GetBookMove(S_BOARD *board);

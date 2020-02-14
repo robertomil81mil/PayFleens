@@ -208,8 +208,5 @@ int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduct
     double bestMoveInstability = 1 + totBestMoveChanges;
     double cutoff = info->optimumTime * fallingEval * reduction * bestMoveInstability;
 
-    /*printf("optimumTime %f fallingEval %f reduction %f bestMoveInstability %f cutoff %f elapsedTime %f\n",
-     info->optimumTime,fallingEval,reduction,bestMoveInstability,cutoff,elapsedTime(info));*/
-
     return elapsedTime(info) > cutoff;
 }

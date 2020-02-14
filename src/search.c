@@ -301,13 +301,13 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 	int eval, value, best, oldAlpha = alpha;
 	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
-	int TFDepth = ((InCheck || depth >= 0) ?  0  : -1);
+    int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
     if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
 
     	ttValue = valueFromTT(ttValue, pos->ply);
 
-        if (ttDepth >= TFDepth && !PvNode) {
+        if (ttDepth >= QSDepth && !PvNode) {
 
         	if (    ttBound == BOUND_EXACT
                 || (ttBound == BOUND_LOWER && ttValue >= beta)
@@ -390,7 +390,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
     ttBound = (best >= beta    ? BOUND_LOWER
             :  best > oldAlpha ? BOUND_EXACT : BOUND_UPPER);
-    storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, TFDepth, ttBound);
+    storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, QSDepth, ttBound);
 
 	return best;
 }
@@ -641,6 +641,11 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 		if (info->stop)
 			return 0;
 
+        if (   RootNode
+            && value > alpha
+            && played > 1)
+            info->bestMoveChanges++;
+
 		if (value > best) {
 			best = value;
 			bestMove = list->moves[MoveNum].move;
@@ -660,14 +665,14 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 				info->fhf++;
 			info->fh++;
 
-			if (   !(list->moves[MoveNum].move & MFLAGCAP) 
-			    &&  pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
-				
-				pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
-				pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
-			}
-			if (!(list->moves[MoveNum].move & MFLAGCAP))
-				pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
+            if (!(list->moves[MoveNum].move & MFLAGCAP)) {
+                pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
+
+                if (pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
+                    pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
+                    pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
+                }
+            }
 		}
     }
 

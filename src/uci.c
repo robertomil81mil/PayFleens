@@ -31,6 +31,9 @@
 #include "ttable.h"
 #include "uci.h"
 
+#define startFen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define version "1.41"
+
 EngineOptions Options; // Our global engine options
 
 int main() {
@@ -48,15 +51,15 @@ int main() {
     char str[8192];
 
     // Initialize components of PayFleens
-    AllInit(); ParseFen(START_FEN, pos);
-    printf("%s by Roberto M.\n", NAME);
+    AllInit(); ParseFen(startFen, pos);
+    printf("PayFleens %s by Roberto M.\n", version);
 
     while (getInput(str)) {
 
         if (strEquals(str, "uci")) {
 
         	info->GAME_MODE = UCIMODE;
-			printf("id name %s\n", NAME);
+			printf("id name PayFleens %s\n", version);
 			printf("id author Roberto M\n");
             printf("option name OwnBook type check default false\n");
             printf("option name Hash type spin default 16 min 1 max 65536\n");
@@ -197,11 +200,11 @@ void uciPosition(char* str, S_BOARD *pos) {
     char *ptr = str;
 
     if (strncmp(str, "startpos", 8) == 0) {
-        ParseFen(START_FEN, pos);
+        ParseFen(startFen, pos);
     } else {
         ptr = strstr(str, "fen");
         if (ptr == NULL) {
-            ParseFen(START_FEN, pos);
+            ParseFen(startFen, pos);
         } else {
             ptr+=4;
             ParseFen(ptr, pos);
