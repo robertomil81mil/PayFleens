@@ -37,6 +37,7 @@ void uciPosition(char* str, S_BOARD *pos);
 
 void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value);
 void uciReportCurrentMove(int move, int currmove, int depth);
+void printStats(S_SEARCHINFO *info);
 
 int getInput(char *str);
 int strEquals(char *str1, char *str2);
