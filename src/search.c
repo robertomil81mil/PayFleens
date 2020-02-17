@@ -421,7 +421,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 	
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0, cntMoves = 0, singularExt = 0;
-	int R, newDepth, rAlpha, rBeta, oldAlpha = alpha;
+	int R, newDepth, rAlpha, rBeta;
 	int isQuiet, improving, extension;
 	int eval, value = -INFINITE, best = -INFINITE;
 	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE, excludedMove = NOMOVE;
@@ -648,16 +648,19 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 
 		if (value > best) {
 			best = value;
-			bestMove = list->moves[MoveNum].move;
 
 			if (value > alpha) {
-				alpha = value;
+                bestMove = list->moves[MoveNum].move;
 
-				pv->length = 1 + lpv.length;
-                pv->line[0] = bestMove;
-                memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                if (PvNode) {
+                    pv->length = 1 + lpv.length;
+                    pv->line[0] = bestMove;
+                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                }
 
-				if (alpha >= beta) {
+                if (PvNode && value < beta)
+                    alpha = value;
+                else {
                     if (played == 1)
                         info->fhf++;
                     info->fh++;
@@ -681,8 +684,8 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
               :      InCheck ? -INFINITE + pos->ply : 0;
 
     if (!excludedMove) {
-        ttBound =  best >= beta    ? BOUND_LOWER
-                 : best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
+        ttBound =  best >= beta       ? BOUND_LOWER
+                 : PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER;
         storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
     }
 

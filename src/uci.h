@@ -20,6 +20,9 @@
 
 #include "defs.h"
 
+#define StartPosition "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define VERSION_ID "1.43"
+
 struct Limits {
     double start, time, inc, timeLimit;
     int limitedByNone, limitedByTime, limitedBySelf;
