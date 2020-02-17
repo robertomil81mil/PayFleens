@@ -24,8 +24,6 @@
 
 #define MOVE(f,t,ca,pro,fl) ( (f) | ((t) << 7) | ( (ca) << 14 ) | ( (pro) << 20 ) | (fl))
 
-//EVAL_DATA e[1];
-
 const int LoopSlidePce[8] = {
  wB, wR, wQ, 0, bB, bR, bQ, 0
 };
@@ -84,7 +82,6 @@ static void AddQuietMove( const S_BOARD *pos, int move, S_MOVELIST *list ) {
 	ASSERT(pos->ply >=0 && pos->ply < MAXDEPTH);
 
 	list->moves[list->count].move = move;
-	//list->moves[list->count].mobility = list->count;
 
 	if(pos->searchKillers[0][pos->ply] == move) {
 		list->moves[list->count].score = 900000;
@@ -488,12 +485,12 @@ void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list) {
     ASSERT(MoveListOk(list,pos));
 }
 
-static const int SEEPieceValues[13] = {
-    0, 100, 450, 450, 675, 1300, 
-    0, 100, 450, 450, 675, 1300, 0
-};
-
 int moveBestCaseValue(const S_BOARD *pos) {
+
+	static const int SEEPieceValues[13] = {
+    	0, 100, 450, 450, 675, 1300, 
+    	0, 100, 450, 450, 675, 1300, 0
+	};
 
     // Assume the opponent has at least a pawn
     int value = SEEPieceValues[wP];
