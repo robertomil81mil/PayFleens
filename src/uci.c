@@ -43,7 +43,7 @@ int main() {
     Options.MinThinkingTime = 20;
     Options.MoveOverHead    = 30;
     Options.SlowMover       = 84;
-    Options.OwnBook         = 0;
+    Options.PolyBook        = 0;
 
     char str[8192];
 
@@ -58,11 +58,11 @@ int main() {
         	info->GAME_MODE = UCIMODE;
 			printf("id name PayFleens %s\n", VERSION_ID);
 			printf("id author Roberto M.\n");
-            printf("option name OwnBook type check default false\n");
             printf("option name Hash type spin default 16 min 1 max 65536\n");
             printf("option name Minimum Thinking Time type spin default 20 min 0 max 5000\n");
             printf("option name Move Overhead type spin default 30 min 0 max 5000\n");
             printf("option name Slow Mover type spin default 84 min 10 max 1000\n");
+            printf("option name PolyBook type check default false\n");
             printf("uciok\n"), fflush(stdout);
         }
 
@@ -157,7 +157,7 @@ void uciSetOption(char *str) {
     //  Hash                  : Size of the Transposition Table in Megabyes
     //  Minimum Thinking Time : Think for at least this ms per move
     //  Move OverHead         : Overhead on time allocation to avoid time losses
-    //  OwnBook               : Precalculated opening moves
+    //  PolyBook              : Precalculated opening moves
     //  Slow Mover            : Lower values will make PayFleens think less time
 
     if (strStartsWith(str, "setoption name Hash value ")) {
@@ -183,13 +183,13 @@ void uciSetOption(char *str) {
         Options.SlowMover = slowMover;
     }
 
-    if (strStartsWith(str, "setoption name OwnBook value ")) {
-        if (strStartsWith(str, "setoption name OwnBook value true")) {
-            printf("info string set OwnBook to true\n"), Options.OwnBook = 1;
+    if (strStartsWith(str, "setoption name PolyBook value ")) {
+        if (strStartsWith(str, "setoption name PolyBook value true")) {
+            printf("info string set PolyBook to true\n"), Options.PolyBook = 1;
             InitPolyBook();
         }
-        if (strStartsWith(str, "setoption name OwnBook value false"))
-            printf("info string set OwnBook to false\n"), Options.OwnBook = 0;
+        if (strStartsWith(str, "setoption name PolyBook value false"))
+            printf("info string set PolyBook to false\n"), Options.PolyBook = 0;
     }
 
     fflush(stdout);

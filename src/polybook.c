@@ -38,13 +38,13 @@ const int PolyKindOfPiece[13] = {
 
 void InitPolyBook() {
 	
-	if (Options.OwnBook) {
+	if (Options.PolyBook) {
 
 		FILE *pFile = fopen("../book.bin","rb");
 
 		if (pFile == NULL) { 
-			printf("Book File Not Read\n");
-			Options.OwnBook = 0; return;
+			printf("info string Could not open ../book.bin\n");
+			Options.PolyBook = 0; return;
 		} else {
 
 			fseek(pFile,0,SEEK_END);
@@ -52,7 +52,7 @@ void InitPolyBook() {
 			
 			if ((unsigned int)(position) < sizeof(S_POLY_BOOK_ENTRY)) {
 				printf("No Entries Found\n");
-				Options.OwnBook = 0; return;
+				Options.PolyBook = 0; return;
 			}
 			
 			NumEntries = position / sizeof(S_POLY_BOOK_ENTRY);
@@ -63,7 +63,7 @@ void InitPolyBook() {
 			
 			long returnValue;
 			returnValue = fread(entries, sizeof(S_POLY_BOOK_ENTRY), NumEntries, pFile);
-			printf("fread() %ld Entries Read in from file\n", returnValue);
+			printf("info string Book loaded: ../book.bin\n");
 
 			CleanPolyBook();
 		}
