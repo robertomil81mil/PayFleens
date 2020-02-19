@@ -1,5 +1,5 @@
 # PayFleens
-PayFleens is an UCI Chess Enginew which uses the alpha-beta framework. PayFleens started as a goal to learn C watching the BlueFeverSoft's YouTube video serie programing Vice ([Video Instructional Chess Engine](https://www.chessprogramming.org/Vice)) and for the moment it's using Vice as codebase for move generation. PayFleens is also greatly inspired by [Ethereal](https://github.com/AndyGrant/Ethereal) and [Stockfish](https://stockfishchess.org/). You can compile PayFleens with `makefile` inside of `src` (default compliler: gcc).
+PayFleens is an UCI Chess Enginew which uses the alpha-beta framework. PayFleens started as a goal to learn C watching the BlueFeverSoft's YouTube video serie programing Vice ([Video Instructional Chess Engine](https://www.chessprogramming.org/Vice)) and for the moment it's using Vice as codebase for move generation. PayFleens is also greatly inspired by [Ethereal](https://github.com/AndyGrant/Ethereal) and [Stockfish](https://stockfishchess.org/). You can compile PayFleens with the `makefile` inside of `src` (default compliler: gcc).
 
 #### Thank you BlueFeverSoft, Andrew Grant and the Stockfish team for all of your help.
 
