@@ -40,7 +40,7 @@ void InitPolyBook() {
 	
 	if (Options.OwnBook) {
 
-		FILE *pFile = fopen("../PayFleensBook.bin","rb");
+		FILE *pFile = fopen("../book.bin","rb");
 
 		if (pFile == NULL) { 
 			printf("Book File Not Read\n");
