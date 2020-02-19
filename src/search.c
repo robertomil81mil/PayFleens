@@ -420,7 +420,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 	const int RootNode = (pos->ply == 0);
 	
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-	int MoveNum = 0, played = 0, cntMoves = 0, singularExt = 0;
+	int MoveNum = 0, played = 0, singularExt = 0, LMRflag = 0;
 	int R, newDepth, rAlpha, rBeta;
 	int isQuiet, improving, extension;
 	int eval, value = -INFINITE, best = -INFINITE;
@@ -562,40 +562,11 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         if (list->moves[MoveNum].move == excludedMove)
             continue;
 
-		int to = TOSQ(list->moves[MoveNum].move);
-    	int captured = CAPTURED(list->moves[MoveNum].move);
-    	int prPce = PROMOTED(list->moves[MoveNum].move);
-
-    	isQuiet = (captured == EMPTY || prPce == EMPTY);
-		
-		if (isQuiet && list->quiets > 4 && depth > 2 && played > 1) {
-
-            /// Use the LMR Formula as a starting point
-            R  = LMRTable[MIN(depth, 63)][MIN(cntMoves, 63)];
-
-            // Increase for non PV and non improving nodes
-            R += !PvNode + !improving;
-
-            // Increase for King moves that evade checks
-            R += InCheck && pos->pieces[to] == (wK || bK);
-
-            // Reduce for Killers and Counters
-            //R -= movePicker.stage < STAGE_QUIET;
-
-            // Adjust based on history scores
-            //R -= MAX(-2, MIN(2, (hist + cmhist + fmhist) / 5000));
-
-            // Don't extend or drop into QS
-            R  = MIN(depth - 1, MAX(R, 1));
-            //printf("R %d\n", R );
-
-        } else R = 1;
-
         if (  depth >= 6
           &&  list->moves[MoveNum].move == ttMove
           && !RootNode
           && !excludedMove // Avoid recursive singular search
-          &&  abs(ttValue) < 10000
+          &&  abs(ttValue) < KNOWN_WIN
           && (ttBound & BOUND_LOWER)
           &&  ttDepth >= depth - 3) {
 
@@ -606,19 +577,46 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 
 	        if (value < rBeta) {
 	            singularExt = 1;
-	            R--;
 
-	            if (value < rBeta - MIN(4 * depth, 36)) R--;
-	        } else if (eval >= beta && rBeta >= beta) return rBeta;
+                if (value < rBeta - MIN(4 * depth, 36))
+                    LMRflag = 1;
+            }
+
+	        else if (   eval >= beta 
+                     && rBeta >= beta)
+                return rBeta;
       	}
 
-        if ( !MakeMove(pos,list->moves[MoveNum].move))  continue;  
+        if (!MakeMove(pos,list->moves[MoveNum].move))
+            continue;  
 
 		played += 1;
 		info->currentMove[height] = list->moves[MoveNum].move;
 
+        isQuiet =  !(list->moves[MoveNum].move & MFLAGCAP)
+                || !(list->moves[MoveNum].move & (MFLAGPROM | MFLAGEP));
+
 		if (RootNode && elapsedTime(info) > WindowTimerMS && info->GAME_MODE == UCIMODE)
             uciReportCurrentMove(list->moves[MoveNum].move, played, depth);
+        
+        if (isQuiet && list->quiets > 4 && depth > 2 && played > 1) {
+
+            // Use the LMR Formula as a starting point
+            R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];
+
+            // Increase for non PV and non improving nodes
+            R += !PvNode + !improving;
+
+            // Increase for King moves that evade checks
+            R += InCheck && pos->pieces[TOSQ(list->moves[MoveNum].move)] == (wK || bK);
+
+            // Reduce if ttMove has been singularly extended
+            R -= singularExt - LMRflag;
+
+            // Don't extend or drop into QS
+            R  = MIN(depth - 1, MAX(R, 1));
+
+        } else R = 1;
 
         extension =  (InCheck)
         		  || (singularExt);
@@ -634,9 +632,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 		if (PvNode && (played == 1 || (value > alpha && (RootNode || value < beta))))
 			value = -search( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
 		
-		
 		TakeMove(pos);
-		cntMoves++;
 
 		if (info->stop)
 			return 0;
