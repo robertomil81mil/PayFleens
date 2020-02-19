@@ -18,9 +18,10 @@
 
 // init.c
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "defs.h"
-#include "stdio.h"
-#include "stdlib.h"
 #include "evaluate.h"
 #include "search.h"
 #include "ttable.h"

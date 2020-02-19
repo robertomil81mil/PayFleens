@@ -18,7 +18,8 @@
 
 // makemove.c
 
-#include "stdio.h"
+#include <stdio.h>
+
 #include "defs.h"
 #include "evaluate.h"
 

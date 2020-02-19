@@ -18,8 +18,9 @@
 
 // perft.c
 
+#include <stdio.h>
+
 #include "defs.h"
-#include "stdio.h"
 
 long leafNodes;
 

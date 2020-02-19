@@ -48,11 +48,9 @@ void CheckUp(S_SEARCHINFO *info) {
 void PickNextMove(int moveNum, S_MOVELIST *list) {
 
 	S_MOVE temp;
-	int index = 0;
-	int best = 0;
-	int bestNum = moveNum;
+	int best = 0, bestNum = moveNum;
 
-	for (index = moveNum; index < list->count; ++index) {
+	for (int index = moveNum; index < list->count; ++index) {
 		if (list->moves[index].score > best) {
 			best = list->moves[index].score;
 			bestNum = index;

@@ -197,10 +197,10 @@ static const int QuadraticOurs[][6] = {
     // pair pawn knight bishop rook queen
     { 796                               }, // Bishop pair
     {  22,   21                         }, // Pawn
-    {  17,  141, -34                    }, // Knight      OUR PIECES
-    {   0,   57,   2,     0             }, // Bishop
-    { -14,   -1,  26,    58,  -115      }, // Rook
-    {-104,   13,  64,    73,   -74, -3  }  // Queen
+    {  17,  141,  -34                   }, // Knight      OUR PIECES
+    {   0,   57,    2,    0             }, // Bishop
+    { -14,   -1,   26,   58,  -115      }, // Rook
+    {-104,   13,   64,   73,   -74, -3  }  // Queen
 };
 
 static const int QuadraticTheirs[][6] = {
@@ -208,8 +208,8 @@ static const int QuadraticTheirs[][6] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
     {  19,    0                         }, // Pawn
-    {   4,   34,   0                    }, // Knight      OUR PIECES
-    {  32,   36,  23,     0             }, // Bishop
-    {  25,   21,  13,   -13,    0       }, // Rook
-    {  53,   55, -23,    75,  148,    0 }  // Queen
+    {   4,   34,    0                   }, // Knight      OUR PIECES
+    {  32,   36,   23,    0             }, // Bishop
+    {  25,   21,   13,  -13,    0       }, // Rook
+    {  53,   55,  -23,   75,  148,    0 }  // Queen
 };

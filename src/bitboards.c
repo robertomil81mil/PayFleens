@@ -18,7 +18,8 @@
 
 // bitboards.c
 
-#include "stdio.h"
+#include <stdio.h>
+
 #include "defs.h"
 
 const int BitTable[64] = {

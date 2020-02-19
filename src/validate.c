@@ -18,8 +18,9 @@
 
 // validate.c
 
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
+
 #include "defs.h"
 #include "evaluate.h"
 #include "search.h"
