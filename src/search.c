@@ -192,7 +192,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
 	double timeReduction = 1;
 
 	// Return a book move if we have one
-	if (Options.OwnBook) {
+	if (Options.PolyBook) {
 		int bookMove = GetBookMove(pos);
 		if (bookMove != NOMOVE) {
 			*best = bookMove; return;
@@ -319,7 +319,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * TEMPO;        
+                                                    : -info->staticEval[height-1] + 2 * TEMPO;
 
     if (ttHit) {
         if (ttValue != VALUE_NONE

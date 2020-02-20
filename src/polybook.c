@@ -60,9 +60,8 @@ void InitPolyBook() {
 			
 			entries = (S_POLY_BOOK_ENTRY*)malloc(NumEntries * sizeof(S_POLY_BOOK_ENTRY));
 			rewind(pFile);
+			fread(entries, sizeof(S_POLY_BOOK_ENTRY), NumEntries, pFile);
 			
-			long returnValue;
-			returnValue = fread(entries, sizeof(S_POLY_BOOK_ENTRY), NumEntries, pFile);
 			printf("info string Book loaded: ../book.bin\n");
 
 			CleanPolyBook();
