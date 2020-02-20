@@ -105,6 +105,7 @@ int map_to_queenside(const int f);
 int clamp(const int v, const int lo, const int hi);
 int isPiece(const int color, const int piece, const int sq, const S_BOARD *pos);
 int REL_SQ(const int sq120, const int side);
+int file_of(int s);
 int rank_of(int s);
 int relativeRank(int colour, int sq);
 int relativeSquare32(int c, int sq);
