@@ -93,6 +93,8 @@ int main() {
         else if (strStartsWith(str, "stats"))
             printStats(info), fflush(stdout);
 
+        else if (strStartsWith(str, "mirror"))
+            MirrorEvalTest(pos), fflush(stdout);
     }
 
     return 0;

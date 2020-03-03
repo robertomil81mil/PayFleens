@@ -32,17 +32,17 @@ int popcount(U64 bb) {
 }
 
 int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s) {
-    return popcount(pos->pawns[c] & ((WHITE_SQUARES & (uint64_t)(s))) ? WHITE_SQUARES : BLACK_SQUARES);
+    return popcount(pos->pawns[c] & (WHITE_SQUARES & SQ64(s)) ? WHITE_SQUARES : BLACK_SQUARES);
 }
 
 bool opposite_colors(int s1, int s2) {
-    return (bool)(WHITE_SQUARES & (uint64_t)(s1)) != (bool)(WHITE_SQUARES & (uint64_t)(s2));
+    return (bool)((WHITE_SQUARES & SQ64(s1)) != (WHITE_SQUARES & SQ64(s2)));
 }
 
 bool opposite_bishops(const S_BOARD *pos) {
-    return  ( pos->pceNum[wB] == 1
-           && pos->pceNum[bB] == 1
-           && opposite_colors(SQ64(pos->pList[wB][0]) , SQ64(pos->pList[bB][0])) );
+    return  (   pos->pceNum[wB] == 1
+             && pos->pceNum[bB] == 1
+             && opposite_colors(pos->pList[wB][0], pos->pList[bB][0]));
 }
 
 int getTropism(const int sq1, const int sq2) {
@@ -122,23 +122,23 @@ int backmost(int colour, U64 b) {
 
 int evaluateScaleFactor(const S_BOARD *pos) {
 
-    if ( opposite_bishops(pos) ) {
+    if (opposite_bishops(pos)) {
 
-        if ((!pos->pceNum[wN] && !pos->pceNum[bN]) ||
-            (!pos->pceNum[wR] && !pos->pceNum[bR]) ||
-            (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
+        if (   (!pos->pceNum[wN] && !pos->pceNum[bN])
+            || (!pos->pceNum[wR] && !pos->pceNum[bR]) 
+            || (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
             return SCALE_OCB_BISHOPS_ONLY;
         }
 
-        if ((!pos->pceNum[wR] && !pos->pceNum[bR]) || 
-            (!pos->pceNum[wQ] && !pos->pceNum[bQ] && 
-              pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
+        if ((   (!pos->pceNum[wR] && !pos->pceNum[bR])
+             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
+            && (pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
             return SCALE_OCB_ONE_KNIGHT;
         }
 
-        if ((!pos->pceNum[wN] && !pos->pceNum[bN]) ||
-            (!pos->pceNum[wQ] && !pos->pceNum[bQ] &&
-              pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
+        if ((   (!pos->pceNum[wN] && !pos->pceNum[bN])
+             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
+            && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
             return SCALE_OCB_ONE_ROOK;
         }
     }
@@ -487,7 +487,7 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     if(mobility <= 3) {
 
-        Count = pawns_on_same_color_squares(pos,side,SQ64(sq));
+        Count = pawns_on_same_color_squares(pos,side,sq);
         P1 = (3 * Count) * 100 / 310;
         P2 = (7 * Count) * 100 / 310;
 
