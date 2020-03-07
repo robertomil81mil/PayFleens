@@ -20,6 +20,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "defs.h"
 #include "evaluate.h"
@@ -1078,28 +1079,10 @@ int EvalPosition(const S_BOARD *pos) {
 
     int score, phase, factor, stronger, weaker, PAWNST, PAWNWK;
 
-    phase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
-               - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
-               - 1 * (pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB]);
+    memset(&ei, 0, sizeof(evalInfo));
 
-    phase = (phase * 256 + 12) / 24;
-            
-    for(int side = WHITE; side <= BLACK; side++) {
-        ei.Mob[side] = 0;
-        ei.attCnt[side] = 0;
-        ei.attckersCnt[side] = 0;
-        ei.attWeight[side] = 0;
-        ei.blockages[side] = 0;
-        ei.pkeval[side] = 0;
-        ei.passedCnt = 0;
-        ei.pawns[side] = 0;
-        ei.knights[side] = 0;
-        ei.bishops[side] = 0;
-        ei.rooks[side] = 0;
-        ei.queens[side] = 0;
-        ei.KingDanger[side] = 0;
-        ei.kingAreas[side] = kingAreaMasks(side, SQ64(pos->KingSq[side]));
-    } 
+    ei.kingAreas[WHITE] = kingAreaMasks(WHITE, SQ64(pos->KingSq[WHITE]));
+    ei.kingAreas[BLACK] = kingAreaMasks(BLACK, SQ64(pos->KingSq[BLACK]));
 
     const int pieceCount[2][6] = {
         { pos->pceNum[wB] > 1, pos->pceNum[wP], pos->pceNum[wN],
@@ -1117,6 +1100,12 @@ int EvalPosition(const S_BOARD *pos) {
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);
+
+    phase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
+               - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
+               - 1 * (pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB]);
+
+    phase = (phase * 256 + 12) / 24;
 
     factor = evaluateScaleFactor(pos);
 
