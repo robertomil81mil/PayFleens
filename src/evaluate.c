@@ -710,16 +710,16 @@ int evaluateKings(const S_BOARD *pos, int side) {
     score += evaluateShelter(pos, side);
 
     if (ei.attckersCnt[side^1] > 1 - pos->pceNum[enemyQueen]) {
-    
+
         float scaledAttackCounts = 9.0 * ei.attCnt[side^1] / popcount(ei.kingAreas[side]);
 
-        count =       ei.attckersCnt[side^1] * ei.attWeight[side^1]
-               + 32 * scaledAttackCounts
+        count =  32 * scaledAttackCounts
+               +      ei.attckersCnt[side^1] * ei.attWeight[side^1]
                +      mgScore(ei.Mob[side^1] - ei.Mob[side]) / 4
                -  6 * mgScore(ei.pkeval[side]) / 8
                - 17 ;
 
-        if(count > 0) {
+        if (count > 0) {
             score -= makeScore(count * count / 720, count / 18);
             //ei.KingDanger[side^1] = makeScore(count * count / 720, count / 18);
         }
@@ -786,15 +786,15 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
     outflanking =  distanceByFile(pos->KingSq[WHITE], pos->KingSq[BLACK])
                  - distanceByRank(pos->KingSq[WHITE], pos->KingSq[BLACK]);
 
-    pawnsOnBothFlanks =    (pos->pawns[BOTH] & KING_FLANK )
-                        && (pos->pawns[BOTH] & QUEEN_FLANK);
+    pawnsOnBothFlanks =   (pos->pawns[BOTH] & KING_FLANK )
+                       && (pos->pawns[BOTH] & QUEEN_FLANK);
 
     pawnEndgame = !(pos->pceNum[wN] && pos->pceNum[wB] && pos->pceNum[wR] && pos->pceNum[wQ]
                  && pos->pceNum[bN] && pos->pceNum[bB] && pos->pceNum[bR] && pos->pceNum[bQ]);
 
     almostUnwinnable =   !ei.passedCnt
-                      &&  outflanking < 0
-                      && !pawnsOnBothFlanks;
+                      && !pawnsOnBothFlanks
+                      &&  outflanking < 0;
 
     complexity =   5 * ei.passedCnt
                 +  7 * popcount(pos->pawns[BOTH])
@@ -817,8 +817,8 @@ int imbalance(const int pieceCount[2][6], int side) {
     int bonus = 0, pt1, pt2;
 
     // Adaptation of polynomial material imbalance, by Tord Romstad
-    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1)
-    {
+    for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1) {
+
         if (!pieceCount[side][pt1])
             continue;
 
