@@ -378,7 +378,7 @@ void PrintBoard(const S_BOARD *pos) {
 			pos->castlePerm & BKCA ? 'k' : '-',
 			pos->castlePerm & BQCA ? 'q' : '-'
 			);
-	printf("PosKey:%"PRIu64"",pos->posKey);
+	printf("PosKey:%"PRIu64"\n",pos->posKey);
 }
 
 void PrintNonBits(const S_BOARD *pos, int side) {
