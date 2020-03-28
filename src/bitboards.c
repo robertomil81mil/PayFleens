@@ -18,22 +18,108 @@
 
 // bitboards.c
 
+#include <stdbool.h>
 #include <stdio.h>
 
+#include "bitboards.h"
 #include "defs.h"
 
-const int BitTable[64] = {
-  63, 30, 3, 32, 25, 41, 22, 33, 15, 50, 42, 13, 11, 53, 19, 34, 61, 29, 2,
-  51, 21, 43, 45, 10, 18, 47, 1, 54, 9, 57, 0, 35, 62, 31, 40, 4, 49, 5, 52,
-  26, 60, 6, 23, 44, 46, 27, 56, 16, 7, 39, 48, 24, 59, 14, 12, 55, 38, 28,
-  58, 20, 37, 17, 36, 8
-};
+int file_of(int sq) {
+    ASSERT(0 <= sq && sq < 64);
+    return sq % FILE_NB;
+}
+
+int rank_of(int sq) {
+    ASSERT(0 <= sq && sq < 64);
+    return sq / FILE_NB;
+}
+
+int map_to_queenside(int file) {
+    ASSERT(0 <= file && file < FILE_NB);
+    return MIN(file, FILE_H - file);
+}
+
+int relativeRank(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < 64);
+    return colour == WHITE ? rank_of(sq) : 7 - rank_of(sq);
+}
+
+int relativeSquare(int colour, int sq) {
+	ASSERT(0 <= colour && colour < BOTH);
+	ASSERT(0 <= sq && sq < 120);
+    return colour == WHITE ? sq : Mirror120[SQ64(sq)];
+}
+
+int relativeSquare32(int colour, int sq) {
+    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= sq && sq < 64);
+    return 4 * relativeRank(colour, sq) + map_to_queenside(file_of(sq));
+}
+
+int distanceBetween(int s1, int s2) {
+	ASSERT(0 <= s1 && s1 < 120);
+    ASSERT(0 <= s2 && s2 < 120);
+    return SquareDistance[s1][s2];
+}
+
+int distanceByFile(int s1, int s2) {
+	ASSERT(0 <= s1 && s1 < 120);
+    ASSERT(0 <= s2 && s2 < 120);
+    return FileDistance[s1][s2];
+}
+
+int distanceByRank(int s1, int s2) {
+	ASSERT(0 <= s1 && s1 < 120);
+    ASSERT(0 <= s2 && s2 < 120);
+    return RankDistance[s1][s2];
+}
+
+int clamp(int v, int lo, int hi) {
+    return v < lo ? lo : v > hi ? hi : v;
+}
+
+int frontmost(int colour, U64 b) {
+    ASSERT(0 <= colour && colour < BOTH);
+    return colour == WHITE ? getmsb(b) : getlsb(b);
+}
+
+int backmost(int colour, U64 b) {
+    ASSERT(0 <= colour && colour < BOTH);
+    return colour == WHITE ? getlsb(b) : getmsb(b);
+}
+
+int getlsb(U64 bb) {
+    return __builtin_ctzll(bb);
+}
+
+int getmsb(U64 bb) {
+    return __builtin_clzll(bb) ^ 63;
+}
+
+int popcount(U64 bb) {
+    return __builtin_popcountll(bb);
+}
+
+bool several(U64 bb) {
+    return bb & (bb - 1);
+}
+
+bool onlyOne(U64 bb) {
+    return bb && !several(bb);
+}
+
+bool opposite_colors(int s1, int s2) {
+    ASSERT(0 <= s1 && s1 < 64);
+    ASSERT(0 <= s2 && s2 < 64);
+    return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
+}
 
 int PopBit(U64 *bb) {
-  U64 b = *bb ^ (*bb - 1);
-  unsigned int fold = (unsigned) ((b & 0xffffffff) ^ (b >> 32));
-  *bb &= (*bb - 1);
-  return BitTable[(fold * 0x783a9b23) >> 26];
+	U64 b = *bb ^ (*bb - 1);
+	unsigned int fold = (unsigned) ((b & 0xffffffff) ^ (b >> 32));
+	*bb &= (*bb - 1);
+	return BitTable[(fold * 0x783a9b23) >> 26];
 }
 
 int CountBits(U64 b) {
@@ -46,10 +132,7 @@ void PrintBitBoard(U64 bb) {
 
 	U64 shiftMe = 1ULL;
 	
-	int rank = 0;
-	int file = 0;
-	int sq = 0;
-	int sq64 = 0;
+	int rank = 0, file = 0, sq = 0, sq64 = 0;
 	
 	printf("\n");
 	for(rank = RANK_8; rank >= RANK_1; --rank) {
