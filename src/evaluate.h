@@ -23,35 +23,6 @@
 
 #include "defs.h"
 
-enum { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
-
-enum {
-    RANKBB_1 = 0x00000000000000FFull,
-    RANKBB_2 = 0x000000000000FF00ull,
-    RANKBB_3 = 0x0000000000FF0000ull,
-    RANKBB_4 = 0x00000000FF000000ull,
-    RANKBB_5 = 0x000000FF00000000ull,
-    RANKBB_6 = 0x0000FF0000000000ull,
-    RANKBB_7 = 0x00FF000000000000ull,
-    RANKBB_8 = 0xFF00000000000000ull,
-
-    FILEBB_A = 0x0101010101010101ull,
-    FILEBB_B = 0x0202020202020202ull,
-    FILEBB_C = 0x0404040404040404ull,
-    FILEBB_D = 0x0808080808080808ull,
-    FILEBB_E = 0x1010101010101010ull,
-    FILEBB_F = 0x2020202020202020ull,
-    FILEBB_G = 0x4040404040404040ull,
-    FILEBB_H = 0x8080808080808080ull,
-
-    WHITE_SQUARES = 0x55AA55AA55AA55AAull,
-    BLACK_SQUARES = 0xAA55AA55AA55AA55ull,
-
-    QUEEN_FLANK  = FILEBB_A | FILEBB_B | FILEBB_C | FILEBB_D,
-    CENTER_FLANK = FILEBB_C | FILEBB_D | FILEBB_E | FILEBB_F,
-    KING_FLANK   = FILEBB_E | FILEBB_F | FILEBB_G | FILEBB_H,
-};
-
 enum {
     SCALE_OCB_BISHOPS_ONLY =  64,
     SCALE_OCB_ONE_KNIGHT   = 106,
@@ -88,27 +59,11 @@ void blockedPiecesB(const S_BOARD *pos);
 void printEvalFactor( int WMG, int WEG, int BMG, int BEG );
 void printEval(const S_BOARD *pos);
 void setPcsq32();
-bool opposite_colors(int s1, int s2);
 bool opposite_bishops(const S_BOARD *pos);
-int popcount(U64 bb);
-int getlsb(U64 bb);
-int getmsb(U64 bb);
-int frontmost(int colour, U64 b);
-int backmost(int colour, U64 b);
-int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s);
-int getTropism(const int sq1, const int sq2);
+int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int sq);
+int getTropism(const int s1, const int s2);
 int king_proximity(const int c, const int s, const S_BOARD *pos);
-int distanceBetween(int s1, int s2);
-int distanceByFile(int s1, int s2);
-int distanceByRank(int s1, int s2);
-int map_to_queenside(const int f);
-int clamp(const int v, const int lo, const int hi);
 int isPiece(const int piece, const int sq, const S_BOARD *pos);
-int REL_SQ(const int sq120, const int side);
-int file_of(int s);
-int rank_of(int s);
-int relativeRank(int colour, int sq);
-int relativeSquare32(int c, int sq);
 int evaluateScaleFactor(const S_BOARD *pos);
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum);
 int Knights(const S_BOARD *pos, int side, int pce, int pceNum);
@@ -130,7 +85,6 @@ int EvalPosition(const S_BOARD *pos);
 #define egScore(s) ((int16_t)((uint16_t)((unsigned)((s) + 0x8000) >> 16)))
 
 extern evalData e;
-extern const uint64_t KingFlank[8];
 
 static const int PceDir[13][8] = {
     { 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -159,9 +113,7 @@ static const int P_BISHOP_TRAPPED_A6  = 50;
 static const int P_KNIGHT_TRAPPED_A8  = 150;
 static const int P_KNIGHT_TRAPPED_A7  = 100;
 static const int P_C3_KNIGHT = 30;
-static const int P_NO_FIANCHETTO = 4;
 static const int RETURNING_BISHOP = 20;
-static const int FIANCHETTO = 4;
 static const int TEMPO = 10;
 
 static const int Weight[13] = { 0, 4, 16, 10, 8, 2, 0, 4, 16, 10, 8, 2, 0};
@@ -212,5 +164,5 @@ static const int QuadraticTheirs[][6] = {
     {   4,   34,    0                   }, // Knight      OUR PIECES
     {  32,   36,   23,    0             }, // Bishop
     {  25,   21,   13,  -13,    0       }, // Rook
-    {  53,   55,  -23,   75,  148,    0 }  // Queen
+    {  53,   55,  -23,   75,  148,   0  }  // Queen
 };

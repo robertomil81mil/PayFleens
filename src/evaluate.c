@@ -22,103 +22,34 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "bitboards.h"
 #include "defs.h"
 #include "evaluate.h"
 
 evalInfo ei;
 evalData e;
 
-int popcount(U64 bb) {
-    return __builtin_popcountll(bb);
+int getTropism(const int s1, const int s2) {
+    return 7 - (distanceByFile(s1, s2) + distanceByRank(s1, s2));
 }
 
-int pawns_on_same_color_squares(const S_BOARD *pos, int c, int s) {
-    return popcount(pos->pawns[c] & (WHITE_SQUARES & SQ64(s)) ? WHITE_SQUARES : BLACK_SQUARES);
-}
-
-bool opposite_colors(int s1, int s2) {
-    return (bool)((WHITE_SQUARES & SQ64(s1)) != (WHITE_SQUARES & SQ64(s2)));
-}
+int king_proximity(const int c, const int s, const S_BOARD *pos) {
+    return MIN(distanceBetween(pos->KingSq[c], s), 5);
+};
 
 bool opposite_bishops(const S_BOARD *pos) {
     return  (   pos->pceNum[wB] == 1
              && pos->pceNum[bB] == 1
-             && opposite_colors(pos->pList[wB][0], pos->pList[bB][0]));
+             && opposite_colors(SQ64(pos->pList[wB][0]), SQ64(pos->pList[bB][0])));
 }
 
-int getTropism(const int sq1, const int sq2) {
-    return 7 - (abs(FilesBrd[(sq1)] - FilesBrd[(sq2)]) + abs(RanksBrd[(sq1)] - RanksBrd[(sq2)]));
-}
-
-int king_proximity(const int c, const int s, const S_BOARD *pos) {
-    return MIN(SquareDistance[pos->KingSq[c]][s], 5);
-};
-
-int distanceBetween(int s1, int s2) {
-    return SquareDistance[s1][s2];
-}
-
-int distanceByFile(int s1, int s2) {
-    return FileDistance[s1][s2];
-}
-
-int distanceByRank(int s1, int s2) {
-    return RankDistance[s1][s2];
-}
-
-int map_to_queenside(const int f) {
-    return MIN(f, FILE_H - f);
-}
-
-int clamp(const int v, const int lo, const int hi) {
-    return v < lo ? lo : v > hi ? hi : v;
+int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int sq) {
+    ASSERT(0 <= sq && sq < 120);
+    return popcount(pos->pawns[colour] & (WHITE_SQUARES & SQ64(sq)) ? WHITE_SQUARES : BLACK_SQUARES);
 }
 
 int isPiece(const int piece, const int sq, const S_BOARD *pos) {
     return (pos->pieces[sq] == piece);
-}
-
-int REL_SQ(const int sq120, const int side) {
-    return side == WHITE ? sq120 : Mirror120[SQ64(sq120)];
-}
-
-int file_of(int s) {
-    ASSERT(0 <= sq && sq < 64);
-    return s % 8;
-}
-
-int rank_of(int s) {
-    ASSERT(0 <= sq && sq < 64);
-    return s / 8;
-}
-
-int relativeRank(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
-    ASSERT(0 <= sq && sq < 64);
-    return colour == WHITE ? rank_of(sq) : 7 - rank_of(sq);
-}
-
-int relativeSquare32(int c, int sq) {
-    ASSERT(0 <= c && c < BOTH);
-    ASSERT(0 <= sq && sq < 64);
-    return 4 * relativeRank(c, sq) + map_to_queenside(file_of(sq));
-}
-
-int getlsb(U64 bb) {
-    return __builtin_ctzll(bb);
-}
-
-int getmsb(U64 bb) {
-    return __builtin_clzll(bb) ^ 63;
-}
-
-int frontmost(int colour, U64 b) {
-    ASSERT(0 <= colour && colour < BOTH);
-    return colour == WHITE ? getmsb(b) : getlsb(b);
-}
-int backmost(int colour, U64 b) {
-    ASSERT(0 <= colour && colour < BOTH);
-    return colour == WHITE ? getlsb(b) : getmsb(b);
 }
 
 int evaluateScaleFactor(const S_BOARD *pos) {
@@ -579,7 +510,7 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     int score = 0, att = 0, mobility = 0, tropism;
-    int sq, t_sq, index, R, Knight, Bishop;
+    int sq, t_sq, index, Knight, Bishop;
 
     Knight = side == WHITE ? wN : bN;
     Bishop = side == WHITE ? wB : bB;
@@ -587,8 +518,6 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-
-    R = relativeRank(side, SQ64(sq));
 
     for (index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
@@ -617,20 +546,20 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
         }
     }
 
-    if (R > RANK_2) {
-        if (isPiece(Knight, REL_SQ(B1, side), pos)) {
+    if (relativeRank(side, SQ64(sq)) > RANK_2) {
+        if (isPiece(Knight, relativeSquare(side, B1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
         }
-        if (isPiece(Bishop, REL_SQ(C1, side), pos)) {
+        if (isPiece(Bishop, relativeSquare(side, C1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
         }
-        if (isPiece(Bishop, REL_SQ(F1, side), pos)) {
+        if (isPiece(Bishop, relativeSquare(side, F1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
         }
-        if (isPiece(Knight, REL_SQ(G1, side), pos)) {
+        if (isPiece(Knight, relativeSquare(side, G1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
         }

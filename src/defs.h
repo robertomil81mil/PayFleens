@@ -64,8 +64,8 @@ enum { NOMOVE = 0, NULL_MOVE = 22 };
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
 
-enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NONE };
-enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NONE };
+enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB };
+enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB };
 
 enum { WHITE, BLACK, BOTH };
 enum { UCIMODE, XBOARDMODE, CONSOLEMODE };
@@ -264,10 +264,6 @@ extern int PiecePawnB[13];
 
 extern int FilesBrd[BRD_SQ_NUM];
 extern int RanksBrd[BRD_SQ_NUM];
-
-extern int SquareDistance[120][120];
-extern int FileDistance[120][120];
-extern int RankDistance[120][120];
 
 extern int PieceKnight[13];
 extern int PieceBishop[13];
