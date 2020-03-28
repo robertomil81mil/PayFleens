@@ -52,6 +52,75 @@ int isPiece(const int piece, const int sq, const S_BOARD *pos) {
     return (pos->pieces[sq] == piece);
 }
 
+int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
+
+    int index, t_sq, mobility = 0, att = 0;
+
+    for (index = 0; index < NumDir[pce]; ++index) {
+        t_sq = sq + PceDir[pce][index];
+
+        if (  !SQOFFBOARD(t_sq)
+            && PieceCol[pos->pieces[t_sq]] != side) {
+
+            if (!pos->pawn_ctrl[side^1][t_sq])
+                mobility++;
+
+            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                att++;
+        }
+    }
+
+    if (att) {
+        ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
+    }
+
+    return mobility;
+}
+
+int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
+
+    int index, t_sq, mobility = 0, att = 0;
+
+    for (index = 0; index < NumDir[pce]; ++index) {
+        t_sq = sq + PceDir[pce][index];
+
+        while (!SQOFFBOARD(t_sq)) {
+
+            if (pos->pieces[t_sq] == EMPTY) {
+
+                if (!pos->pawn_ctrl[side^1][t_sq])
+                    mobility++;
+
+                if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                    att++;
+
+            } else { // non empty sq
+
+                if (PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
+
+                    if (!pos->pawn_ctrl[side^1][t_sq])
+                        mobility++;
+
+                    if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                        att++;
+                }
+                break;
+            }
+            t_sq += PceDir[pce][index];   
+        }
+    }
+
+    if (att) {
+        ei.attCnt[side] += att;
+        ei.attckersCnt[side] += 1;
+        ei.attWeight[side] += Weight[pce];
+    }
+
+    return mobility;
+}
+
 int evaluateScaleFactor(const S_BOARD *pos) {
 
     if (opposite_bishops(pos)) {
@@ -208,25 +277,20 @@ const int PawnLessFlank = S(  -8, -44);
 
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 
-    int score = 0, att = 0, w, R, Su, Up, bonus, support, pawnbrothers;
-    int sq, blockSq, t_sq, index;
+    int score = 0, bonus, support, pawnbrothers;
+    int sq, t_sq, blockSq, w, R, Su, Up;
     U64 opposed;
 
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 
-    for (index = 0; index < NumDir[pce]; ++index) {
+    for (int index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
 
-        if (!SQOFFBOARD(t_sq)) {
-            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                att++;
-            }    
-        }
-    }
-    if (att) {
-        ei.attCnt[side] += att; 
+        if (!SQOFFBOARD(t_sq))
+            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                ei.attCnt[side]++;
     }
 
     R  = relativeRank(side, SQ64(sq));
@@ -312,9 +376,9 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 }
 
 int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
-    
-    int score = 0, att = 0, mobility = 0, tropism;
-    int sq, t_sq, index, defended, Count, R, P1, P2;
+
+    int score = 0, mobility, tropism;
+    int defended, Count, sq, R, P1, P2;
 
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
@@ -332,24 +396,10 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
         score += KnightOutpost[defended];
     }
 
-    for (index = 0; index < NumDir[pce]; ++index) {
-        t_sq = sq + PceDir[pce][index];
-
-        if (  !SQOFFBOARD(t_sq)
-            && PieceCol[pos->pieces[t_sq]] != side) {
-
-            if (!pos->pawn_ctrl[side^1][t_sq]) {
-                mobility++;
-            }
-
-            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                att++;
-            }    
-        }
-    }
-
     tropism = getTropism(sq, pos->KingSq[side^1]);
     score += makeScore(3 * tropism, 3 * tropism);
+
+    mobility = NonSlideMob(pos, side, pce, sq);
     ei.Mob[side] += KnightMobility[mobility];
 
     Count = distanceBetween(sq, pos->KingSq[side]);
@@ -357,11 +407,6 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
     P2 = (8 * Count) * 100 / 410;
     score += makeScore(-P1, -P2);
 
-    if (att) {
-        ei.attCnt[side] += att;
-        ei.attckersCnt[side] += 1;
-        ei.attWeight[side] += Weight[pce];
-    }
     //ei.knights[side] += score;
 
     return score;   
@@ -369,8 +414,8 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 
-    int score = 0, att = 0, mobility = 0, tropism;
-    int sq, t_sq, index, defended, Count, R, P1, P2;
+    int score = 0, mobility, tropism;
+    int defended, Count, sq, R, P1, P2;
 
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
@@ -388,35 +433,10 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
         score += BishopOutpost[defended];
     }
 
-    for (index = 0; index < NumDir[pce]; ++index) {
-        t_sq = sq + PceDir[pce][index];
-
-        while (!SQOFFBOARD(t_sq)) {
-
-            if (pos->pieces[t_sq] == EMPTY) {
-                if (!pos->pawn_ctrl[side^1][t_sq]) {
-                    mobility++;
-                }
-                if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                    att++;
-                }
-            } else { // non empty sq
-                if (PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-                    if (!pos->pawn_ctrl[side^1][t_sq]) {
-                        mobility++;
-                    }
-                    if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                        att++;
-                    }
-                }
-                break;
-            } 
-            t_sq += PceDir[pce][index];   
-        }
-    }
-
     tropism = getTropism(sq, pos->KingSq[side^1]);
     score += makeScore(2 * tropism, 1 * tropism);
+
+    mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += BishopMobility[mobility];
 
     if (mobility <= 3) {
@@ -431,14 +451,8 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
     Count = distanceBetween(sq, pos->KingSq[side]);
     P1 = (7 * Count) * 100 / 410;
     P2 = (8 * Count) * 100 / 410;
-
     score += makeScore(-P1, -P2);
   
-    if (att) {
-        ei.attCnt[side] += att;
-        ei.attckersCnt[side] += 1;
-        ei.attWeight[side] += Weight[pce];
-    }
     //ei.bishops[side] += score;
 
     return score;
@@ -446,8 +460,7 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 
-    int score = 0, att = 0, mobility = 0, tropism;
-    int sq, t_sq, index, R, KR;
+    int score = 0, mobility, tropism, sq, R, KR;
 
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
@@ -455,33 +468,6 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     R  = relativeRank(side, SQ64(sq));
     KR = relativeRank(side, SQ64(pos->KingSq[side^1]));
-
-    for (index = 0; index < NumDir[pce]; ++index) {
-        t_sq = sq + PceDir[pce][index];
-
-        while (!SQOFFBOARD(t_sq)) {
-
-            if (pos->pieces[t_sq] == EMPTY) {
-                if (!pos->pawn_ctrl[side^1][t_sq]) {
-                    mobility++;
-                }
-                if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                    att++;
-                }
-            } else { // non empty sq
-                if (PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-                    if (!pos->pawn_ctrl[side^1][t_sq]) {
-                        mobility++;
-                    }
-                    if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                        att++;
-                    }
-                }
-                break;
-            } 
-            t_sq += PceDir[pce][index];   
-        }
-    }
 
     if (!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
         score += RookOpen;
@@ -495,13 +481,10 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
     score += makeScore(2 * tropism, 1 * tropism);
+
+    mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += RookMobility[mobility];
 
-    if (att) {
-        ei.attCnt[side] += att;
-        ei.attckersCnt[side] += 1;
-        ei.attWeight[side] += Weight[pce];
-    }
     //ei.rooks[side] += score;
 
     return score;
@@ -509,8 +492,7 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
 
 int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
-    int score = 0, att = 0, mobility = 0, tropism;
-    int sq, t_sq, index, Knight, Bishop;
+    int score = 0, mobility, tropism, sq, Knight, Bishop;
 
     Knight = side == WHITE ? wN : bN;
     Bishop = side == WHITE ? wB : bB;
@@ -518,33 +500,6 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
-
-    for (index = 0; index < NumDir[pce]; ++index) {
-        t_sq = sq + PceDir[pce][index];
-
-        while (!SQOFFBOARD(t_sq)) {
-
-            if (pos->pieces[t_sq] == EMPTY) {
-                if (!pos->pawn_ctrl[side^1][t_sq]) {
-                    mobility++;
-                }
-                if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                    att++;
-                }
-            } else { // non empty sq
-                if (PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
-                    if (!pos->pawn_ctrl[side^1][t_sq]) {
-                        mobility++;
-                    }
-                    if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq]) {
-                        att++;
-                    }
-                }
-                break;
-            } 
-            t_sq += PceDir[pce][index];   
-        }
-    }
 
     if (relativeRank(side, SQ64(sq)) > RANK_2) {
         if (isPiece(Knight, relativeSquare(side, B1), pos)) {
@@ -567,13 +522,10 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
     score += makeScore(2 * tropism, 4 * tropism);
+
+    mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += QueenMobility[mobility];
 
-    if (att) {
-        ei.attCnt[side] += att;
-        ei.attckersCnt[side] += 1;
-        ei.attWeight[side] += Weight[pce];
-    }
     //ei.queens[side] += score;
 
     return score;
