@@ -723,7 +723,7 @@ int imbalance(const int pieceCount[2][6], int side) {
 
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
 
-    ASSERT(pos->material[weakSide] == PieceVal[wK]);
+    ASSERT(pos->material[weakSide] == PieceValue[EG][wK]);
 
     int winnerKSq, loserKSq, result, Queen, Rook, Bishop, Knight;
 
@@ -1013,32 +1013,32 @@ int EvalPosition(const S_BOARD *pos) {
         if (pos->material[stronger] < 500) return 0;
 
         if (!pos->pceNum[PAWNWK]
-                && (pos->material[stronger] == 2 * PieceVal[wN]))
+                && (pos->material[stronger] == 2 * PieceValue[EG][wN]))
             return 0;
 
-        if (pos->material[stronger] == PieceVal[wR]
-                && pos->material[weaker] == PieceVal[wB]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wR]
+                && pos->material[weaker] == PieceValue[EG][wB]) return 0;
 
-        if (pos->material[stronger] == PieceVal[wR]
-                && pos->material[weaker] == PieceVal[wN]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wR]
+                && pos->material[weaker] == PieceValue[EG][wN]) return 0;
 
-        if (pos->material[stronger] == PieceVal[wR] + PieceVal[wB]
-                && pos->material[weaker] == PieceVal[wR]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wR] + PieceValue[EG][wB]
+                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
 
-        if (pos->material[stronger] == PieceVal[wR] + PieceVal[wN]
-                && pos->material[weaker] == PieceVal[wR]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wR] + PieceValue[EG][wN]
+                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
 
-        if (pos->material[stronger] == PieceVal[wR]
-                && pos->material[weaker] == PieceVal[wR]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wR]
+                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
 
-        if (pos->material[stronger] == PieceVal[wQ]
-                && pos->material[weaker] == PieceVal[wQ]) return 0;
+        if (pos->material[stronger] == PieceValue[EG][wQ]
+                && pos->material[weaker] == PieceValue[EG][wQ]) return 0;
 
-        if (pos->material[stronger] == ( PieceVal[wB] || PieceVal[wN] )
-                && pos->material[weaker] == ( PieceVal[wB] || PieceVal[wN])) return 0;
+        if (pos->material[stronger] == ( PieceValue[EG][wB] || PieceValue[EG][wN] )
+                && pos->material[weaker] == ( PieceValue[EG][wB] || PieceValue[EG][wN])) return 0;
     }
     
-    if (pos->material[weaker] == PieceVal[wK]) {
+    if (pos->material[weaker] == PieceValue[EG][wK]) {
         return EndgameKXK(pos, weaker, stronger);
     }
     

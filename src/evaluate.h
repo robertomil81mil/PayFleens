@@ -64,6 +64,8 @@ int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int 
 int getTropism(const int s1, const int s2);
 int king_proximity(const int c, const int s, const S_BOARD *pos);
 int isPiece(const int piece, const int sq, const S_BOARD *pos);
+int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq);
+int SlideMob(const S_BOARD *pos, int side, int pce, int sq);
 int evaluateScaleFactor(const S_BOARD *pos);
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum);
 int Knights(const S_BOARD *pos, int side, int pce, int pceNum);
@@ -79,7 +81,7 @@ int imbalance(const int pieceCount[2][6], int side);
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide);
 int EvalPosition(const S_BOARD *pos);
 
-#define ENDGAME_MAT (1 * PieceVal[wR] + 2 * PieceVal[wN] + 2 * PieceVal[wP] + PieceVal[wK])
+#define ENDGAME_MAT (1 * PieceValue[EG][wR] + 2 * PieceValue[EG][wN] + 2 * PieceValue[EG][wP])
 #define makeScore(mg, eg) ((int)((unsigned int)(eg) << 16) + (mg))
 #define mgScore(s) ((int16_t)((uint16_t)((unsigned)((s)))))
 #define egScore(s) ((int16_t)((uint16_t)((unsigned)((s) + 0x8000) >> 16)))

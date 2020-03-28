@@ -62,7 +62,9 @@ enum {
 
 enum { NOMOVE = 0, NULL_MOVE = 22 };
 
-enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK  };
+enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, PIECE_NB };
+
+enum { MG = 0, EG = 1, PHASE_NB = 2 };
 
 enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB };
 enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB };
@@ -145,7 +147,6 @@ typedef struct {
 	int minPce[2];
 	int mPhases[2];
 	int material[2];
-	int materialeg[2];
 
 	S_UNDO history[MAXGAMEMOVES];
 
@@ -254,9 +255,8 @@ extern char FileChar[];
 extern int PieceBig[13];
 extern int PieceMaj[13];
 extern int PieceMin[13];
-extern int PieceVal[13];
 extern int PieceValPhases[13];
-extern int PieceValEG[13];
+extern int PieceValue[PHASE_NB][PIECE_NB];
 extern int PieceCol[13];
 extern int PiecePawn[13];
 extern int PiecePawnW[13];

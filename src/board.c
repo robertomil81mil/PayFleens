@@ -76,7 +76,7 @@ int CheckBoard(const S_BOARD *pos) {
 		if( PieceMin[t_piece] == TRUE) t_minPce[colour]++;
 		if( PieceMaj[t_piece] == TRUE) t_majPce[colour]++;
 
-		t_material[colour] += PieceVal[t_piece];
+		t_material[colour] += PieceValue[EG][t_piece];
 	}
 
 	for(t_piece = wP; t_piece <= bK; ++t_piece) {
@@ -149,8 +149,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 
 		    pos->PSQT[colour] += e.PSQT[piece][sq];
 
-			pos->material[colour] += PieceVal[piece];
-			pos->materialeg[colour] += PieceValEG[piece];
+			pos->material[colour] += PieceValue[EG][piece];
 			pos->mPhases[colour] += PieceValPhases[piece];
 
 			ASSERT(pos->pceNum[piece] < 10 && pos->pceNum[piece] >= 0);
@@ -322,7 +321,6 @@ void ResetBoard(S_BOARD *pos) {
 		pos->majPce[index] = 0;
 		pos->minPce[index] = 0;
 		pos->material[index] = 0;
-		pos->materialeg[index] = 0;
 		pos->mPhases[index] = 0;
 		pos->PSQT[index] = 0;
 	}

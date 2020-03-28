@@ -100,20 +100,20 @@ int badCapture(int move, const S_BOARD *pos) {
     int to = TOSQ(move);
     int captured = CAPTURED(move);
 
-    int Knight = (pos->side == WHITE ? bN : wN);
-    int Bishop = (pos->side == WHITE ? bB : wB);
+    int Knight = pos->side == WHITE ? bN : wN;
+    int Bishop = pos->side == WHITE ? bB : wB;
 
     // Captures by pawn do not lose material
     if (pos->pieces[from] == wP || pos->pieces[from] == bP) return 0;
 
     // Captures "lower takes higher" (as well as BxN) are good by definition
-    if (PieceVal[captured] >= PieceVal[pos->pieces[from]] - 50) return 0;
+    if (PieceValue[EG][captured] >= PieceValue[EG][pos->pieces[from]] - 30) return 0;
 
-	if (   pos->pawn_ctrl[pos->side ^ 1][to]
-	    && PieceVal[captured] + 200 < PieceVal[pos->pieces[from]])
+    if (   pos->pawn_ctrl[pos->side ^ 1][to]
+	    && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
         return 1;
 
-    if (PieceVal[captured] + 500 < PieceVal[pos->pieces[from]]) {
+    if (PieceValue[EG][captured] + 500 < PieceValue[EG][pos->pieces[from]]) {
 	
     	if (pos->pceNum[Knight])
 			if (KnightAttack(pos->side ^ 1, to, pos)) return 1;
@@ -135,7 +135,7 @@ int move_canSimplify(int move, const S_BOARD *pos) {
     int captured = CAPTURED(move);
 
     if (  (captured == wP || captured == bP)
-        || pos->material[pos->side^1] - PieceVal[captured] > ENDGAME_MAT )
+        || pos->material[pos->side^1] - PieceValue[EG][captured] > ENDGAME_MAT )
     	return 0;
     else
     	return 1;
