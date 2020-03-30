@@ -24,6 +24,9 @@
 #include "defs.h"
 
 enum {
+    SCALE_FACTOR_DRAW      =   0,
+    SCALE_DRAWISH_BISHOP   =   8,
+    SCALE_DRAWISH_ROOK     =  28,
     SCALE_OCB_BISHOPS_ONLY =  64,
     SCALE_OCB_ONE_KNIGHT   = 106,
     SCALE_OCB_ONE_ROOK     =  96,
@@ -66,7 +69,7 @@ int king_proximity(const int c, const int s, const S_BOARD *pos);
 int isPiece(const int piece, const int sq, const S_BOARD *pos);
 int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq);
 int SlideMob(const S_BOARD *pos, int side, int pce, int sq);
-int evaluateScaleFactor(const S_BOARD *pos);
+int evaluateScaleFactor(const S_BOARD *pos, int egScore);
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum);
 int Knights(const S_BOARD *pos, int side, int pce, int pceNum);
 int Bishops(const S_BOARD *pos, int side, int pce, int pceNum);

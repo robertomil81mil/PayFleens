@@ -121,32 +121,6 @@ int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
     return mobility;
 }
 
-int evaluateScaleFactor(const S_BOARD *pos) {
-
-    if (opposite_bishops(pos)) {
-
-        if (   (!pos->pceNum[wN] && !pos->pceNum[bN])
-            || (!pos->pceNum[wR] && !pos->pceNum[bR]) 
-            || (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
-            return SCALE_OCB_BISHOPS_ONLY;
-        }
-
-        if ((   (!pos->pceNum[wR] && !pos->pceNum[bR])
-             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
-            && (pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
-            return SCALE_OCB_ONE_KNIGHT;
-        }
-
-        if ((   (!pos->pceNum[wN] && !pos->pceNum[bN])
-             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
-            && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
-            return SCALE_OCB_ONE_ROOK;
-        }
-    }
-
-    return SCALE_NORMAL;
-}
-
 #define S(mg, eg) (makeScore((mg), (eg)))
 
 int PieceValPhases[13] = { S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), 
@@ -721,6 +695,44 @@ int imbalance(const int pieceCount[2][6], int side) {
     return makeScore(bonus / 16, bonus / 16);
 }
 
+int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
+
+    int strongSide, weakSide, pawnStrong;
+
+    strongSide = egScore > 0 ? WHITE : BLACK;
+    weakSide   = egScore > 0 ? BLACK : WHITE;
+    pawnStrong = egScore > 0 ? wP : bP;
+
+    if (  !pos->pceNum[pawnStrong] 
+        && pos->material[strongSide] - pos->material[weakSide] <= PieceValue[EG][wB])
+        return pos->material[strongSide] <  PieceValue[EG][wR] ? SCALE_FACTOR_DRAW    :
+               pos->material[  weakSide] <= PieceValue[EG][wB] ? SCALE_DRAWISH_BISHOP :
+                                                                 SCALE_DRAWISH_ROOK   ;
+
+    if (opposite_bishops(pos)) {
+
+        if (   (!pos->pceNum[wN] && !pos->pceNum[bN])
+            || (!pos->pceNum[wR] && !pos->pceNum[bR]) 
+            || (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
+            return SCALE_OCB_BISHOPS_ONLY;
+        }
+
+        if ((   (!pos->pceNum[wR] && !pos->pceNum[bR])
+             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
+            && (pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
+            return SCALE_OCB_ONE_KNIGHT;
+        }
+
+        if ((   (!pos->pceNum[wN] && !pos->pceNum[bN])
+             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
+            && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
+            return SCALE_OCB_ONE_ROOK;
+        }
+    }
+
+    return SCALE_NORMAL;
+}
+
 int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
 
     ASSERT(pos->material[weakSide] == PieceValue[EG][wK]);
@@ -963,7 +975,7 @@ int EvalPosition(const S_BOARD *pos) {
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
     //int startTime = GetTimeMs();
 
-    int score, phase, factor, stronger, weaker, PAWNST, PAWNWK;
+    int score, phase, factor, stronger, weaker;
 
     memset(&ei, 0, sizeof(evalInfo));
 
@@ -993,7 +1005,7 @@ int EvalPosition(const S_BOARD *pos) {
 
     phase = (phase * 256 + 12) / 24;
 
-    factor = evaluateScaleFactor(pos);
+    factor = evaluateScaleFactor(pos, egScore(score));
 
     score = (mgScore(score) * (256 - phase)
           +  egScore(score) * phase * factor / SCALE_NORMAL) / 256;
@@ -1004,41 +1016,9 @@ int EvalPosition(const S_BOARD *pos) {
 
     stronger = score > 0 ? WHITE : BLACK;
     weaker   = score > 0 ? BLACK : WHITE;
-
-    PAWNST = stronger == WHITE ? wP : bP;
-    PAWNWK = weaker   == WHITE ? wP : bP;
-
-    if (!pos->pceNum[PAWNST]) {
-
-        if (pos->material[stronger] < 500) return 0;
-
-        if (!pos->pceNum[PAWNWK]
-                && (pos->material[stronger] == 2 * PieceValue[EG][wN]))
-            return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wR]
-                && pos->material[weaker] == PieceValue[EG][wB]) return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wR]
-                && pos->material[weaker] == PieceValue[EG][wN]) return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wR] + PieceValue[EG][wB]
-                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wR] + PieceValue[EG][wN]
-                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wR]
-                && pos->material[weaker] == PieceValue[EG][wR]) return 0;
-
-        if (pos->material[stronger] == PieceValue[EG][wQ]
-                && pos->material[weaker] == PieceValue[EG][wQ]) return 0;
-
-        if (pos->material[stronger] == ( PieceValue[EG][wB] || PieceValue[EG][wN] )
-                && pos->material[weaker] == ( PieceValue[EG][wB] || PieceValue[EG][wN])) return 0;
-    }
     
-    if (pos->material[weaker] == PieceValue[EG][wK]) {
+    if (   pos->material[  weaker] == PieceValue[EG][wK]
+        && pos->material[stronger]  > PieceValue[EG][wB]) {
         return EndgameKXK(pos, weaker, stronger);
     }
     
