@@ -86,14 +86,15 @@ enum { FALSE, TRUE };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 
+typedef struct EngineOptions EngineOptions;
 typedef struct evalInfo evalInfo;
 typedef struct evalData evalData;
-typedef struct PVariation PVariation;
-typedef struct TT_Entry TT_Entry;
-typedef struct TT_Cluster TT_Cluster;
-typedef struct TTable TTable;
+typedef struct MaterialEntry MaterialEntry;
 typedef struct Limits Limits;
-typedef struct EngineOptions EngineOptions;
+typedef struct PVariation PVariation;
+typedef struct TTable TTable;
+typedef struct TT_Cluster TT_Cluster;
+typedef struct TT_Entry TT_Entry;
 
 struct PVariation {
     int line[MAX_PLY];

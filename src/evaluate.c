@@ -24,6 +24,7 @@
 
 #include "bitboards.h"
 #include "defs.h"
+#include "endgame.h"
 #include "evaluate.h"
 
 evalInfo ei;
@@ -697,17 +698,14 @@ int imbalance(const int pieceCount[2][6], int side) {
 
 int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
 
-    int strongSide, weakSide, pawnStrong;
+    const int strongSide = egScore > 0 ? WHITE : BLACK;
+    const int pawnStrong = egScore > 0 ? wP : bP;
 
-    strongSide = egScore > 0 ? WHITE : BLACK;
-    weakSide   = egScore > 0 ? BLACK : WHITE;
-    pawnStrong = egScore > 0 ? wP : bP;
-
-    if (  !pos->pceNum[pawnStrong] 
-        && pos->material[strongSide] - pos->material[weakSide] <= PieceValue[EG][wB])
-        return pos->material[strongSide] <  PieceValue[EG][wR] ? SCALE_FACTOR_DRAW    :
-               pos->material[  weakSide] <= PieceValue[EG][wB] ? SCALE_DRAWISH_BISHOP :
-                                                                 SCALE_DRAWISH_ROOK   ;
+    if (  !pos->pceNum[pawnStrong]
+        && pos->material[strongSide] - pos->material[!strongSide] <= PieceValue[EG][wB])
+        return pos->material[ strongSide] <  PieceValue[EG][wR] ? SCALE_FACTOR_DRAW    :
+               pos->material[!strongSide] <= PieceValue[EG][wB] ? SCALE_DRAWISH_BISHOP :
+                                                                  SCALE_DRAWISH_ROOK   ;
 
     if (opposite_bishops(pos)) {
 
@@ -732,34 +730,6 @@ int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
 
     return SCALE_NORMAL;
 }
-
-int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide) {
-
-    ASSERT(pos->material[weakSide] == PieceValue[EG][wK]);
-
-    int winnerKSq, loserKSq, result, Queen, Rook, Bishop, Knight;
-
-    winnerKSq = pos->KingSq[strongSide];
-    loserKSq  = pos->KingSq[weakSide];
-
-    result =  pos->material[strongSide]
-            + PushToEdges[SQ64(loserKSq)]
-            + PushClose[distanceBetween(winnerKSq, loserKSq)];
-
-    Queen  = strongSide == WHITE ? wQ : bQ;
-    Rook   = strongSide == WHITE ? wR : bR;
-    Bishop = strongSide == WHITE ? wB : bB;
-    Knight = strongSide == WHITE ? wN : bN;
-
-    if (   pos->pceNum[Queen ]
-        || pos->pceNum[Rook  ]
-        ||(pos->pceNum[Bishop] && pos->pceNum[Knight])
-        || (   (SQ64(pos->pList[Bishop][0]) & ~BLACK_SQUARES)
-            && (SQ64(pos->pList[Bishop][1]) &  BLACK_SQUARES)) )
-        result = MIN(result + KNOWN_WIN, MATE_IN_MAX - 1);
-
-    return strongSide == pos->side ? result : -result;
-};
 
 void blockedPiecesW(const S_BOARD *pos) {
 
@@ -975,52 +945,37 @@ int EvalPosition(const S_BOARD *pos) {
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
     //int startTime = GetTimeMs();
 
-    int score, phase, factor, stronger, weaker;
+    int score, factor;
+    MaterialEntry me;
+
+    MaterialProbe(pos, &me);
+
+    if (me.endgameEvalExists)
+        return me.endgameEval;
 
     memset(&ei, 0, sizeof(evalInfo));
 
     ei.kingAreas[WHITE] = kingAreaMasks(WHITE, SQ64(pos->KingSq[WHITE]));
     ei.kingAreas[BLACK] = kingAreaMasks(BLACK, SQ64(pos->KingSq[BLACK]));
 
-    const int pieceCount[2][6] = {
-        { pos->pceNum[wB] > 1, pos->pceNum[wP], pos->pceNum[wN],
-          pos->pceNum[wB]    , pos->pceNum[wR], pos->pceNum[wQ] },
-        { pos->pceNum[bB] > 1, pos->pceNum[bP], pos->pceNum[bN],
-          pos->pceNum[bB]    , pos->pceNum[bR], pos->pceNum[bQ] } 
-    };
-
     score  = pos->mPhases[WHITE] - pos->mPhases[BLACK];
     score += pos->PSQT[WHITE] - pos->PSQT[BLACK];
     score += ei.Mob[WHITE] - ei.Mob[BLACK];
-    score += imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK);
+    score += me.imbalance;
     score += evaluatePieces(pos);
     score += evaluateComplexity(pos, score);
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);
 
-    phase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
-               - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
-               - 1 * (pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB]);
-
-    phase = (phase * 256 + 12) / 24;
-
     factor = evaluateScaleFactor(pos, egScore(score));
 
-    score = (mgScore(score) * (256 - phase)
-          +  egScore(score) * phase * factor / SCALE_NORMAL) / 256;
+    score = (mgScore(score) * (256 - me.gamePhase)
+          +  egScore(score) * me.gamePhase * factor / SCALE_NORMAL) / 256;
 
     score += ei.blockages[WHITE] - ei.blockages[BLACK];
 
     score += pos->side == WHITE ? TEMPO : -TEMPO;
-
-    stronger = score > 0 ? WHITE : BLACK;
-    weaker   = score > 0 ? BLACK : WHITE;
-    
-    if (   pos->material[  weaker] == PieceValue[EG][wK]
-        && pos->material[stronger]  > PieceValue[EG][wB]) {
-        return EndgameKXK(pos, weaker, stronger);
-    }
     
     //printf("Elapsed %d\n",GetTimeMs() - startTime);
     return pos->side == WHITE ? score : -score;     

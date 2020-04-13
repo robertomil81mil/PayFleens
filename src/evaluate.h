@@ -81,7 +81,6 @@ int evaluateKings(const S_BOARD *pos, int side);
 int evaluatePieces(const S_BOARD *pos);
 int evaluateComplexity(const S_BOARD *pos, int score);
 int imbalance(const int pieceCount[2][6], int side);
-int EndgameKXK(const S_BOARD *pos, int weakSide, int strongSide);
 int EvalPosition(const S_BOARD *pos);
 
 #define ENDGAME_MAT (1 * PieceValue[EG][wR] + 2 * PieceValue[EG][wN] + 2 * PieceValue[EG][wP])
@@ -136,19 +135,6 @@ static const int UnblockedStorm[4][8] = {
     {   4,   52,  162, 37,  7, -14,  -2 },
     { -10,  -14,   90, 15,  2,  -7, -16 }
 };
-
-static const int PushToEdges[64] = {
-  100, 90, 80, 70, 70, 80, 90, 100,
-   90, 70, 60, 50, 50, 60, 70,  90,
-   80, 60, 40, 30, 30, 40, 60,  80,
-   70, 50, 30, 20, 20, 30, 50,  70,
-   70, 50, 30, 20, 20, 30, 50,  70,
-   80, 60, 40, 30, 30, 40, 60,  80,
-   90, 70, 60, 50, 50, 60, 70,  90,
-  100, 90, 80, 70, 70, 80, 90, 100
-};
-
-static const int PushClose[8] = { 0, 0, 100, 80, 60, 40, 20, 10 };
 
 static const int QuadraticOurs[][6] = {
     //            OUR PIECES
