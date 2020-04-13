@@ -683,7 +683,5 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
     }
 
-    ASSERT(alpha>=oldAlpha);
-
 	return best;
 }

@@ -56,12 +56,6 @@ int SquareDistance[120][120];
 int FileDistance[120][120];
 int RankDistance[120][120];
 
-const uint64_t KingFlank[8] = {
-	QUEEN_FLANK ^ FILEBB_D, QUEEN_FLANK, QUEEN_FLANK,
-	CENTER_FLANK, CENTER_FLANK,
-	KING_FLANK, KING_FLANK, KING_FLANK ^ FILEBB_E
-};
-
 void InitEvalMasks() {
 
 	int sq, tsq, r, f;
