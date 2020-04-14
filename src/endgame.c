@@ -44,7 +44,10 @@ int Endgame_eval(const S_BOARD *pos, MaterialEntry *me) {
 		if (   !pos->pceNum[pawnStrong]
 			&& !pos->pceNum[pawnWeak]) {
 
-			if (is_KBNK(pos, strongSide))
+			if (is_KXK(pos, strongSide))
+				return EndgameKXK(pos, strongSide);
+
+			else if (is_KBNK(pos, strongSide))
 				return EndgameKBNK(pos, strongSide);
 
 			else if (is_KQKR(pos, strongSide))
