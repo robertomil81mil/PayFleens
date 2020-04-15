@@ -195,7 +195,7 @@ int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduct
     totBestMoveChanges /= 2;
 
     int previousScore = info->depth == 1 ? 32000 : info->values[info->depth-1];
-    double fallingEval = (383 + 10 * (previousScore - info->values[info->depth])) / 692.0;
+    double fallingEval = (383 + 19 * (previousScore - info->values[info->depth])) / 692.0;
     fallingEval = center(fallingEval, 0.5, 1.5);
 
     TimeRdction = lastBestMoveDepth + 9 < completedDepth ? 1.97 : 0.98;
