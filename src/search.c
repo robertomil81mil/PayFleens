@@ -270,6 +270,299 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
     }
 }
 
+int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
+
+    ASSERT(CheckBoard(pos));
+    ASSERT(beta>alpha);
+
+    PVariation lpv;
+    pv->length = 0;
+
+    int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
+
+    if(depth <= 0 && !InCheck)
+        return qsearch(alpha, beta, depth, pos, info, pv, height);
+
+    depth = MAX(0, depth);
+
+    info->nodes++;
+    info->seldepth = (height == 0) ? 0 : MAX(info->seldepth, height);
+
+    if ((info->nodes & 1023) == 1023)
+        CheckUp(info);
+
+    const int PvNode   = (alpha != beta - 1);
+    const int RootNode = (pos->ply == 0);
+    
+    int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
+    int MoveNum = 0, played = 0, singularExt = 0, LMRflag = 0;
+    int R, newDepth, rAlpha, rBeta;
+    int isQuiet, improving, extension;
+    int eval, value = -INFINITE, best = -INFINITE;
+    uint16_t ttMove = NOMOVE; int bestMove = NOMOVE, excludedMove = NOMOVE;
+
+    if (!RootNode) {
+        if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
+            return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
+
+        if (pos->ply > MAXDEPTH - 1)
+            return EvalPosition(pos);
+
+        rAlpha = alpha > -INFINITE + pos->ply     ? alpha : -INFINITE + pos->ply;
+        rBeta  =  beta <  INFINITE - pos->ply - 1 ?  beta :  INFINITE - pos->ply - 1;
+        if (rAlpha >= rBeta) return rAlpha;
+    }
+
+    if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
+
+        ttValue = valueFromTT(ttValue, pos->ply);
+
+        if (ttDepth >= depth && (depth == 0 || !PvNode)) {
+       
+            if (    ttBound == BOUND_EXACT
+                || (ttBound == BOUND_LOWER && ttValue >= beta)
+                || (ttBound == BOUND_UPPER && ttValue <= alpha)) {
+                info->TTCut++;
+                return ttValue;
+            }      
+        }
+    }
+
+    eval = info->staticEval[height] =
+           ttHit && ttEval != VALUE_NONE            ?  ttEval
+         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
+                                                    : -info->staticEval[height-1] + 2 * TEMPO;
+
+    improving = height >= 2 && eval > info->staticEval[height-2];
+
+    pos->searchKillers[0][pos->ply+1] = NOMOVE;
+    pos->searchKillers[1][pos->ply+1] = NOMOVE;
+
+    if (ttHit) {
+
+        if (    ttValue != VALUE_NONE
+            && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
+            eval = ttValue;
+    }
+
+    if (InCheck)
+        improving = 0;
+
+    if (   !PvNode 
+        && !InCheck 
+        &&  depth <= RazorDepth 
+        &&  eval + RazorMargin < alpha)
+        return qsearch(alpha, beta, depth, pos, info, pv, height);
+
+    if (   !PvNode
+        && !InCheck
+        &&  depth <= BetaPruningDepth
+        &&  eval - BetaMargin * depth > beta)
+        return eval;
+
+    if (   !PvNode
+        && !InCheck
+        &&  eval >= beta
+        &&  depth >= NullMovePruningDepth
+        &&  info->currentMove[height-1] != NULL_MOVE
+        &&  info->currentMove[height-2] != NULL_MOVE
+        && !excludedMove
+        && (pos->bigPce[pos->side] > 0)
+        && (!ttHit || !(ttBound & BOUND_UPPER) || ttValue >= beta)) {
+
+        R = 4 + depth / 6 + MIN(3, (eval - beta) / 200);
+
+        MakeNullMove(pos);
+        info->currentMove[height] = NULL_MOVE;
+        value = -search( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
+        TakeNullMove(pos);
+
+        if (value >= beta) {
+            info->nullCut++;
+            return beta;
+        }
+    }
+
+    if (   !PvNode
+        &&  depth >= ProbCutDepth
+        &&  abs(beta) < MATE_IN_MAX  
+        &&  eval + moveBestCaseValue(pos) >= beta + ProbCutMargin) {
+
+        // Try tactical moves which maintain rBeta
+        rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
+
+        S_MOVELIST list[1];
+        GenerateAllCaps(pos,list);
+
+        for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+
+            PickNextMove(MoveNum, list);
+
+            if (list->moves[MoveNum].move == excludedMove)
+                continue;
+
+            else if (!MakeMove(pos,list->moves[MoveNum].move)) 
+                continue;
+
+            info->currentMove[height] = list->moves[MoveNum].move;
+            value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
+
+            TakeMove(pos);
+
+            // Probcut failed high
+            if (value >= rBeta) {
+                //info->probCut++;
+                return value;
+            } 
+        }
+    }   
+
+    S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
+
+    if (ttMove != NOMOVE) {
+        for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+            if (list->moves[MoveNum].move == ttMove) {
+                list->moves[MoveNum].score = 2000000;
+                //printf("TT move found \n");
+                break;
+            }
+        }
+    }
+
+    for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+
+        PickNextMove(MoveNum, list);
+
+        if (list->moves[MoveNum].move == excludedMove)
+            continue;
+
+        if (  depth >= 6
+          &&  list->moves[MoveNum].move == ttMove
+          && !RootNode
+          && !excludedMove // Avoid recursive singular search
+          &&  abs(ttValue) < KNOWN_WIN
+          && (ttBound & BOUND_LOWER)
+          &&  ttDepth >= depth - 3) {
+
+            rBeta = ttValue - 2 * depth;
+            excludedMove = list->moves[MoveNum].move;
+            value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
+            excludedMove = NOMOVE;
+
+            if (value < rBeta) {
+                singularExt = 1;
+
+                if (value < rBeta - MIN(4 * depth, 36))
+                    LMRflag = 1;
+            }
+
+            else if (   eval >= beta 
+                     && rBeta >= beta)
+                return rBeta;
+        }
+
+        if (!MakeMove(pos,list->moves[MoveNum].move))
+            continue;  
+
+        played += 1;
+        info->currentMove[height] = list->moves[MoveNum].move;
+
+        isQuiet =  !(list->moves[MoveNum].move & MFLAGCAP)
+                || !(list->moves[MoveNum].move & (MFLAGPROM | MFLAGEP));
+
+        if (RootNode && elapsedTime(info) > WindowTimerMS && info->GAME_MODE == UCIMODE)
+            uciReportCurrentMove(list->moves[MoveNum].move, played, depth);
+        
+        if (isQuiet && list->quiets > 4 && depth > 2 && played > 1) {
+
+            // Use the LMR Formula as a starting point
+            R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];
+
+            // Increase for non PV and non improving nodes
+            R += !PvNode + !improving;
+
+            // Increase for King moves that evade checks
+            R += InCheck && pos->pieces[TOSQ(list->moves[MoveNum].move)] == (wK || bK);
+
+            // Reduce if ttMove has been singularly extended
+            R -= singularExt - LMRflag;
+
+            // Don't extend or drop into QS
+            R  = MIN(depth - 1, MAX(R, 1));
+
+        } else R = 1;
+
+        extension =  (InCheck)
+                  || (singularExt);
+
+        newDepth = depth + (extension && !RootNode);
+
+        if (R != 1)
+            value = -search( -alpha-1, -alpha, newDepth-R, pos, info, &lpv, height+1);
+        
+        if ((R != 1 && value > alpha) || (R == 1 && !(PvNode && played == 1)))
+            value = -search( -alpha-1, -alpha, newDepth-1, pos, info, &lpv, height+1);
+        
+        if (PvNode && (played == 1 || (value > alpha && (RootNode || value < beta))))
+            value = -search( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
+        
+        TakeMove(pos);
+
+        if (info->stop)
+            return 0;
+
+        if (   RootNode
+            && value > alpha
+            && played > 1)
+            info->bestMoveChanges++;
+
+        if (value > best) {
+            best = value;
+
+            if (value > alpha) {
+                bestMove = list->moves[MoveNum].move;
+
+                if (PvNode) {
+                    pv->length = 1 + lpv.length;
+                    pv->line[0] = bestMove;
+                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                }
+
+                if (PvNode && value < beta)
+                    alpha = value;
+                else {
+                    if (played == 1)
+                        info->fhf++;
+                    info->fh++;
+
+                    if (!(list->moves[MoveNum].move & MFLAGCAP)) {
+                        pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
+
+                        if (pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
+                            pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
+                            pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    if (played == 0)
+        best =  excludedMove ?  alpha
+              :      InCheck ? -INFINITE + pos->ply : 0;
+
+    if (!excludedMove) {
+        ttBound =  best >= beta       ? BOUND_LOWER
+                 : PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER;
+        storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
+    }
+
+    return best;
+}
+
 int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
 
 	ASSERT(CheckBoard(pos));
@@ -296,7 +589,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
 	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
 	int MoveNum = 0, played = 0;
-	int eval, value, best, oldAlpha = alpha;
+	int eval, value, best, oldAlpha = 0;
 	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
@@ -322,13 +615,16 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
                                                     : -info->staticEval[height-1] + 2 * TEMPO;
 
     if (ttHit) {
-        if (ttValue != VALUE_NONE
-        && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
+        if (   ttValue != VALUE_NONE
+            && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
             eval = ttValue;
     }
 
-	best = eval;
-	alpha = MAX(alpha, eval);
+    if (PvNode)
+        oldAlpha = alpha;
+
+    best = eval;
+    alpha = MAX(alpha, eval);
     if (alpha >= beta) return eval;
 
 	S_MOVELIST list[1];
@@ -365,15 +661,21 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 		// Improved current value
         if (value > best) {
             best = value;
-            bestMove = list->moves[MoveNum].move;
 
             // Improved current lower bound
             if (value > alpha) {
-                alpha = value;
+                bestMove = list->moves[MoveNum].move;
 
-                pv->length = 1 + lpv.length;
-                pv->line[0] = bestMove;
-                memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                if (PvNode) {
+                    pv->length = 1 + lpv.length;
+                    pv->line[0] = bestMove;
+                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                }
+
+                if (PvNode && value < beta)
+                    alpha = value;
+                else
+                    break;
             }
         }
 
@@ -386,302 +688,9 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
         }
     }
 
-    ttBound = (best >= beta    ? BOUND_LOWER
-            :  best > oldAlpha ? BOUND_EXACT : BOUND_UPPER);
+    ttBound = best >= beta              ? BOUND_LOWER
+            : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
     storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, QSDepth, ttBound);
-
-	return best;
-}
-
-int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
-
-	ASSERT(CheckBoard(pos));
-	ASSERT(beta>alpha);
-
-	PVariation lpv;
-	pv->length = 0;
-
-	int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
-
-	if(depth <= 0 && !InCheck)
-		return qsearch(alpha, beta, depth, pos, info, pv, height);
-
-	depth = MAX(0, depth);
-
-	info->nodes++;
-	info->seldepth = (height == 0) ? 0 : MAX(info->seldepth, height);
-
-	if ((info->nodes & 1023) == 1023)
-		CheckUp(info);
-
-	const int PvNode   = (alpha != beta - 1);
-	const int RootNode = (pos->ply == 0);
-	
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-	int MoveNum = 0, played = 0, singularExt = 0, LMRflag = 0;
-	int R, newDepth, rAlpha, rBeta;
-	int isQuiet, improving, extension;
-	int eval, value = -INFINITE, best = -INFINITE;
-	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE, excludedMove = NOMOVE;
-
-	if (!RootNode) {
-		if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
-			return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
-
-		if (pos->ply > MAXDEPTH - 1)
-			return EvalPosition(pos);
-
-		rAlpha = alpha > -INFINITE + pos->ply     ? alpha : -INFINITE + pos->ply;
-        rBeta  =  beta <  INFINITE - pos->ply - 1 ?  beta :  INFINITE - pos->ply - 1;
-        if (rAlpha >= rBeta) return rAlpha;
-	}
-
-	if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
-
-		ttValue = valueFromTT(ttValue, pos->ply);
-
-        if (ttDepth >= depth && (depth == 0 || !PvNode)) {
-       
-            if (    ttBound == BOUND_EXACT
-                || (ttBound == BOUND_LOWER && ttValue >= beta)
-                || (ttBound == BOUND_UPPER && ttValue <= alpha)) {
-            	info->TTCut++;
-            	return ttValue;
-            }      
-        }
-    }
-
-    eval = info->staticEval[height] =
-           ttHit && ttEval != VALUE_NONE            ?  ttEval
-         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
-                                                    : -info->staticEval[height-1] + 2 * TEMPO;
-
-    improving = height >= 2 && eval > info->staticEval[height-2];
-
-    pos->searchKillers[0][pos->ply+1] = NOMOVE;
-	pos->searchKillers[1][pos->ply+1] = NOMOVE;
-
-   	if (ttHit) {
-
-        if (    ttValue != VALUE_NONE
-            && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
-            eval = ttValue;
-    }
-
-	if (InCheck)
-        improving = 0;
-
-	if (   !PvNode 
-		&& !InCheck 
-		&&  depth <= RazorDepth 
-		&&  eval + RazorMargin < alpha)
-		return qsearch(alpha, beta, depth, pos, info, pv, height);
-
-	if (   !PvNode
-        && !InCheck
-        &&  depth <= BetaPruningDepth
-        &&  eval - BetaMargin * depth > beta)
-		return eval;
-
-	if (   !PvNode
-        && !InCheck
-        &&  eval >= beta
-        &&  depth >= NullMovePruningDepth
-        &&  info->currentMove[height-1] != NULL_MOVE
-        &&  info->currentMove[height-2] != NULL_MOVE
-        && !excludedMove
-        && (pos->bigPce[pos->side] > 0)
-        && (!ttHit || !(ttBound & BOUND_UPPER) || ttValue >= beta)) {
-
-        R = 4 + depth / 6 + MIN(3, (eval - beta) / 200);
-
-        MakeNullMove(pos);
-        info->currentMove[height] = NULL_MOVE;
-        value = -search( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
-        TakeNullMove(pos);
-
-        if (value >= beta) {
-        	info->nullCut++;
-        	return beta;
-        }
-    }
-
-    if (   !PvNode
-        &&  depth >= ProbCutDepth
-        &&  abs(beta) < MATE_IN_MAX  
-        &&  eval + moveBestCaseValue(pos) >= beta + ProbCutMargin) {
-
-        // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
-
-    	S_MOVELIST list[1];
-    	GenerateAllCaps(pos,list);
-
-		for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-
-			PickNextMove(MoveNum, list);
-
-            if (list->moves[MoveNum].move == excludedMove)
-                continue;
-
-        	else if (!MakeMove(pos,list->moves[MoveNum].move)) 
-                continue;
-
-        	info->currentMove[height] = list->moves[MoveNum].move;
-        	value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
-
-        	TakeMove(pos);
-
-        	// Probcut failed high
-            if (value >= rBeta) {
-            	//info->probCut++;
-            	return value;
-            } 
-        }
-    }   
-
-	S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
-
-    if (ttMove != NOMOVE) {
-		for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-			if (list->moves[MoveNum].move == ttMove) {
-				list->moves[MoveNum].score = 2000000;
-				//printf("TT move found \n");
-				break;
-			}
-		}
-	}
-
-	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-
-		PickNextMove(MoveNum, list);
-
-        if (list->moves[MoveNum].move == excludedMove)
-            continue;
-
-        if (  depth >= 6
-          &&  list->moves[MoveNum].move == ttMove
-          && !RootNode
-          && !excludedMove // Avoid recursive singular search
-          &&  abs(ttValue) < KNOWN_WIN
-          && (ttBound & BOUND_LOWER)
-          &&  ttDepth >= depth - 3) {
-
-          	rBeta = ttValue - 2 * depth;
-          	excludedMove = list->moves[MoveNum].move;
-          	value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
-          	excludedMove = NOMOVE;
-
-	        if (value < rBeta) {
-	            singularExt = 1;
-
-                if (value < rBeta - MIN(4 * depth, 36))
-                    LMRflag = 1;
-            }
-
-	        else if (   eval >= beta 
-                     && rBeta >= beta)
-                return rBeta;
-      	}
-
-        if (!MakeMove(pos,list->moves[MoveNum].move))
-            continue;  
-
-		played += 1;
-		info->currentMove[height] = list->moves[MoveNum].move;
-
-        isQuiet =  !(list->moves[MoveNum].move & MFLAGCAP)
-                || !(list->moves[MoveNum].move & (MFLAGPROM | MFLAGEP));
-
-		if (RootNode && elapsedTime(info) > WindowTimerMS && info->GAME_MODE == UCIMODE)
-            uciReportCurrentMove(list->moves[MoveNum].move, played, depth);
-        
-        if (isQuiet && list->quiets > 4 && depth > 2 && played > 1) {
-
-            // Use the LMR Formula as a starting point
-            R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];
-
-            // Increase for non PV and non improving nodes
-            R += !PvNode + !improving;
-
-            // Increase for King moves that evade checks
-            R += InCheck && pos->pieces[TOSQ(list->moves[MoveNum].move)] == (wK || bK);
-
-            // Reduce if ttMove has been singularly extended
-            R -= singularExt - LMRflag;
-
-            // Don't extend or drop into QS
-            R  = MIN(depth - 1, MAX(R, 1));
-
-        } else R = 1;
-
-        extension =  (InCheck)
-        		  || (singularExt);
-
-        newDepth = depth + (extension && !RootNode);
-
-		if (R != 1)
-			value = -search( -alpha-1, -alpha, newDepth-R, pos, info, &lpv, height+1);
-		
-		if ((R != 1 && value > alpha) || (R == 1 && !(PvNode && played == 1)))
-            value = -search( -alpha-1, -alpha, newDepth-1, pos, info, &lpv, height+1);
-		
-		if (PvNode && (played == 1 || (value > alpha && (RootNode || value < beta))))
-			value = -search( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
-		
-		TakeMove(pos);
-
-		if (info->stop)
-			return 0;
-
-        if (   RootNode
-            && value > alpha
-            && played > 1)
-            info->bestMoveChanges++;
-
-		if (value > best) {
-			best = value;
-
-			if (value > alpha) {
-                bestMove = list->moves[MoveNum].move;
-
-                if (PvNode) {
-                    pv->length = 1 + lpv.length;
-                    pv->line[0] = bestMove;
-                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
-                }
-
-                if (PvNode && value < beta)
-                    alpha = value;
-                else {
-                    if (played == 1)
-                        info->fhf++;
-                    info->fh++;
-
-                    if (!(list->moves[MoveNum].move & MFLAGCAP)) {
-                        pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
-
-                        if (pos->searchKillers[0][pos->ply] != list->moves[MoveNum].move) {
-                            pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
-                            pos->searchKillers[0][pos->ply] = list->moves[MoveNum].move;
-                        }
-                    }
-                    break;
-                }
-			}
-		}
-    }
-
-    if (played == 0)
-        best =  excludedMove ?  alpha
-              :      InCheck ? -INFINITE + pos->ply : 0;
-
-    if (!excludedMove) {
-        ttBound =  best >= beta       ? BOUND_LOWER
-                 : PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
-    }
 
 	return best;
 }
