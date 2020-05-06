@@ -35,68 +35,68 @@
 int LMRTable[64][64]; // Init LMR Table 
 
 void CheckUp(S_SEARCHINFO *info) {
-	// .. check if time up, or interrupt from GUI
-	if (   info->timeset 
-		&& info->depth > 1 
-		&& elapsedTime(info) > info->maximumTime - 10) {
-		info->stop = 1;
-	}
+    // .. check if time up, or interrupt from GUI
+    if (   info->timeset 
+        && info->depth > 1 
+        && elapsedTime(info) > info->maximumTime - 10) {
+        info->stop = 1;
+    }
 
-	ReadInput(info);
+    ReadInput(info);
 }
 
 void PickNextMove(int moveNum, S_MOVELIST *list) {
 
-	S_MOVE temp;
-	int best = 0, bestNum = moveNum;
+    S_MOVE temp;
+    int best = 0, bestNum = moveNum;
 
-	for (int index = moveNum; index < list->count; ++index) {
-		if (list->moves[index].score > best) {
-			best = list->moves[index].score;
-			bestNum = index;
-		}
-	}
+    for (int index = moveNum; index < list->count; ++index) {
+        if (list->moves[index].score > best) {
+            best = list->moves[index].score;
+            bestNum = index;
+        }
+    }
 
-	ASSERT(moveNum>=0 && moveNum<list->count);
-	ASSERT(bestNum>=0 && bestNum<list->count);
-	ASSERT(bestNum>=moveNum);
+    ASSERT(moveNum>=0 && moveNum<list->count);
+    ASSERT(bestNum>=0 && bestNum<list->count);
+    ASSERT(bestNum>=moveNum);
 
-	temp = list->moves[moveNum];
-	list->moves[moveNum] = list->moves[bestNum];
-	list->moves[bestNum] = temp;
+    temp = list->moves[moveNum];
+    list->moves[moveNum] = list->moves[bestNum];
+    list->moves[bestNum] = temp;
 }
 
 int KnightAttack(int side, int sq, const S_BOARD *pos) {
     int Knight = side == WHITE ? wN : bN, t_sq;
 
-	for (int index = 0; index < 8; ++index) {
-		t_sq = sq + PceDir[wN][index];
-		if (!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
-			return 1;
-	}
+    for (int index = 0; index < 8; ++index) {
+        t_sq = sq + PceDir[wN][index];
+        if (!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
+            return 1;
+    }
     return 0;
 }
 
 int BishopAttack(int side, int sq, int dir, const S_BOARD *pos) {
-	int t_sq = sq + dir;
-	int Bishop = side == WHITE ? wB : bB;
+    int t_sq = sq + dir;
+    int Bishop = side == WHITE ? wB : bB;
 
-	while (!SQOFFBOARD(t_sq)) {
-		if (pos->pieces[t_sq] != EMPTY ) {
-			if (pos->pieces[t_sq] == Bishop)
-				return 1;
-			return 0;
-		}
-		t_sq += dir;
-	}
-	return 0;
+    while (!SQOFFBOARD(t_sq)) {
+        if (pos->pieces[t_sq] != EMPTY ) {
+            if (pos->pieces[t_sq] == Bishop)
+                return 1;
+            return 0;
+        }
+        t_sq += dir;
+    }
+    return 0;
 }
 
 int badCapture(int move, const S_BOARD *pos) {
 
     const int THEM = !pos->side;
 
-	int from = FROMSQ(move);
+    int from = FROMSQ(move);
     int to = TOSQ(move);
     int captured = CAPTURED(move);
 
@@ -110,21 +110,21 @@ int badCapture(int move, const S_BOARD *pos) {
     if (PieceValue[EG][captured] >= PieceValue[EG][pos->pieces[from]] - 30) return 0;
 
     if (   pos->pawn_ctrl[THEM][to]
-	    && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
+        && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
         return 1;
 
     if (PieceValue[EG][captured] + 500 < PieceValue[EG][pos->pieces[from]]) {
-	
-    	if (pos->pceNum[Knight])
-			if (KnightAttack(THEM, to, pos)) return 1;
+    
+        if (pos->pceNum[Knight])
+            if (KnightAttack(THEM, to, pos)) return 1;
 
-		if (pos->pceNum[Bishop]) {
-			if (BishopAttack(THEM, to, NE, pos)) return 1;
-			if (BishopAttack(THEM, to, NW, pos)) return 1;
-			if (BishopAttack(THEM, to, SE, pos)) return 1;
-			if (BishopAttack(THEM, to, SW, pos)) return 1;
-		}
-	}
+        if (pos->pceNum[Bishop]) {
+            if (BishopAttack(THEM, to, NE, pos)) return 1;
+            if (BishopAttack(THEM, to, NW, pos)) return 1;
+            if (BishopAttack(THEM, to, SE, pos)) return 1;
+            if (BishopAttack(THEM, to, SW, pos)) return 1;
+        }
+    }
 
     // If a capture is not processed, it cannot be considered bad
     return 0;
@@ -136,39 +136,39 @@ int move_canSimplify(int move, const S_BOARD *pos) {
 
     if (  (captured == wP || captured == bP)
         || pos->material[!pos->side] - PieceValue[EG][captured] > ENDGAME_MAT )
-    	return 0;
+        return 0;
     else
-    	return 1;
+        return 1;
 }
 
 int IsRepetition(const S_BOARD *pos) {
 
-	int index = 0;
+    int index = 0;
 
-	for(index = pos->hisPly - pos->fiftyMove; index < pos->hisPly-1; ++index) {
-		ASSERT(index >= 0 && index < MAXGAMEMOVES);
-		if(pos->posKey == pos->history[index].posKey) {
-			return 1;
-		}
-	}
-	return 0;
+    for(index = pos->hisPly - pos->fiftyMove; index < pos->hisPly-1; ++index) {
+        ASSERT(index >= 0 && index < MAXGAMEMOVES);
+        if(pos->posKey == pos->history[index].posKey) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
-	for (int index = 0; index < 13; index++)
-		for (int index2 = 0; index2 < BRD_SQ_NUM; index2++)
-			pos->searchHistory[index][index2] = 0;
-	
-	pos->ply = 0;
+    for (int index = 0; index < 13; index++)
+        for (int index2 = 0; index2 < BRD_SQ_NUM; index2++)
+            pos->searchHistory[index][index2] = 0;
+    
+    pos->ply = 0;
 
-	info->stop = 0;
-	info->nodes = 0;
-	info->fh = 0;
-	info->fhf = 0;
-	info->nullCut = 0;
-	info->probCut = 0;
-	info->previousTimeReduction = 1.0;
+    info->stop = 0;
+    info->nodes = 0;
+    info->fh = 0;
+    info->fhf = 0;
+    info->nullCut = 0;
+    info->probCut = 0;
+    info->previousTimeReduction = 1.0;
 }
 
 void initLMRTable() {
@@ -189,17 +189,17 @@ void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best) {
 
 void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best) {
 
-	double timeReduction = 1;
+    double timeReduction = 1;
 
-	// Return a book move if we have one
-	if (Options.PolyBook) {
-		int bookMove = GetBookMove(pos);
-		if (bookMove != NOMOVE) {
-			*best = bookMove; return;
-		}
-	}
+    // Return a book move if we have one
+    if (Options.PolyBook) {
+        int bookMove = GetBookMove(pos);
+        if (bookMove != NOMOVE) {
+            *best = bookMove; return;
+        }
+    }
 
-	ClearForSearch(pos, info);
+    ClearForSearch(pos, info);
 
     // Perform iterative deepening until exit conditions 
     for (info->depth = 1; info->depth <= MAX_PLY && !info->stop; info->depth++) {
@@ -207,9 +207,9 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
         // Perform a search for the current depth
         info->values[info->depth] = aspirationWindow(pos, info, best);
 
-		// Check for termination by any of the possible limits 
+        // Check for termination by any of the possible limits 
         if (   (limits->limitedBySelf  && TerminateTimeManagement(pos, info, &timeReduction))
-        	|| (limits->limitedBySelf  && elapsedTime(info) > info->maximumTime - 10)
+            || (limits->limitedBySelf  && elapsedTime(info) > info->maximumTime - 10)
             || (limits->limitedByTime  && elapsedTime(info) > limits->timeLimit)
             || (limits->limitedByDepth && info->depth >= limits->depthLimit))
             break;
@@ -235,20 +235,20 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
     int failedHighCnt = 0;
     while (1) {
 
-    	int adjustedDepth = MAX(1, info->depth - (failedHighCnt / 2));
+        int adjustedDepth = MAX(1, info->depth - (failedHighCnt / 2));
 
         // Perform a search on the window, return if inside the window
         value = search(alpha, beta, adjustedDepth, pos, info, pv, 0);
 
         if (info->stop)
-        	return value;
+            return value;
 
         if (   (value > alpha && value < beta)
             || (elapsedTime(info) >= WindowTimerMS && info->GAME_MODE == UCIMODE))
             uciReport(info, pos, alpha, beta, value);
 
         if (value > alpha && value < beta) {
-        	*best = pos->pv.line[0];
+            *best = pos->pv.line[0];
             return value;
         }
 
@@ -305,7 +305,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
             return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 
-        if (pos->ply > MAXDEPTH - 1)
+        if (pos->ply >= MAX_PLY)
             return EvalPosition(pos);
 
         rAlpha = alpha > -INFINITE + pos->ply     ? alpha : -INFINITE + pos->ply;
@@ -565,46 +565,46 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 
 int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
 
-	ASSERT(CheckBoard(pos));
-	ASSERT(beta>alpha);
+    ASSERT(CheckBoard(pos));
+    ASSERT(beta>alpha);
 
-	PVariation lpv;
-	pv->length = 0;
+    PVariation lpv;
+    pv->length = 0;
 
-	info->nodes++;
-	info->seldepth = MAX(info->seldepth, height);
+    info->nodes++;
+    info->seldepth = MAX(info->seldepth, height);
 
-	if ((info->nodes & 1023) == 1023)
-		CheckUp(info);
+    if ((info->nodes & 1023) == 1023)
+        CheckUp(info);
 
-	int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
+    int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
 
-	if (IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
-		return 0;
+    if (IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
+        return 0;
 
-	if (pos->ply > MAXDEPTH - 1)
-		return EvalPosition(pos);
+    if (pos->ply >= MAX_PLY)
+        return EvalPosition(pos);
 
-	const int PvNode = (alpha != beta - 1);
+    const int PvNode = (alpha != beta - 1);
 
-	int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-	int MoveNum = 0, played = 0;
-	int eval, value, best, oldAlpha = 0;
-	uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
+    int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
+    int MoveNum = 0, played = 0;
+    int eval, value, best, oldAlpha = 0;
+    uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
     if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
 
-    	ttValue = valueFromTT(ttValue, pos->ply);
+        ttValue = valueFromTT(ttValue, pos->ply);
 
         if (ttDepth >= QSDepth && !PvNode) {
 
-        	if (    ttBound == BOUND_EXACT
+            if (    ttBound == BOUND_EXACT
                 || (ttBound == BOUND_LOWER && ttValue >= beta)
                 || (ttBound == BOUND_UPPER && ttValue <= alpha)) {
-            	info->TTCut++;
-            	return ttValue;
+                info->TTCut++;
+                return ttValue;
             }     
         }
     }
@@ -627,38 +627,38 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     alpha = MAX(alpha, eval);
     if (alpha >= beta) return eval;
 
-	S_MOVELIST list[1];
+    S_MOVELIST list[1];
     GenerateAllCaps(pos,list);
 
-	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+    for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
 
-		PickNextMove(MoveNum, list);
+        PickNextMove(MoveNum, list);
 
-		//int captured = CAPTURED(list->moves[MoveNum].move);
+        //int captured = CAPTURED(list->moves[MoveNum].move);
 
-		/*if ( ( eval + PieceVal[ captured  ] + 200 < alpha ) 
-		&&   ( pos->material[!pos->side] - PieceVal[captured] > ENDGAME_MAT ) 
-		&&   ( PROMOTED(list->moves[MoveNum].move) == EMPTY ) )
+        /*if ( ( eval + PieceVal[ captured  ] + 200 < alpha ) 
+        &&   ( pos->material[!pos->side] - PieceVal[captured] > ENDGAME_MAT ) 
+        &&   ( PROMOTED(list->moves[MoveNum].move) == EMPTY ) )
             continue;*/
 
         if (   !move_canSimplify(list->moves[MoveNum].move, pos)
-        	&& PROMOTED(list->moves[MoveNum].move) == EMPTY
+            && PROMOTED(list->moves[MoveNum].move) == EMPTY
             && badCapture(list->moves[MoveNum].move, pos))
             continue;
 
         if ( !MakeMove(pos,list->moves[MoveNum].move))
             continue;
 
-		played +=1;
-		info->currentMove[height] = list->moves[MoveNum].move;
+        played +=1;
+        info->currentMove[height] = list->moves[MoveNum].move;
 
-		value = -qsearch( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
+        value = -qsearch( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
         TakeMove(pos);
 
-		if (info->stop)
-			return 0;
+        if (info->stop)
+            return 0;
 
-		// Improved current value
+        // Improved current value
         if (value > best) {
             best = value;
 
@@ -674,17 +674,13 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
                 if (PvNode && value < beta)
                     alpha = value;
-                else
+                else {
+                    if (played == 1)
+                        info->fhf++;
+                    info->fh++;
                     break;
+                }
             }
-        }
-
-        // Search has failed high
-        if (alpha >= beta) {
-        	if(played==1)
-				info->fhf++;
-			info->fh++;
-            return best;
         }
     }
 
@@ -692,5 +688,5 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
             : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
     storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, QSDepth, ttBound);
 
-	return best;
+    return best;
 }

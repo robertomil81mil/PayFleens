@@ -51,7 +51,6 @@ enum {
 };
 
 enum {
-	MAXDEPTH = 64, 
 	MAX_PLY = 128,
 	KNOWN_WIN = 10000,
     INFINITE = 32000,
