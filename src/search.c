@@ -682,14 +682,6 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
                 }
             }
         }
-
-        // Search has failed high
-        if (alpha >= beta) {
-            if(played==1)
-                info->fhf++;
-            info->fh++;
-            return best;
-        }
     }
 
     ttBound = best >= beta              ? BOUND_LOWER
