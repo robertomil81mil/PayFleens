@@ -67,13 +67,11 @@ void PickNextMove(int moveNum, S_MOVELIST *list) {
 }
 
 int KnightAttack(int side, int sq, const S_BOARD *pos) {
-    int t_sq, dir;
-    int Knight = side == WHITE ? wN : bN;
+    int Knight = side == WHITE ? wN : bN, t_sq;
 
-    for(int index = 0; index < 8; ++index) {
-        dir = PceDir[wN][index];
-        t_sq = sq + dir;
-        if(!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
+    for (int index = 0; index < 8; ++index) {
+        t_sq = sq + PceDir[wN][index];
+        if (!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
             return 1;
     }
     return 0;
@@ -96,6 +94,8 @@ int BishopAttack(int side, int sq, int dir, const S_BOARD *pos) {
 
 int badCapture(int move, const S_BOARD *pos) {
 
+    const int THEM = !pos->side;
+
     int from = FROMSQ(move);
     int to = TOSQ(move);
     int captured = CAPTURED(move);
@@ -109,20 +109,20 @@ int badCapture(int move, const S_BOARD *pos) {
     // Captures "lower takes higher" (as well as BxN) are good by definition
     if (PieceValue[EG][captured] >= PieceValue[EG][pos->pieces[from]] - 30) return 0;
 
-    if (   pos->pawn_ctrl[pos->side ^ 1][to]
+    if (   pos->pawn_ctrl[THEM][to]
         && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
         return 1;
 
     if (PieceValue[EG][captured] + 500 < PieceValue[EG][pos->pieces[from]]) {
     
         if (pos->pceNum[Knight])
-            if (KnightAttack(pos->side ^ 1, to, pos)) return 1;
+            if (KnightAttack(THEM, to, pos)) return 1;
 
         if (pos->pceNum[Bishop]) {
-            if (BishopAttack(pos->side ^ 1, to, NE, pos)) return 1;
-            if (BishopAttack(pos->side ^ 1, to, NW, pos)) return 1;
-            if (BishopAttack(pos->side ^ 1, to, SE, pos)) return 1;
-            if (BishopAttack(pos->side ^ 1, to, SW, pos)) return 1;
+            if (BishopAttack(THEM, to, NE, pos)) return 1;
+            if (BishopAttack(THEM, to, NW, pos)) return 1;
+            if (BishopAttack(THEM, to, SE, pos)) return 1;
+            if (BishopAttack(THEM, to, SW, pos)) return 1;
         }
     }
 
@@ -278,7 +278,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     PVariation lpv;
     pv->length = 0;
 
-    int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
+    int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
 
     if(depth <= 0 && !InCheck)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
@@ -577,7 +577,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     if ((info->nodes & 1023) == 1023)
         CheckUp(info);
 
-    int InCheck = SqAttacked(pos->KingSq[pos->side],pos->side^1,pos);
+    int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
 
     if (IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
         return 0;
