@@ -56,6 +56,25 @@ void InitMvvLva() {
 	}
 }
 
+int LegalMoveExist(S_BOARD *pos) {
+
+	S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
+
+    int played = 0;
+	for(int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+
+        if (!MakeMove(pos,list->moves[MoveNum].move))
+            continue;
+        played += 1;
+
+        TakeMove(pos);
+		if (played >= 1)
+			return 1;
+    }
+	return 0;
+}
+
 int MoveExists(S_BOARD *pos, const int move) {
 
 	S_MOVELIST list[1];
@@ -606,8 +625,8 @@ void setSquaresNearKing() {
         }
 }
 
-U64 KingAreaMasks[BOTH][64];
-U64 PawnAttacks[BOTH][64];
+U64 KingAreaMasks[COLOUR_NB][64];
+U64 PawnAttacks[COLOUR_NB][64];
 
 void KingAreaMask() {
 	int sq;

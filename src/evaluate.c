@@ -27,6 +27,7 @@
 #include "endgame.h"
 #include "evaluate.h"
 
+EvalTrace T, EmptyTrace;
 evalInfo ei;
 evalData e;
 
@@ -124,129 +125,238 @@ int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
 #define S(mg, eg) (makeScore((mg), (eg)))
 
-int PieceValPhases[13] = { S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), 
-                           S( 0, 0), S( 70, 118), S( 433, 479), S( 459, 508), S( 714, 763), S(1401,1488), S( 0, 0)  };
+/* Material Value Evaluation Terms */
+
+const int PawnValue   = S(  67, 119);
+const int KnightValue = S( 421, 446);
+const int BishopValue = S( 448, 493);
+const int RookValue   = S( 707, 750);
+const int QueenValue  = S(1393,1469);
+const int KingValue   = S(   0,   0);
+
+int PieceValPhases[13] = { KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, 
+                           KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue };
+
+/* Piece Square Evaluation Terms */
 
 const int PawnPSQT32[32] = {
     S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
-    S(   0, -13), S(   4,  -5), S(  13,   7), S(  16,   6),
-    S( -14,  -6), S(  -4,  -7), S(  15,  -3), S(  22,   3),
-    S(  -9,  -1), S(  -8,  -5), S(  10,  -9), S(  28,  -7),
-    S(   8,   7), S(  -6,   7), S(  -7,  -1), S(   5, -11),
-    S( -10,  19), S( -12,  12), S(  -5,  13), S(   6,  27),
-    S(  -7,   3), S(   7,  -3), S(  -8,  14), S(  -3,  21),
+    S(  -7,   0), S(   1,   2), S(  -3,   9), S(  11,   4),
+    S( -13,  -2), S( -10,   2), S(   3,  -3), S(  11,   0),
+    S(  -4,   5), S(   1,   3), S(  19, -11), S(  30, -17),
+    S(  12,  11), S(   3,   7), S(   3,  -6), S(  17, -23),
+    S(   0,  27), S( -12,  20), S(  -5,  10), S(  -2,   7),
+    S(  -9,   2), S(   6,  -3), S( -11,   8), S(  -4,  17),
     S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
 };
 
 const int KnightPSQT32[32] = {
-    S( -82, -45), S( -43, -30), S( -34, -23), S( -34,  -9),
-    S( -36, -31), S( -19, -25), S( -12,  -8), S(  -7,   3),
-    S( -28, -18), S(  -7, -12), S(   2,  -3), S(   5,  13),
-    S( -16, -16), S(   3,   0), S(  18,   6), S(  23,  13),
-    S( -15, -21), S(   6,  -7), S(  20,   4), S(  23,  18),
-    S(  -4, -23), S(  10, -20), S(  27,  -7), S(  24,   7),
-    S( -31, -32), S( -12, -23), S(   1, -23), S(  17,   5),
-    S( -94, -46), S( -38, -41), S( -26, -26), S( -12,  -7),
+    S( -84, -47), S( -35, -43), S( -40, -26), S( -34, -11),
+    S( -36, -36), S( -24, -28), S( -18, -16), S(  -4,  -3),
+    S( -33, -20), S(  -6, -16), S(   0,  -6), S(  10,  14),
+    S( -22, -15), S(   4,  -2), S(  16,   9), S(  20,  18),
+    S( -16, -20), S(   2,  -5), S(  22,   7), S(  30,  23),
+    S(  -5, -27), S(  14, -21), S(  32,  -3), S(  25,  11),
+    S( -33, -34), S( -14, -22), S(   3, -23), S(  17,   9),
+    S( -98, -50), S( -38, -42), S( -26, -27), S( -12,  -8),
 };
 
 const int BishopPSQT32[32] = {
-    S( -24, -26), S(  -2, -14), S(  -3, -17), S( -10,  -5),
-    S(  -7, -17), S(   3,  -6), S(   8,  -7), S(   1,   0),
-    S(  -3,  -7), S(   9,   0), S(  -2,   0), S(   7,   4),
-    S(  -2,  -9), S(   5,  -2), S(  11,   0), S(  18,   7),
-    S(  -5,  -7), S(  13,   0), S(  10,  -6), S(  14,   7),
-    S(  -7, -14), S(   2,   2), S(   0,   1), S(   5,   2),
-    S(  -7, -14), S(  -6,  -9), S(   2,   0), S(   0,   0),
-    S( -22, -21), S(   0, -19), S(  -6, -17), S( -10, -11),
+    S( -28, -29), S(  -1, -12), S(  -9, -18), S( -13,  -3),
+    S(  -7, -20), S(  16, -15), S(   6, -11), S(  -1,   1),
+    S(  -7, -10), S(   7,  -5), S(   3,  -1), S(   4,   8),
+    S(  -5, -13), S(   3,  -6), S(   8,  -2), S(  21,   7),
+    S(  -2,  -5), S(   7,  -1), S(  10,  -5), S(  19,  10),
+    S(  -5,  -9), S(   3,   2), S(   1,   4), S(   3,   1),
+    S(  -7, -12), S(  -5,  -5), S(   0,   1), S(   1,   1),
+    S( -23, -23), S(   1, -18), S(  -8, -20), S( -11, -11),
 };
 
 const int RookPSQT32[32] = {
-    S( -14,  -4), S(  -9,  -6), S(  -6,  -4), S(  -2,  -4),
-    S(  -9,  -5), S(  -6,  -4), S(  -3,   0), S(   2,   0),
-    S( -11,   2), S(  -5,  -3), S(   0,   0), S(   1,  -2),
-    S(  -6,  -2), S(  -2,   0), S(  -1,  -4), S(  -2,   3),
-    S( -12,  -2), S(  -7,   3), S(  -1,   3), S(   1,  -2),
-    S( -10,   2), S(   0,   0), S(   2,  -3), S(   5,   4),
-    S(   0,   1), S(   5,   2), S(   7,   9), S(   8,  -2),
-    S(  -7,   8), S(  -8,   0), S(   0,   8), S(   4,   6),
+    S( -19,  -1), S(  -4,  -4), S(  12,  -9), S(  15, -12),
+    S( -31,  -6), S(  -7,  -9), S(  -7,  -2), S(   4,  -4),
+    S( -21,  -1), S(  -9,  -5), S(   0,  -5), S(  -2,  -8),
+    S( -17,  -5), S(  -2,   0), S(   0,  -4), S(  -4,   4),
+    S( -14,  -1), S(  -9,   0), S(   2,   9), S(   8,   2),
+    S( -10,   2), S(   4,   2), S(   1,  -2), S(   6,   8),
+    S(  -2,  -1), S(   3,   2), S(   8,  10), S(  11,  -3),
+    S(  -7,   8), S(  -7,   2), S(   0,  13), S(   6,  11),
 };
 
 const int QueenPSQT32[32] = {
-    S(   1, -32), S(  -2, -26), S(  -2, -22), S(   1, -12),
-    S(  -1, -25), S(   2, -14), S(   3, -10), S(   5,  -1),
-    S(  -1, -18), S(   2,  -8), S(   6,  -4), S(   3,   1),
-    S(   1, -10), S(   2,  -1), S(   4,   6), S(   3,  11),
-    S(   0, -13), S(   6,  -2), S(   5,   4), S(   2,   9),
-    S(  -1, -17), S(   4,  -8), S(   2,  -5), S(   3,   0),
-    S(  -2, -23), S(   2, -12), S(   4, -11), S(   3,  -3),
-    S(   0, -35), S(   0, -24), S(   0, -20), S(   0, -16),
+    S(  -1, -33), S(   2, -26), S(   1, -24), S(  10, -12),
+    S(  -4, -26), S(   1, -14), S(  12, -12), S(  13,  -3),
+    S(   2, -17), S(   8, -12), S(   9,  -2), S(   8,   3),
+    S(   4, -10), S(   0,   0), S(   4,   7), S(   1,  13),
+    S(  -2, -13), S(  -2,  -1), S(   0,   5), S(   1,  12),
+    S(   5, -17), S(   4,  -9), S(   1,  -5), S(   1,   0),
+    S(  -7, -26), S( -18, -14), S(   0, -14), S(   0,  -4),
+    S(  -4, -38), S(  -1, -26), S(   0, -20), S(  -2, -20),
 };
 
 const int KingPSQT32[32] = {
-    S( 127,   0), S( 153,  21), S( 126,  39), S(  90,  35),
-    S( 130,  24), S( 142,  46), S( 107,  62), S(  81,  63),
-    S(  91,  41), S( 121,  61), S(  79,  79), S(  56,  82),
-    S(  76,  48), S(  89,  73), S(  64,  80), S(  46,  80),
-    S(  72,  45), S(  84,  77), S(  49,  93), S(  32,  93),
-    S(  57,  43), S(  68,  80), S(  38,  86), S(  14,  89),
-    S(  41,  22), S(  56,  56), S(  30,  54), S(  15,  61),
-    S(  27,   5), S(  41,  27), S(  21,  34), S(   0,  36),
+    S( 136, -13), S( 163,  12), S( 115,  36), S(  72,  31),
+    S( 138,  16), S( 143,  46), S(  98,  63), S(  79,  61),
+    S(  88,  40), S( 120,  66), S(  79,  81), S(  57,  85),
+    S(  74,  48), S(  90,  78), S(  67,  85), S(  47,  82),
+    S(  72,  48), S(  87,  89), S(  52, 101), S(  34,  95),
+    S(  58,  43), S(  71,  88), S(  40,  92), S(  16,  87),
+    S(  41,  20), S(  55,  52), S(  30,  53), S(  15,  59),
+    S(  26,   2), S(  41,  24), S(  21,  33), S(  -1,  33),
 };
+
+/* Imbalance Evaluation Terms */
+
+const int QuadraticOurs[6][6] = {
+   {S( 798, 800), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(  18,  22), S(  20,  25), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(  16,  14), S( 148, 147), S( -35, -41), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(   3,   8), S(  71,  60), S(   3,   4), S(  -7,  -6), S(   0,   0), S(   0,   0)},
+   {S(  -8, -12), S(  -2,  21), S(  22,   3), S(  61,  37), S(-112,-146), S(   0,   0)},
+   {S(-104,-103), S(  12,  35), S(  45,  57), S(  60,  68), S( -86, -91), S( -13, -23)},
+};
+
+const int QuadraticTheirs[6][6] = {
+   {S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(  15,  14), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(   2,   3), S(  42,  46), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(  37,  32), S(  36,  52), S(  22,  10), S(   0,   0), S(   0,   0), S(   0,   0)},
+   {S(  25,  21), S(  18,  50), S(  15,  31), S( -10,   6), S(   0,   0), S(   0,   0)},
+   {S(  51,  54), S(  69,  74), S(  -5, -17), S(  87,  82), S( 144, 148), S(   0,   0)},
+};
+
+/* Pawn Evaluation Terms */
+
+const int PawnDoubled = S(   7, -51);
+
+const int PawnIsolated[2] = { S(  -4,  -7), S( -11, -32) };
+
+const int PawnBackward[2] = { S(   1,  -3), S( -17, -20) };
+
+const int PawnPassed[RANK_NB] = {
+    S(   0,   0), S(   6,  23), S(  11,  26), S(   4,  32),
+    S(  31,  73), S( 139, 171), S( 269, 279), S(   0,   0),
+};
+
+const int PawnPassedConnected[RANK_NB] = {
+    S(   0,   0), S(   6,   0), S(   0,   0), S(  -2,   9),
+    S(   8,  21), S(  41,  43), S(  85,  84), S(   0,   0),
+};
+
+const int PawnConnected[RANK_NB] = {
+    S(   0,   0), S(   9,   6), S(  15,   8), S(  17,  13),
+    S(  35,  31), S(  45,  52), S(  84,  82), S(   0,   0),
+};
+
+const int PawnSupport = S(  30,  19);
+
+const int KP_1 = S(   0,   5);
+const int KP_2 = S(   0,  -3);
+const int KP_3 = S(   0,  -1);
+
+const int Connected[8] = { 0, 9, 15, 17, 35, 45, 84, 0};
+
+/* Knight Evaluation Terms */
+
+const int KnightOutpost[2] = { S(  16, -21), S(  36,   5) };
+
+const int KnightTropism = S(   4,   2);
+
+const int KnightDefender = S( -10,  -7);
 
 const int KnightMobility[9] = {
-    S( -16, -16), S( -12, -12), S(  -8,  -8), S(  -4,  -4),
-    S(   0,   0), S(   4,   4), S(   8,   8), S(  12,  12),
-    S(  16,  16),
+    S( -33, -22), S( -24, -23), S( -14, -20), S(  -9,  -8),
+    S(   1,   0), S(   7,   8), S(  16,   9), S(  22,  12),
+    S(  21,  10),
 };
+
+/* Bishop Evaluation Terms */
+
+const int BishopOutpost[2] = { S(  13,  -8), S(  33,   1) };
+
+const int BishopTropism = S(   1,   1);
+
+const int BishopRammedPawns = S(  -3,  -7);
+
+const int BishopDefender = S( -10,  -7);
 
 const int BishopMobility[14] = {
-    S( -18, -18), S( -15, -15), S( -12, -12), S(  -9,  -9),
-    S(  -6,  -6), S(  -3,  -3), S(   0,   0), S(   3,   3),
-    S(   6,   6), S(   9,   9), S(  12,  12), S(  15,  15),
-    S(  18,  18), S(  21,  21),
+    S( -30, -21), S( -17, -16), S(  -5, -11), S(  -2,  -6),
+    S( -15, -12), S(  -7,  -7), S(  -1,  -3), S(   2,   2),
+    S(   3,   7), S(   8,  10), S(  18,  10), S(  19,  16),
+    S(  18,  17), S(  20,  20),
 };
+
+/* Rook Evaluation Terms */
+
+const int RookOpen = S(  30,  11);
+
+const int RookSemi = S(  13,   5);
+
+const int RookOnSeventh = S(  10,  26);
+
+const int RookTropism = S(   3,   0);
 
 const int RookMobility[15] = {
-    S( -12, -24), S( -10, -20), S(  -8, -16), S(  -6, -12),
-    S(  -4,  -8), S(  -2,  -4), S(   0,   0), S(   2,   4),
-    S(   4,   8), S(   6,  12), S(   8,  16), S(  10,  20),
-    S(  12,  24), S(  14,  28), S(  16,  32),
+    S( -32, -38), S( -21, -36), S( -18, -20), S( -11, -23),
+    S( -10, -13), S(  -6,  -3), S(  -2,   2), S(   4,   3),
+    S(   9,  10), S(  12,  15), S(  14,  21), S(  18,  27),
+    S(  23,  30), S(  20,  35), S(  24,  38),
 };
+
+/* Queen Evaluation Terms */
+
+const int QueenPreDeveloped = S(  -9,  -6);
+
+const int QueenTropism = S(   5,   2);
 
 const int QueenMobility[28] = {
-    S( -12, -24), S( -11, -22), S( -10, -20), S(  -9, -18),
-    S(  -8, -16), S(  -7, -14), S(  -6, -12), S(  -5, -10),
-    S(  -4,  -8), S(  -3,  -6), S(  -2,  -4), S(  -1,  -2),
-    S(   0,   0), S(   1,   2), S(   2,   4), S(   3,   6),
-    S(   4,   8), S(   5,  10), S(   6,  12), S(   7,  14),
-    S(   8,  16), S(   9,  18), S(  10,  20), S(  11,  22),
-    S(  12,  24), S(  13,  26), S(  14,  28), S(  15,  30),
+    S( -26, -24), S( -26, -23), S( -21, -21), S( -19, -19),
+    S( -12, -20), S(  -7, -19), S(  -8, -15), S(  -5, -14),
+    S(  -2, -14), S(   1,  -9), S(   2,  -5), S(   5,  -2),
+    S(   2,   1), S(   7,   2), S(   6,   7), S(   8,   9),
+    S(   7,  12), S(  10,  11), S(  11,  16), S(  10,  17),
+    S(   9,  16), S(  10,  16), S(   9,  18), S(  11,  21),
+    S(  11,  22), S(  13,  27), S(  14,  28), S(  15,  30),
 };
 
-const int PawnBackward[2] = { S(   7,   0), S(  -7, -19) };
-const int PawnDoubled = S(  11,  56);
-const int PawnIsolated = S(   5,  15);
-const int WeakUnopposed = S(  13,  27);
-const int BlockedStorm  = S(  20,  20);
-const int PawnPassed[8] = { 
-    S(   0,   0), S(  10,  28), S(  17,  33), S(  15,  41),
-    S(  62,  82), S( 168, 177), S( 276, 290), S(   0,   0),
+/* King Evaluation Terms */
+
+const int ShelterStrength[FILE_NB/2][RANK_NB] = {
+   {S( -10,   5), S(  24, -14), S(  29,  -6), S(   9,   0),
+    S(   8,  -2), S(   5,  -2), S(   5,   0), S(   0,   0)},
+   {S( -23,   2), S(  35,  -7), S(  21,  -4), S( -14,   2),
+    S( -13,   3), S(  -3,   1), S( -16,   0), S(   0,   0)},
+   {S( -11,  -3), S(  35,  -4), S(   1,   4), S(  -6,   1),
+    S(   1,  -1), S(   3,  -2), S( -10,  -2), S(   0,   0)},
+   {S( -22,   1), S(  -1,  -2), S( -12,   2), S( -16,   6),
+    S(  -8,   1), S( -18,  -2), S( -40,   1), S(   0,   0)},
 };
-const int PawnPassedConnected[8] = { 
-    S(   0,   0), S(   7,   7), S(   8,   8), S(  12,  12),
-    S(  29,  29), S(  48,  48), S(  86,  86), S(   0,   0),
+
+const int UnblockedStorm[FILE_NB/2][RANK_NB] = {
+   {S( -31,  -1), S(  72,   0), S(  51,   2), S( -19,   3),
+    S( -12,   2), S(  -5,  -7), S( -12,  -3), S(   0,   0)},
+   {S(  -5,  -1), S(   4,   1), S( -28,  -2), S( -12,   9),
+    S(  -5,   8), S(   9,   0), S(  -1,  -2), S(   0,   0)},
+   {S(   5,   0), S( -13,   1), S( -40,   6), S(  -9,   6),
+    S(   0,   5), S(   4,   2), S(   0,   2), S(   0,   0)},
+   {S(   2,   8), S(   2,   0), S( -21,  -2), S(  -6,   4),
+    S(  -2,   3), S(   4,   6), S(   3,   1), S(   0,   0)},
 };
-const int Connected[8] = { 0, 7, 8, 12, 29, 48, 86, 0};
 
-const int KnightOutpost[2] = { S(   4, -16), S(  19,  -2) };
-const int BishopOutpost[2] = { S(   6,  -7), S(  25,   0) };
+const int BlockedStorm = S( -40, -26);
 
-const int RookOpen = S(  22,  11);
-const int RookSemi = S(  10,   3);
-const int RookSeventh = S(   8,  16);
+const int KingPawnLessFlank = S( -15, -49);
 
-const int QueenPreDeveloped = S(  -2,  -2);
-const int PawnLessFlank = S(  -8, -44);
+/* Complexity Evaluation Terms */
+
+const int ComplexityPassedPawns = S(   0,   6);
+const int ComplexityTotalPawns  = S(   0,  10);
+const int ComplexityOutflanking = S(   0,   7);
+const int ComplexityPawnFlanks  = S(   0,  35);
+const int ComplexityPawnEndgame = S(   0,   7);
+const int ComplexityUnwinnable  = S(   0, -13);
+const int ComplexityAdjustment  = S(   0, -92);
 
 #undef S
 
@@ -259,6 +369,9 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
+
+    if (TRACE) T.PawnValue[side]++;
+    if (TRACE) T.PawnPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
 
     for (int index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
@@ -285,36 +398,43 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     if (pos->pieces[sq+Su] == pce) {
         //printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
-        score -= PawnDoubled;
+        score += PawnDoubled;
+        if (TRACE) T.PawnDoubled[side]++;
     }
     if (pos->pieces[sq+Su*2] == pce) {
         //printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
-        score -= PawnDoubled;
+        score += PawnDoubled;
+        if (TRACE) T.PawnDoubled[side]++;
     }
     if (pos->pieces[sq+Su*3] == pce) {
         //printf("%c Dou:%s\n",PceChar[pce], PrSq(sq));
-        score -= PawnDoubled;
+        score += PawnDoubled;
+        if (TRACE) T.PawnDoubled[side]++;
     }
-
+    
     if (!(IsolatedMask[SQ64(sq)] & pos->pawns[side])) {
         //printf("%c Iso:%s\n",PceChar[pce], PrSq(sq));
-        score -= PawnIsolated + WeakUnopposed * !opposed;
+        score += PawnIsolated[!opposed];
+        if (TRACE) T.PawnIsolated[!opposed][side]++;
     }
 
     if ( !(PassedPawnMasks[side^1][SQ64(sq)] & pos->pawns[side])
         && pos->pawn_ctrl[side^1][sq + Up]) {
         //printf("%c BackW:%s\n",PceChar[pce], PrSq(sq));
         score += PawnBackward[!opposed];
+        if (TRACE) T.PawnBackward[!opposed][side]++;
     }
 
     if (!(PassedPawnMasks[side][SQ64(sq)] & pos->pawns[side^1])) {
         //printf("%c Passed:%s\n",PceChar[pce], PrSq(sq));
         ei.passedCnt++;
         score += PawnPassed[R];
+        if (TRACE) T.PawnPassed[R][side]++;
 
         if (support || pawnbrothers) {
             //printf("%c PassedConnected:%s\n",PceChar[pce], PrSq(sq));
             score += PawnPassedConnected[R];
+            if (TRACE) T.PawnPassedConnected[R][side]++;
         }
 
         if (R > RANK_3) {
@@ -323,25 +443,30 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
             w = 5 * R - 13;
 
             bonus = ((  king_proximity(side^1, blockSq, pos) * 5
-                      - king_proximity(side,   blockSq, pos) * 2) * w);
+                      - king_proximity(side,   blockSq, pos) * 3) * w);
+
+            if (TRACE) T.KP_1[side] += (w * king_proximity(side^1, blockSq, pos));
+            if (TRACE) T.KP_2[side] += (w * king_proximity(side,   blockSq, pos));
             
             if (R != RANK_7) {
                 bonus -= ( king_proximity(side, blockSq + Up, pos) * w);
+                if (TRACE) T.KP_3[side] += (w * king_proximity(side, blockSq + Up, pos));
             }
 
             bonus = (bonus * 100) / 410;
             score += makeScore(0, bonus);
         }
-        /*if (!PassedPawnMasks[side][SQ64(sq + Up)
-        || (pos->pawns[BOTH] & (SQ64(sq + Up)))) {
-            bonus = bonus / 2;
-        }*/  
     }
 
     if (support || pawnbrothers) {
         int i =  Connected[R] * (2 + (bool)(pawnbrothers) - (bool)(opposed))
-                + 21 * support;
+                + 30 * support;
+
         i = (i * 100) / 1220;
+
+        if (TRACE) T.PawnConnected[R][side] += (2 + (bool)(pawnbrothers) - (bool)(opposed));
+        if (TRACE) T.PawnSupport[side] += support;
+        
         //printf("supportCount %d v %d v eg %d R %d\n",support, i, i * (R - 2) / 4, R);
         score += makeScore(i, i * (R - 2) / 4);
     }
@@ -360,6 +485,8 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 
     R = relativeRank(side, SQ64(sq));
+    if (TRACE) T.KnightValue[side]++;
+    if (TRACE) T.KnightPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
 
     if ((   R == RANK_4 
          || R == RANK_5
@@ -369,18 +496,22 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
 
         defended = (pos->pawn_ctrl[side][sq]);
         score += KnightOutpost[defended];
+        if (TRACE) T.KnightOutpost[defended][side]++;
     }
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
-    score += makeScore(3 * tropism, 3 * tropism);
+    score += tropism * KnightTropism;
+    if (TRACE) T.KnightTropism[side] += tropism;
 
     mobility = NonSlideMob(pos, side, pce, sq);
     ei.Mob[side] += KnightMobility[mobility];
+    if (TRACE) T.KnightMobility[mobility][side]++;
 
     Count = distanceBetween(sq, pos->KingSq[side]);
-    P1 = (7 * Count) * 100 / 410;
-    P2 = (8 * Count) * 100 / 410;
+    P1 = (10 * Count) * 100 / 410;
+    P2 = ( 7 * Count) * 100 / 410;
     score += makeScore(-P1, -P2);
+    if (TRACE) T.KnightDefender[side] += Count;
 
     //ei.knights[side] += score;
 
@@ -397,6 +528,8 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 
     R = relativeRank(side, SQ64(sq));
+    if (TRACE) T.BishopValue[side]++;
+    if (TRACE) T.BishopPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
 
     if ((   R == RANK_4 
          || R == RANK_5
@@ -406,27 +539,31 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
 
         defended = (pos->pawn_ctrl[side][sq]);
         score += BishopOutpost[defended];
+        if (TRACE) T.BishopOutpost[defended][side]++;
     }
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
-    score += makeScore(2 * tropism, 1 * tropism);
+    score += tropism * BishopTropism;
+    if (TRACE) T.BishopTropism[side] += tropism;
 
     mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += BishopMobility[mobility];
+    if (TRACE) T.BishopMobility[mobility][side]++;
 
     if (mobility <= 3) {
 
         Count = pawns_on_same_color_squares(pos,side,sq);
         P1 = (3 * Count) * 100 / 310;
         P2 = (7 * Count) * 100 / 310;
-
         score += makeScore(-P1, -P2);
+        if (TRACE) T.BishopRammedPawns[side] += Count;
     } 
 
     Count = distanceBetween(sq, pos->KingSq[side]);
-    P1 = (7 * Count) * 100 / 410;
-    P2 = (8 * Count) * 100 / 410;
+    P1 = (10 * Count) * 100 / 410;
+    P2 = ( 7 * Count) * 100 / 410;
     score += makeScore(-P1, -P2);
+    if (TRACE) T.BishopDefender[side] += Count;
   
     //ei.bishops[side] += score;
 
@@ -441,24 +578,32 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 
+    if (TRACE) T.RookValue[side]++;
+    if (TRACE) T.RookPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
+
     R  = relativeRank(side, SQ64(sq));
     KR = relativeRank(side, SQ64(pos->KingSq[side^1]));
 
-    if (!(pos->pawns[BOTH] & FileBBMask[FilesBrd[sq]])) {
+    if (!(pos->pawns[COLOUR_NB] & FileBBMask[FilesBrd[sq]])) {
         score += RookOpen;
+        if (TRACE) T.RookOpen[side]++;
     }
     if (!(pos->pawns[side] & FileBBMask[FilesBrd[sq]])) {
         score += RookSemi;
+        if (TRACE) T.RookSemi[side]++;
     }
     if ((R == RANK_7 && KR == RANK_8)) {
-        score += RookSeventh;
+        score += RookOnSeventh;
+        if (TRACE) T.RookOnSeventh[side]++;
     }
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
-    score += makeScore(2 * tropism, 1 * tropism);
+    score += tropism * RookTropism;
+    if (TRACE) T.RookTropism[side] += tropism;
 
     mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += RookMobility[mobility];
+    if (TRACE) T.RookMobility[mobility][side]++;
 
     //ei.rooks[side] += score;
 
@@ -476,30 +621,39 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     ASSERT(SqOnBoard(sq));
     ASSERT(SQ64(sq)>=0 && SQ64(sq)<=63);
 
+    if (TRACE) T.QueenValue[side]++;
+    if (TRACE) T.QueenPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
+
     if (relativeRank(side, SQ64(sq)) > RANK_2) {
         if (isPiece(Knight, relativeSquare(side, B1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
+            if (TRACE) T.QueenPreDeveloped[side]++;
         }
         if (isPiece(Bishop, relativeSquare(side, C1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
+            if (TRACE) T.QueenPreDeveloped[side]++;
         }
         if (isPiece(Bishop, relativeSquare(side, F1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
+            if (TRACE) T.QueenPreDeveloped[side]++;
         }
         if (isPiece(Knight, relativeSquare(side, G1), pos)) {
             //printf("%c QueenPreDeveloped:%s\n",PceChar[pce], PrSq(sq));
             score += QueenPreDeveloped;
+            if (TRACE) T.QueenPreDeveloped[side]++;
         }
     }
 
     tropism = getTropism(sq, pos->KingSq[side^1]);
-    score += makeScore(2 * tropism, 4 * tropism);
+    score += tropism * QueenTropism;
+    if (TRACE) T.QueenTropism[side] += tropism;
 
     mobility = SlideMob(pos, side, pce, sq);
     ei.Mob[side] += QueenMobility[mobility];
+    if (TRACE) T.QueenMobility[mobility][side]++;
 
     //ei.queens[side] += score;
 
@@ -522,12 +676,15 @@ int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
 
         d = map_to_queenside(file);
         score  = makeScore(1, 1);
-        score += makeScore((ShelterStrength[d][ourRank] * 100) / 410, 0);
+        score += ShelterStrength[d][ourRank];
+        if (TRACE) T.ShelterStrength[d][ourRank][side]++;
 
         if (ourRank && (ourRank == theirRank - 1)) {
-            score -= BlockedStorm * (int)(theirRank == RANK_3);
+            score += BlockedStorm * (int)(theirRank == RANK_3);
+            if (TRACE) T.BlockedStorm[side] += (int)(theirRank == RANK_3);
         } else {
-            score -= makeScore((UnblockedStorm[d][theirRank] * 100) / 410, 0);
+            score += UnblockedStorm[d][theirRank];
+            if (TRACE) T.UnblockedStorm[d][theirRank][side]++;
         }
     }
 
@@ -562,10 +719,13 @@ int evaluateKings(const S_BOARD *pos, int side) {
 
     int score = 0, count, enemyQueen;
 
+    if (TRACE) T.KingPSQT32[relativeSquare32(side, SQ64(pos->KingSq[side]))][side]++;
+
     enemyQueen = side == WHITE ? bQ : wQ;
 
-    if (!(pos->pawns[BOTH] & KingFlank[FilesBrd[pos->KingSq[side]]])) {
-        score += PawnLessFlank;
+    if (!(pos->pawns[COLOUR_NB] & KingFlank[FilesBrd[pos->KingSq[side]]])) {
+        score += KingPawnLessFlank;
+        if (TRACE) T.KingPawnLessFlank[side]++;
     }
 
     score += evaluateShelter(pos, side);
@@ -639,16 +799,16 @@ int evaluatePieces(const S_BOARD *pos) {
 
 int evaluateComplexity(const S_BOARD *pos, int score) {
 
-    int complexity, outflanking, pawnsOnBothFlanks, pawnEndgame, almostUnwinnable, mg, eg, u, v;
+    int complexity, outflanking, pawnsOnBothFlanks, pawnEndgame, almostUnwinnable, sign, eg, v;
 
-    mg = mgScore(score);
     eg = egScore(score);
+    sign = (eg > 0) - (eg < 0);
 
     outflanking =  distanceByFile(pos->KingSq[WHITE], pos->KingSq[BLACK])
                  - distanceByRank(pos->KingSq[WHITE], pos->KingSq[BLACK]);
 
-    pawnsOnBothFlanks =   (pos->pawns[BOTH] & KING_FLANK )
-                       && (pos->pawns[BOTH] & QUEEN_FLANK);
+    pawnsOnBothFlanks =   (pos->pawns[COLOUR_NB] & KING_FLANK )
+                       && (pos->pawns[COLOUR_NB] & QUEEN_FLANK);
 
     pawnEndgame = !(pos->pceNum[wN] && pos->pceNum[wB] && pos->pceNum[wR] && pos->pceNum[wQ]
                  && pos->pceNum[bN] && pos->pceNum[bB] && pos->pceNum[bR] && pos->pceNum[bQ]);
@@ -657,25 +817,32 @@ int evaluateComplexity(const S_BOARD *pos, int score) {
                       && !pawnsOnBothFlanks
                       &&  outflanking < 0;
 
-    complexity =   5 * ei.passedCnt
-                +  7 * popcount(pos->pawns[BOTH])
-                +  5 * outflanking
-                + 13 * pawnsOnBothFlanks
-                + 32 * pawnEndgame
-                - 27 * almostUnwinnable
-                - 60 ;
+    complexity =  ComplexityPassedPawns * ei.passedCnt
+                + ComplexityTotalPawns  * popcount(pos->pawns[COLOUR_NB])
+                + ComplexityOutflanking * outflanking
+                + ComplexityPawnFlanks  * pawnsOnBothFlanks
+                + ComplexityPawnEndgame * pawnEndgame
+                + ComplexityUnwinnable  * almostUnwinnable
+                + ComplexityAdjustment  ;
 
-    u = ((mg > 0) - (mg < 0)) * MAX(MIN(complexity + 50, 0), -abs(mg));
-    v = ((eg > 0) - (eg < 0)) * MAX(complexity, -abs(eg));
+    if (TRACE) T.ComplexityPassedPawns[WHITE] += sign * ei.passedCnt;
+    if (TRACE) T.ComplexityTotalPawns[WHITE]  += sign * popcount(pos->pawns[COLOUR_NB]);
+    if (TRACE) T.ComplexityOutflanking[WHITE] += sign * outflanking;
+    if (TRACE) T.ComplexityPawnFlanks[WHITE]  += sign * pawnsOnBothFlanks;
+    if (TRACE) T.ComplexityPawnEndgame[WHITE] += sign * pawnEndgame;
+    if (TRACE) T.ComplexityUnwinnable[WHITE]  += sign * almostUnwinnable;
+    if (TRACE) T.ComplexityAdjustment[WHITE]  += sign;
 
-    ei.Complexity = makeScore(u, v);
+    v = sign * MAX(egScore(complexity), -abs(eg));
 
-    return makeScore(u, v);
+    //ei.Complexity = makeScore(0, v);
+
+    return makeScore(0, v);
 }
 
 int imbalance(const int pieceCount[2][6], int side) {
 
-    int bonus = 0, pt1, pt2;
+    int u = 0, v = 0, pt1, pt2;
 
     // Adaptation of polynomial material imbalance, by Tord Romstad
     for (pt1 = NO_PIECE_TYPE; pt1 <= QUEEN; ++pt1) {
@@ -683,17 +850,22 @@ int imbalance(const int pieceCount[2][6], int side) {
         if (!pieceCount[side][pt1])
             continue;
 
-        int v = 0;
+        int w = 0;
 
-        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2) 
-            v +=  QuadraticOurs[pt1][pt2] * pieceCount[side][pt2]
-                + QuadraticTheirs[pt1][pt2] * pieceCount[side^1][pt2];
+        for (pt2 = NO_PIECE_TYPE; pt2 <= pt1; ++pt2) {
+            w +=  QuadraticOurs[pt1][pt2] * pieceCount[side][pt2]
+              + QuadraticTheirs[pt1][pt2] * pieceCount[side^1][pt2];
+
+            if (TRACE) T.QuadraticOurs[pt1][pt2][side] += pieceCount[side][pt2] * pieceCount[side][pt1];
+            if (TRACE) T.QuadraticTheirs[pt1][pt2][side] += pieceCount[side^1][pt2] * pieceCount[side][pt1];
+        }
         
-        bonus += pieceCount[side][pt1] * v;
+        u += pieceCount[side][pt1] * mgScore(w);
+        v += pieceCount[side][pt1] * egScore(w);
     }
-    //ei.imbalance[side] = makeScore(bonus / 16, bonus / 16);
+    //ei.imbalance[side] = makeScore(u / 16, v / 16);
 
-    return makeScore(bonus / 16, bonus / 16);
+    return makeScore(u / 16, v / 16);
 }
 
 int evaluateScaleFactor(const S_BOARD *pos, int egScore) {

@@ -68,7 +68,7 @@ enum { MG = 0, EG = 1, PHASE_NB = 2 };
 enum { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_NB };
 enum { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANK_NB };
 
-enum { WHITE, BLACK, BOTH };
+enum { WHITE, BLACK, COLOUR_NB };
 enum { UCIMODE, XBOARDMODE, CONSOLEMODE };
 enum {
   A1 = 21, B1, C1, D1, E1, F1, G1, H1,
@@ -88,6 +88,7 @@ enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 typedef struct EngineOptions EngineOptions;
 typedef struct evalInfo evalInfo;
 typedef struct evalData evalData;
+typedef struct EvalTrace EvalTrace;
 typedef struct MaterialEntry MaterialEntry;
 typedef struct Limits Limits;
 typedef struct PVariation PVariation;
@@ -284,7 +285,7 @@ extern U64 OutpostSquareMasks[2][64];
 extern U64 IsolatedMask[64];
 extern U64 PawnAttacks[2][64];
 
-extern U64 KingAreaMasks[BOTH][64];
+extern U64 KingAreaMasks[COLOUR_NB][64];
 extern void KingAreaMask();
 extern U64 kingAreaMasks(int colour, int sq);
 extern void PawnAttacksMasks();
@@ -341,6 +342,7 @@ extern int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos);
 extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
 extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
 extern int MoveExists(S_BOARD *pos, const int move);
+extern int LegalMoveExist(S_BOARD *pos);
 extern void InitMvvLva();
 extern void setSquaresNearKing();
 extern int moveBestCaseValue(const S_BOARD *pos);

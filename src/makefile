@@ -16,12 +16,16 @@
 #
 
 CC     = gcc
-SRC    = *.c
+SRC    = uci.c endgame.c evaluate.c ttable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c time.c texel.c polybook.c polykeys.c
 LIBS   = -lm
-EXE    = PayFleens
+EXE    = texel
 
 WFLAGS = -std=gnu11 -Wall -Wextra -Wshadow
 CFLAGS = -DNDEBUG -O3 $(WFLAGS) -march=native -flto
+TFLAGS = -DNDEBUG -O3 $(WFLAGS) -march=native -flto -fopenmp -DTUNE
 
-all:
+release:
 	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(EXE)
+
+texel:
+	$(CC) $(TFLAGS) $(SRC) $(LIBS) -o $(EXE)

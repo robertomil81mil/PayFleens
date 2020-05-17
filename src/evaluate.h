@@ -23,6 +23,12 @@
 
 #include "defs.h"
 
+#ifdef TUNE
+    #define TRACE (1)
+#else
+    #define TRACE (0)
+#endif
+
 enum {
     SCALE_FACTOR_DRAW      =   0,
     SCALE_DRAWISH_BISHOP   =   8,
@@ -31,6 +37,61 @@ enum {
     SCALE_OCB_ONE_KNIGHT   = 106,
     SCALE_OCB_ONE_ROOK     =  96,
     SCALE_NORMAL           = 128,
+};
+
+struct EvalTrace {
+    int PawnValue[COLOUR_NB];
+    int KnightValue[COLOUR_NB];
+    int BishopValue[COLOUR_NB];
+    int RookValue[COLOUR_NB];
+    int QueenValue[COLOUR_NB];
+    int KingValue[COLOUR_NB];
+    int PawnPSQT32[32][COLOUR_NB];
+    int KnightPSQT32[32][COLOUR_NB];
+    int BishopPSQT32[32][COLOUR_NB];
+    int RookPSQT32[32][COLOUR_NB];
+    int QueenPSQT32[32][COLOUR_NB];
+    int KingPSQT32[32][COLOUR_NB];
+    int PawnDoubled[COLOUR_NB];
+    int PawnIsolated[2][COLOUR_NB];
+    int PawnBackward[2][COLOUR_NB];
+    int PawnPassed[8][COLOUR_NB];
+    int PawnPassedConnected[8][COLOUR_NB];
+    int PawnConnected[8][COLOUR_NB];
+    int PawnSupport[COLOUR_NB];
+    int KP_1[COLOUR_NB];
+    int KP_2[COLOUR_NB];
+    int KP_3[COLOUR_NB];
+    int KnightOutpost[2][COLOUR_NB];
+    int KnightTropism[COLOUR_NB];
+    int KnightDefender[COLOUR_NB];
+    int KnightMobility[9][COLOUR_NB];
+    int BishopOutpost[2][COLOUR_NB];
+    int BishopTropism[COLOUR_NB];
+    int BishopRammedPawns[COLOUR_NB];
+    int BishopDefender[COLOUR_NB];
+    int BishopMobility[14][COLOUR_NB];
+    int RookOpen[COLOUR_NB];
+    int RookSemi[COLOUR_NB];
+    int RookOnSeventh[COLOUR_NB];
+    int RookTropism[COLOUR_NB];
+    int RookMobility[15][COLOUR_NB];
+    int QueenPreDeveloped[COLOUR_NB];
+    int QueenTropism[COLOUR_NB];
+    int QueenMobility[28][COLOUR_NB];
+    int BlockedStorm[COLOUR_NB];
+    int ShelterStrength[4][8][COLOUR_NB];
+    int UnblockedStorm[4][8][COLOUR_NB];
+    int KingPawnLessFlank[COLOUR_NB];
+    int ComplexityPassedPawns[COLOUR_NB];
+    int ComplexityTotalPawns[COLOUR_NB];
+    int ComplexityOutflanking[COLOUR_NB];
+    int ComplexityPawnFlanks[COLOUR_NB];
+    int ComplexityPawnEndgame[COLOUR_NB];
+    int ComplexityUnwinnable[COLOUR_NB];
+    int ComplexityAdjustment[COLOUR_NB];
+    int QuadraticOurs[6][6][COLOUR_NB];
+    int QuadraticTheirs[6][6][COLOUR_NB];
 };
 
 struct evalInfo {
@@ -121,39 +182,3 @@ static const int RETURNING_BISHOP = 20;
 static const int TEMPO = 10;
 
 static const int Weight[13] = { 0, 4, 16, 10, 8, 2, 0, 4, 16, 10, 8, 2, 0};
-
-static const int ShelterStrength[4][8] = {
-    {  -6,  81,  93,  58,  39,  18,   25 },
-    { -43,  61,  35, -49, -29, -11,  -63 },
-    { -10,  75,  23,  -2,  32,   3,  -45 },
-    { -39, -13, -29, -52, -48, -67, -166 }
-};
-
-static const int UnblockedStorm[4][8] = {
-    {  89, -285, -185, 93, 57,  45,  51 },
-    {  44,  -18,  123, 46, 39,  -7,  23 },
-    {   4,   52,  162, 37,  7, -14,  -2 },
-    { -10,  -14,   90, 15,  2,  -7, -16 }
-};
-
-static const int QuadraticOurs[][6] = {
-    //            OUR PIECES
-    // pair pawn knight bishop rook queen
-    { 796                               }, // Bishop pair
-    {  22,   21                         }, // Pawn
-    {  17,  141,  -34                   }, // Knight      OUR PIECES
-    {   0,   57,    2,    0             }, // Bishop
-    { -14,   -1,   26,   58,  -115      }, // Rook
-    {-104,   13,   64,   73,   -74, -3  }  // Queen
-};
-
-static const int QuadraticTheirs[][6] = {
-    //           THEIR PIECES
-    // pair pawn knight bishop rook queen
-    {   0                               }, // Bishop pair
-    {  19,    0                         }, // Pawn
-    {   4,   34,    0                   }, // Knight      OUR PIECES
-    {  32,   36,   23,    0             }, // Bishop
-    {  25,   21,   13,  -13,    0       }, // Rook
-    {  53,   55,  -23,   75,  148,   0  }  // Queen
-};

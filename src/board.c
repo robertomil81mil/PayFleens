@@ -56,7 +56,7 @@ int CheckBoard(const S_BOARD *pos) {
 
 	t_pawns[WHITE] = pos->pawns[WHITE];
 	t_pawns[BLACK] = pos->pawns[BLACK];
-	t_pawns[BOTH] = pos->pawns[BOTH];
+	t_pawns[COLOUR_NB] = pos->pawns[COLOUR_NB];
 
 	// check piece lists
 	for(t_piece = wP; t_piece <= bK; ++t_piece) {
@@ -90,7 +90,7 @@ int CheckBoard(const S_BOARD *pos) {
 	ASSERT(pcount == pos->pceNum[wP]);
 	pcount = CNT(t_pawns[BLACK]);
 	ASSERT(pcount == pos->pceNum[bP]);
-	pcount = CNT(t_pawns[BOTH]);
+	pcount = CNT(t_pawns[COLOUR_NB]);
 	ASSERT(pcount == (pos->pceNum[bP] + pos->pceNum[wP]));
 #endif
 
@@ -105,8 +105,8 @@ int CheckBoard(const S_BOARD *pos) {
 		ASSERT(pos->pieces[SQ120(sq64)] == bP);
 	}
 
-	while(t_pawns[BOTH]) {
-		sq64 = POP(&t_pawns[BOTH]);
+	while(t_pawns[COLOUR_NB]) {
+		sq64 = POP(&t_pawns[COLOUR_NB]);
 		ASSERT( (pos->pieces[SQ120(sq64)] == bP) || (pos->pieces[SQ120(sq64)] == wP) );
 	}
 
@@ -169,10 +169,10 @@ void UpdateListsMaterial(S_BOARD *pos) {
 
 			if(piece==wP) {
 				SETBIT(pos->pawns[WHITE],SQ64(sq));
-				SETBIT(pos->pawns[BOTH],SQ64(sq));
+				SETBIT(pos->pawns[COLOUR_NB],SQ64(sq));
 			} else if(piece==bP) {
 				SETBIT(pos->pawns[BLACK],SQ64(sq));
-				SETBIT(pos->pawns[BOTH],SQ64(sq));
+				SETBIT(pos->pawns[COLOUR_NB],SQ64(sq));
 			}
 		}
 	}
@@ -335,7 +335,7 @@ void ResetBoard(S_BOARD *pos) {
 
 	pos->KingSq[WHITE] = pos->KingSq[BLACK] = NO_SQ;
 
-	pos->side = BOTH;
+	pos->side = COLOUR_NB;
 	pos->enPas = NO_SQ;
 	pos->fiftyMove = 0;
 

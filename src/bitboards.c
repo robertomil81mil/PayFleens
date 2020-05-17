@@ -40,19 +40,19 @@ int map_to_queenside(int file) {
 }
 
 int relativeRank(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return colour == WHITE ? rank_of(sq) : 7 - rank_of(sq);
 }
 
 int relativeSquare(int colour, int sq) {
-	ASSERT(0 <= colour && colour < BOTH);
+	ASSERT(0 <= colour && colour < COLOUR_NB);
 	ASSERT(0 <= sq && sq < 120);
     return colour == WHITE ? sq : Mirror120[SQ64(sq)];
 }
 
 int relativeSquare32(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return 4 * relativeRank(colour, sq) + map_to_queenside(file_of(sq));
 }
@@ -80,12 +80,12 @@ int clamp(int v, int lo, int hi) {
 }
 
 int frontmost(int colour, U64 b) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     return colour == WHITE ? getmsb(b) : getlsb(b);
 }
 
 int backmost(int colour, U64 b) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     return colour == WHITE ? getlsb(b) : getmsb(b);
 }
 

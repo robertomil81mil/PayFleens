@@ -21,7 +21,7 @@
 #include "defs.h"
 
 #define StartPosition "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define VERSION_ID "1.57"
+#define VERSION_ID "1.58"
 
 struct Limits {
     double start, time, inc, timeLimit;
@@ -41,6 +41,10 @@ void uciPosition(char* str, S_BOARD *pos);
 void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value);
 void uciReportCurrentMove(int move, int currmove, int depth);
 void printStats(S_SEARCHINFO *info);
+
+void handleCommandLine(int argc, char **argv);
+void runEvalBook(int argc, char **argv);
+void runTestBook(char **argv);
 
 int getInput(char *str);
 int strEquals(char *str1, char *str2);

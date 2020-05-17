@@ -222,19 +222,19 @@ void InitSq120To64() {
 }
 
 U64 kingAreaMasks(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return KingAreaMasks[colour][sq];
 }
 
 U64 outpostSquareMasks(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return OutpostSquareMasks[colour][sq];
 }
 
 U64 pawnAttacks(int colour, int sq) {
-    ASSERT(0 <= colour && colour < BOTH);
+    ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return PawnAttacks[colour][sq];
 }

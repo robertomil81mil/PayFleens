@@ -49,6 +49,11 @@ bool is_KRKN(const S_BOARD *pos, int strongSide);
 bool is_KNNK(const S_BOARD *pos, int strongSide);
 bool is_KNNKP(const S_BOARD *pos, int strongSide);
 
+#define Endgame(term, S) do {                            \
+    return Endgame##term(pos, S);                        \
+} while (0)
+
+
 static const int PushToEdges[64] = {
    55, 49, 44, 38, 38, 44, 49, 55,
    49, 38, 33, 27, 27, 33, 38, 49,

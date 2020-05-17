@@ -74,7 +74,7 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 		}
 	} else {
 		CLRBIT(pos->pawns[col],SQ64(sq));
-		CLRBIT(pos->pawns[BOTH],SQ64(sq));
+		CLRBIT(pos->pawns[COLOUR_NB],SQ64(sq));
 
 		int ne = (col == WHITE ? 9 : -9);
 		int nw = (col == WHITE ? 11 : -11);
@@ -124,7 +124,7 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 		}
 	} else {
 		SETBIT(pos->pawns[col],SQ64(sq));
-		SETBIT(pos->pawns[BOTH],SQ64(sq));
+		SETBIT(pos->pawns[COLOUR_NB],SQ64(sq));
 
 		int ne = (col == WHITE ? 9 : -9);
 		int nw = (col == WHITE ? 11 : -11);
@@ -172,9 +172,9 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 	
 	if(!PieceBig[pce]) {
 		CLRBIT(pos->pawns[col],SQ64(from));
-		CLRBIT(pos->pawns[BOTH],SQ64(from));
+		CLRBIT(pos->pawns[COLOUR_NB],SQ64(from));
 		SETBIT(pos->pawns[col],SQ64(to));
-		SETBIT(pos->pawns[BOTH],SQ64(to));
+		SETBIT(pos->pawns[COLOUR_NB],SQ64(to));
 
 		int ne = (col == WHITE ? 9 : -9);
 		int nw = (col == WHITE ? 11 : -11);
