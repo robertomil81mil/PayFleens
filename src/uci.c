@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     // Initialize components of PayFleens
     AllInit(); ParseFen(StartPosition, pos);
-    printf("Payfleens %s by Roberto M. & Andrew Grant\n", VERSION_ID);
+    printf("Payfleens %s by Roberto M.\n", VERSION_ID);
 
     handleCommandLine(argc, argv);
 
@@ -288,11 +288,6 @@ void handleCommandLine(int argc, char **argv) {
         exit(EXIT_SUCCESS);
     }
 
-    if (argc > 1 && strEquals(argv[1], "testbook")) {
-        runTestBook(argv);
-        exit(EXIT_SUCCESS);
-    }
-
     // Tuner is being run from the command line
     #ifdef TUNE
         runTexelTuning();
@@ -311,9 +306,9 @@ void runEvalBook(int argc, char **argv) {
     int i, best;
     double start = getTimeMs();
 
-    FILE *newbook = fopen("colab45k.epd", "w");
+    FILE *newbook = fopen("2colab45k.epd", "w");
     FILE *book    = fopen(argv[2], "r");
-    int positions = 502131;
+    int positions = 45000;
     int depth     = argc > 3 ? atoi(argv[3]) : 12;
     int megabytes = argc > 4 ? atoi(argv[5]) :  1;
 
@@ -344,19 +339,29 @@ void runEvalBook(int argc, char **argv) {
     printf("Time %dms\n", (int)(getTimeMs() - start));
 }
 
-void runTestBook(char **argv) {
+/*void runEvalBook(int argc, char **argv) {
 
     printf("STARTING RUN\n");
 
     S_BOARD pos[1];
+    //S_SEARCHINFO info[1];
     char line[256];
-    int i,eval;
+    //Limits limits = {0};
+    //int i, best;
+    int i;
     double start = getTimeMs();
 
     FILE *newbook = fopen("26870.epd", "w");
     FILE *book    = fopen(argv[2], "r");
     int positions = 26870;//609034;
+    //int depth     = argc > 3 ? atoi(argv[3]) : 12;
+    //int megabytes = argc > 4 ? atoi(argv[5]) :  1;
 
+    //limits.limitedByDepth = 1;
+    //limits.depthLimit = depth;
+    //initTTable(megabytes);
+
+    int eval, result;
     for (i = 0; i < positions; i++) {
 
         // Read next position from the FEN file
@@ -366,29 +371,29 @@ void runTestBook(char **argv) {
         }
 
         eval = atoi(strstr(line, "] ") + 2);
-        /*float result;
-        if      (strstr(line, "[1.0]")) result = 1.0;
-        else if (strstr(line, "[0.0]")) result = 0.0;
-        else if (strstr(line, "[0.5]")) result = 0.5;
-        else    {printf("Cannot Parse %s\n", line); exit(EXIT_FAILURE);}*/
 
-        //printf("#%d %f\n",i+1,result );
+        if      (strstr(line, "\"1-0\";")) result = 1.0;
+        else if (strstr(line, "\"0-1\";")) result = 0.0;
+        else if (strstr(line, "\"1/2-1/2\";")) result = 0.5;
+        else    {printf("Cannot Parse %s\n", line); exit(EXIT_FAILURE);}
 
-        //printf("#%d eval %d %s",i+1,eval,strstr(line, "] ")+((eval<=-10000) ? 9 : 8 ));
+        printf("result %d\n",result );
 
-        ParseFen(strstr(line, "] ") + ((eval<=-10000) ? 9 : 8), pos);
-        //ParseFen(line, pos);
+        ParseFen(strstr(line, "] ")+5, pos);
 
         if (!LegalMoveExist(pos))
             continue;
 
+        //getBestMove(info, pos, &limits, &best);
+        //clearTTable();
+
         printf("\rINITIALIZING SCORES FROM FENS...  [%7d OF %7d]", i + 1, positions);
-        //fprintf(newbook, "%s %d;\n",strstr(line, "] ")+((eval<=-10000) ? 9 : 8 ),eval );
         fprintf(newbook, "%s", line);
+        //fprintf(newbook, "FEN [#   %6d] %5d %s", i+1, info->values[depth], line);
     }
 
     printf("Time %dms\n", (int)(getTimeMs() - start));
-}
+}*/
 
 int getInput(char *str) {
 

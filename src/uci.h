@@ -44,7 +44,6 @@ void printStats(S_SEARCHINFO *info);
 
 void handleCommandLine(int argc, char **argv);
 void runEvalBook(int argc, char **argv);
-void runTestBook(char **argv);
 
 int getInput(char *str);
 int strEquals(char *str1, char *str2);
