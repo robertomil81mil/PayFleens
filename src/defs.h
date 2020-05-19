@@ -261,7 +261,7 @@ extern int PieceCol[13];
 extern int PiecePawn[13];
 extern int PiecePawnW[13];
 extern int PiecePawnB[13];
-extern const int PieceValPhases[13];
+extern int PieceValPhases[13];
 
 extern int FilesBrd[BRD_SQ_NUM];
 extern int RanksBrd[BRD_SQ_NUM];

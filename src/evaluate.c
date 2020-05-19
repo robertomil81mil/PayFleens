@@ -134,8 +134,8 @@ const int RookValue   = S( 707, 746);
 const int QueenValue  = S(1391,1465);
 const int KingValue   = S(   0,   0);
 
-const int PieceValPhases[13] = { KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, 
-                           KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue };
+int PieceValPhases[13] = { S( 0, 0), S( 68, 117), S( 421, 443), S( 448, 492), S( 707, 746), S(1391,1465), 
+                           S( 0, 0), S( 68, 117), S( 421, 443), S( 448, 492), S( 707, 746), S(1391,1465), S( 0, 0) };
 
 /* Piece Square Evaluation Terms */
 
