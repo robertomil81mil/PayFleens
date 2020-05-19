@@ -125,6 +125,8 @@ int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
 #define S(mg, eg) (makeScore((mg), (eg)))
 
+/* Material Value Evaluation Terms */
+
 const int PawnValue   = S(  68, 117);
 const int KnightValue = S( 421, 443);
 const int BishopValue = S( 448, 492);
@@ -132,7 +134,7 @@ const int RookValue   = S( 707, 746);
 const int QueenValue  = S(1391,1465);
 const int KingValue   = S(   0,   0);
 
-int PieceValPhases[13] = { KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, 
+const int PieceValPhases[13] = { KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, 
                            KingValue, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue };
 
 /* Piece Square Evaluation Terms */
