@@ -117,6 +117,7 @@ int CheckBoard(const S_BOARD *pos) {
 
 	ASSERT(pos->side==WHITE || pos->side==BLACK);
 	ASSERT(GeneratePosKey(pos)==pos->posKey);
+	ASSERT(GenerateMaterialKey(pos)==pos->materialKey);
 
 	ASSERT(pos->enPas==NO_SQ || ( RanksBrd[pos->enPas]==RANK_6 && pos->side == WHITE)
 		 || ( RanksBrd[pos->enPas]==RANK_3 && pos->side == BLACK));
@@ -298,6 +299,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
 	pos->gamePly = MAX(2 * (pos->gamePly - 1), 0) + (pos->side == BLACK);
 
 	UpdateListsMaterial(pos);
+	pos->materialKey = GenerateMaterialKey(pos);
 
 	return 0;
 }
@@ -344,7 +346,7 @@ void ResetBoard(S_BOARD *pos) {
 
 	pos->castlePerm = 0;
 
-	pos->posKey = 0ULL;
+	pos->posKey = pos->materialKey = 0ULL;
 
 }
 void PrintBoard(const S_BOARD *pos) {
@@ -439,6 +441,7 @@ void MirrorBoard(S_BOARD *pos) {
     pos->posKey = GeneratePosKey(pos);
 
 	UpdateListsMaterial(pos);
+	pos->materialKey = GenerateMaterialKey(pos);
 
     ASSERT(CheckBoard(pos));
 }

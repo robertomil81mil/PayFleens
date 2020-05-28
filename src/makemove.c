@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include "defs.h"
+#include "endgame.h"
 #include "evaluate.h"
 
 #define HASH_PCE(pce,sq) (pos->posKey ^= (PieceKeys[(pce)][(sq)]))
@@ -216,6 +217,7 @@ int MakeMove(S_BOARD *pos, int move) {
 	ASSERT(pos->ply >= 0 && pos->ply < MAX_PLY);
 	
 	pos->history[pos->hisPly].posKey = pos->posKey;
+	pos->history[pos->hisPly].materialKey = pos->materialKey;
 	
 	if(move & MFLAGEP) {
         if(side == WHITE) {
@@ -261,6 +263,10 @@ int MakeMove(S_BOARD *pos, int move) {
 	if(captured != EMPTY) {
         ASSERT(PieceValid(captured));
         ClearPiece(to, pos);
+        // Update material hash key and prefetch access to materialTable
+      	pos->materialKey ^= PieceKeys[captured][pos->pceNum[captured]];
+      	Material_Entry *entry = &Table.entry[pos->materialKey >> MT_HASH_SHIFT];
+      	__builtin_prefetch(entry);
         pos->fiftyMove = 0;
     }
 
@@ -292,6 +298,12 @@ int MakeMove(S_BOARD *pos, int move) {
         ASSERT(PieceValid(prPce) && !PiecePawn[prPce]);
         ClearPiece(to, pos);
         AddPiece(to, pos, prPce);
+        // Update material hash key and prefetch access to materialTable
+        pos->materialKey ^=  PieceKeys[prPce][pos->pceNum[prPce]-1]
+                           ^ PieceKeys[pos->pieces[to]][pos->pceNum[pos->pieces[to]]];
+        
+        Material_Entry *entry = &Table.entry[pos->materialKey >> MT_HASH_SHIFT];
+      	__builtin_prefetch(entry);
     }
 	
 	if(PieceKing[pos->pieces[to]]) {
@@ -333,6 +345,7 @@ void TakeMove(S_BOARD *pos) {
 	if(pos->enPas != NO_SQ) HASH_EP;
     HASH_CA;
 
+    pos->materialKey = pos->history[pos->hisPly].materialKey;
     pos->castlePerm = pos->history[pos->hisPly].castlePerm;
     pos->fiftyMove = pos->history[pos->hisPly].fiftyMove;
     pos->enPas = pos->history[pos->hisPly].enPas;

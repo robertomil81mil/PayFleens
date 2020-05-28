@@ -21,7 +21,7 @@
 #include "defs.h"
 
 #define StartPosition "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define VERSION_ID "1.58"
+#define VERSION_ID "1.60" // Bench 14041248
 
 struct Limits {
     double start, time, inc, timeLimit;
@@ -43,6 +43,7 @@ void uciReportCurrentMove(int move, int currmove, int depth);
 void printStats(S_SEARCHINFO *info);
 
 void handleCommandLine(int argc, char **argv);
+void runBenchmark(int argc, char **argv);
 void runEvalBook(int argc, char **argv);
 
 int getInput(char *str);

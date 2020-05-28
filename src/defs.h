@@ -85,16 +85,34 @@ enum { FALSE, TRUE };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
 
+enum {
+    MT_KEY_SIZE   = 16,
+    MT_SIZE       = 1 << MT_KEY_SIZE,
+    MT_HASH_SHIFT = 64 - MT_KEY_SIZE,
+};
+
 typedef struct EngineOptions EngineOptions;
 typedef struct evalInfo evalInfo;
 typedef struct evalData evalData;
 typedef struct EvalTrace EvalTrace;
-typedef struct MaterialEntry MaterialEntry;
+typedef struct Material_Entry Material_Entry;
+typedef struct Material_Table Material_Table;
 typedef struct Limits Limits;
 typedef struct PVariation PVariation;
 typedef struct TTable TTable;
 typedef struct TT_Cluster TT_Cluster;
 typedef struct TT_Entry TT_Entry;
+
+struct Material_Entry {
+    U64 key;
+    int imbalance;
+    int gamePhase;
+    int eval, evalExists;
+};
+
+struct Material_Table {
+    Material_Entry entry[MT_SIZE];
+};
 
 struct PVariation {
     int line[MAX_PLY];
@@ -119,6 +137,7 @@ typedef struct {
 	int enPas;
 	int fiftyMove;
 	U64 posKey;
+	U64 materialKey;
 
 } S_UNDO;
 
@@ -141,6 +160,7 @@ typedef struct {
 	int castlePerm;
 
 	U64 posKey;
+	U64 materialKey;
 
 	int pceNum[13];
 	int bigPce[2];
@@ -304,6 +324,7 @@ extern int CountBits(U64 b);
 
 // hashkeys.c
 extern U64 GeneratePosKey(const S_BOARD *pos);
+extern U64 GenerateMaterialKey(const S_BOARD *pos);
 
 // board.c
 extern void ResetBoard(S_BOARD *pos);

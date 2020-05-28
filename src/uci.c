@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "defs.h"
+#include "endgame.h"
 #include "evaluate.h"
 #include "search.h"
 #include "texel.h"
@@ -49,7 +50,7 @@ int main(int argc, char **argv) {
     char str[8192];
 
     // Initialize components of PayFleens
-    AllInit(); ParseFen(StartPosition, pos);
+    AllInit(); endgameInit(pos); ParseFen(StartPosition, pos);
     printf("Payfleens %s by Roberto M. & Andrew Grant\n", VERSION_ID);
 
     handleCommandLine(argc, argv);
@@ -282,6 +283,12 @@ void printStats(S_SEARCHINFO *info) {
 
 void handleCommandLine(int argc, char **argv) {
 
+    // USAGE: ./Payfleens bench <depth> <hash>
+    if (argc > 1 && strEquals(argv[1], "bench")) {
+        runBenchmark(argc, argv);
+        exit(EXIT_SUCCESS);
+    }
+
     // USAGE: ./Payfleens evalbook <book> <depth> <hash>
     if (argc > 1 && strEquals(argv[1], "evalbook")) {
         runEvalBook(argc, argv);
@@ -293,6 +300,67 @@ void handleCommandLine(int argc, char **argv) {
         runTexelTuning();
         exit(EXIT_SUCCESS);
     #endif
+}
+
+void runBenchmark(int argc, char **argv) {
+
+    char *Benchmarks[] = {
+        #include "bench.csv"
+        ""
+    };
+
+    S_BOARD pos[1];
+    S_SEARCHINFO info[1];
+    Limits limits = {0};
+
+    int scores[256];
+    double times[256];
+    uint64_t nodes[256];
+    int bestMoves[256];
+
+    double time;
+    uint64_t totalNodes = 0ull;
+
+    int depth     = argc > 2 ? atoi(argv[2]) : 13;
+    int megabytes = argc > 3 ? atoi(argv[3]) : 16;
+
+    initTTable(megabytes);
+    time = getTimeMs();
+
+    // Initialize a "go depth <x>" search
+    limits.limitedByDepth = 1;
+    limits.depthLimit = depth;
+
+    for (int i = 0; strcmp(Benchmarks[i], ""); i++) {
+
+        // Perform the search on the position
+        limits.start = getTimeMs();
+        ParseFen(Benchmarks[i], pos);
+        getBestMove(info, pos, &limits, &bestMoves[i]);
+
+        // Stat collection for later printing
+        scores[i] = info->values[depth];
+        times[i] = getTimeMs() - limits.start;
+        nodes[i] = info->nodes;
+
+        clearTTable(); // Reset TT between searches
+    }
+
+    printf("\n=================================================================================\n");
+
+    for (int i = 0; strcmp(Benchmarks[i], ""); i++) {
+
+        // Log all collected information for the current position
+        printf("Bench [# %2d] %5d cp  Best:%6s %12d nodes %8d nps\n", i + 1, scores[i],
+            PrMove(bestMoves[i]), (int)nodes[i], (int)(1000.0f * nodes[i] / (times[i] + 1)));
+    }
+
+    printf("=================================================================================\n");
+
+    // Report the overall statistics
+    time = getTimeMs() - time;
+    for (int i = 0; strcmp(Benchmarks[i], ""); i++) totalNodes += nodes[i];
+    printf("OVERALL: %53d nodes %8d nps\n", (int)totalNodes, (int)(1000.0f * totalNodes / (time + 1)));
 }
 
 void runEvalBook(int argc, char **argv) {

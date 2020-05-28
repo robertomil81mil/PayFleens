@@ -1111,19 +1111,17 @@ void blockedPiecesB(const S_BOARD *pos) {
     }
 }
 
-int EvalPosition(const S_BOARD *pos) {
+int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     // setboard 8/3k3p/6p1/3nK1P1/8/8/7P/8 b - - 3 64
     // setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
     //int startTime = GetTimeMs();
 
     int score, factor;
-    MaterialEntry me;
+    Material_Entry* me = Material_probe(pos, materialTable);
 
-    MaterialProbe(pos, &me);
-
-    if (me.endgameEvalExists)
-        return me.endgameEval;
+    if (me->evalExists)
+        return me->eval;
 
     memset(&ei, 0, sizeof(evalInfo));
 
@@ -1133,7 +1131,7 @@ int EvalPosition(const S_BOARD *pos) {
     score  = pos->mPhases[WHITE] - pos->mPhases[BLACK];
     score += pos->PSQT[WHITE] - pos->PSQT[BLACK];
     score += ei.Mob[WHITE] - ei.Mob[BLACK];
-    score += me.imbalance;
+    score += me->imbalance;
     score += evaluatePieces(pos);
     score += evaluateComplexity(pos, score);
 
@@ -1142,8 +1140,8 @@ int EvalPosition(const S_BOARD *pos) {
 
     factor = evaluateScaleFactor(pos, egScore(score));
 
-    score = (mgScore(score) * (256 - me.gamePhase)
-          +  egScore(score) * me.gamePhase * factor / SCALE_NORMAL) / 256;
+    score = (mgScore(score) * (256 - me->gamePhase)
+          +  egScore(score) * me->gamePhase * factor / SCALE_NORMAL) / 256;
 
     score += ei.blockages[WHITE] - ei.blockages[BLACK];
 
@@ -1159,7 +1157,7 @@ void printEvalFactor( int WMG, int WEG, int BMG, int BEG ) {
 
 void printEval(const S_BOARD *pos) {
 
-    int v = EvalPosition(pos);
+    int v = EvalPosition(pos, &Table);
     v = pos->side == WHITE ? v : -v;
 
     printf("\n");

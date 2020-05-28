@@ -142,7 +142,7 @@ int evaluateKings(const S_BOARD *pos, int side);
 int evaluatePieces(const S_BOARD *pos);
 int evaluateComplexity(const S_BOARD *pos, int score);
 int imbalance(const int pieceCount[2][6], int side);
-int EvalPosition(const S_BOARD *pos);
+int EvalPosition(const S_BOARD *pos, Material_Table *materialTable);
 
 #define ENDGAME_MAT (1 * PieceValue[EG][wR] + 2 * PieceValue[EG][wN] + 2 * PieceValue[EG][wP])
 #define makeScore(mg, eg) ((int)((unsigned int)(eg) << 16) + (mg))

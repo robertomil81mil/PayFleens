@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "defs.h"
+#include "endgame.h"
 #include "evaluate.h"
 #include "search.h"
 #include "time.h"
@@ -90,9 +91,9 @@ void MirrorEvalTest(S_BOARD *pos) {
         while(fgets (lineIn , 1024 , file) != NULL) {
             ParseFen(lineIn, pos);
             positions++;
-            ev1 = EvalPosition(pos);
+            ev1 = EvalPosition(pos, &Table);
             MirrorBoard(pos);
-            ev2 = EvalPosition(pos);
+            ev2 = EvalPosition(pos, &Table);
 
             if(ev1 != ev2) {
                 printf("\n\n\n");

@@ -53,3 +53,19 @@ U64 GeneratePosKey(const S_BOARD *pos) {
 	
 	return finalKey;
 }
+
+U64 GenerateMaterialKey(const S_BOARD *pos) {
+
+	U64 materialKey = 0;
+
+	for (int pc = wP; pc <= bK; ++pc) {
+		if (pos->pceNum[pc]) {		
+			for (int cnt = 0; cnt < pos->pceNum[pc]; ++cnt) {
+				ASSERT(cnt);
+				materialKey ^= PieceKeys[pc][cnt];
+			}
+		}
+	}
+	
+	return materialKey;
+}

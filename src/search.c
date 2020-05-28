@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "defs.h"
+#include "endgame.h"
 #include "evaluate.h"
 #include "search.h"
 #include "time.h"
@@ -306,7 +307,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
             return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 
         if (pos->ply >= MAX_PLY)
-            return EvalPosition(pos);
+            return EvalPosition(pos, &Table);
 
         rAlpha = alpha > -INFINITE + pos->ply     ? alpha : -INFINITE + pos->ply;
         rBeta  =  beta <  INFINITE - pos->ply - 1 ?  beta :  INFINITE - pos->ply - 1;
@@ -330,7 +331,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
-         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
+         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos, &Table)
                                                     : -info->staticEval[height-1] + 2 * TEMPO;
 
     improving = height >= 2 && eval > info->staticEval[height-2];
@@ -583,7 +584,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
         return 0;
 
     if (pos->ply >= MAX_PLY)
-        return EvalPosition(pos);
+        return EvalPosition(pos, &Table);
 
     const int PvNode = (alpha != beta - 1);
 
@@ -611,7 +612,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
-         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos)
+         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos, &Table)
                                                     : -info->staticEval[height-1] + 2 * TEMPO;
 
     if (ttHit) {

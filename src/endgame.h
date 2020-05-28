@@ -22,13 +22,19 @@
 
 #include "defs.h"
 
-struct MaterialEntry {
-    int gamePhase, imbalance;
-    int endgameEvalExists, endgameEval;
-};
+extern Material_Table Table;
 
-void MaterialProbe(const S_BOARD *pos, MaterialEntry *me);
-int Endgame_eval(const S_BOARD *pos, MaterialEntry *me);
+enum {
+    KBNK,
+    KQKR,
+    KQKP,
+    KRKP,
+    KRKB,
+    KRKN,
+    KNNK,
+    KNNKP,
+    ENDGAME_NB,
+};
 
 int EndgameKXK(const S_BOARD *pos, int strongSide);
 int EndgameKBNK(const S_BOARD *pos, int strongSide);
@@ -37,22 +43,16 @@ int EndgameKQKP(const S_BOARD *pos, int strongSide);
 int EndgameKRKP(const S_BOARD *pos, int strongSide);
 int EndgameKRKB(const S_BOARD *pos, int strongSide);
 int EndgameKRKN(const S_BOARD *pos, int strongSide);
+int EndgameKNNK(const S_BOARD *pos, int strongSide);
 int EndgameKNNKP(const S_BOARD *pos, int strongSide);
 
 bool is_KXK(const S_BOARD *pos, int strongSide);
-bool is_KBNK(const S_BOARD *pos, int strongSide);
-bool is_KQKR(const S_BOARD *pos, int strongSide);
-bool is_KQKP(const S_BOARD *pos, int strongSide);
-bool is_KRKP(const S_BOARD *pos, int strongSide);
-bool is_KRKB(const S_BOARD *pos, int strongSide);
-bool is_KRKN(const S_BOARD *pos, int strongSide);
-bool is_KNNK(const S_BOARD *pos, int strongSide);
-bool is_KNNKP(const S_BOARD *pos, int strongSide);
 
-#define Endgame(term, S) do {                            \
-    return Endgame##term(pos, S);                        \
-} while (0)
+void endgameInit(S_BOARD *pos);
+void endgameAdd(S_BOARD *pos, int eg, char *fen);
 
+Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable);
+int Endgame_probe(const S_BOARD *pos, U64 key);
 
 static const int PushToEdges[64] = {
    55, 49, 44, 38, 38, 44, 49, 55,

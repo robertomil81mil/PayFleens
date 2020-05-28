@@ -7,20 +7,60 @@
 #include "endgame.h"
 #include "evaluate.h"
 
-void MaterialProbe(const S_BOARD *pos, MaterialEntry *me) {
+Material_Table Table;
 
-	memset(me, 0, sizeof(MaterialEntry));
+U64 MaterialKeys[COLOUR_NB][ENDGAME_NB];
 
-	me->gamePhase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
-               		   - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
-               		   - 1 * (pos->pceNum[wN] + pos->pceNum[bN] + pos->pceNum[wB] + pos->pceNum[bB]);
+void endgameInit(S_BOARD *pos) {
 
-    me->gamePhase = (me->gamePhase * 256 + 12) / 24;
+	endgameAdd(pos, KBNK, "4k3/8/8/8/8/8/8/4KBN1 w - - 0 1");
+	endgameAdd(pos, KQKR, "3rk3/8/8/8/8/8/8/4KQ2 w - - 0 1");
+	endgameAdd(pos, KQKP, "4k3/5p2/8/8/8/8/8/4KQ2 w - - 0 1");
+	endgameAdd(pos, KRKP, "4k3/5p2/8/8/8/8/8/4KR2 w - - 0 1");
+	endgameAdd(pos, KRKB, "4kb2/8/8/8/8/8/8/4KR2 w - - 0 1");
+	endgameAdd(pos, KRKN, "4kn2/8/8/8/8/8/8/4KR2 w - - 0 1");
+	endgameAdd(pos, KNNK, "4k3/8/8/8/8/8/5N2/4KN2 w - - 0 1");
+	endgameAdd(pos, KNNKP, "4k3/5p2/8/8/8/8/5N2/4KN2 w - - 0 1");
+}
 
-    me->endgameEval = Endgame_eval(pos, me);
+void endgameAdd(S_BOARD *pos, int eg, char *fen) {
 
-    if ((me->endgameEvalExists = me->endgameEval != VALUE_NONE) != 0)
-    	return;
+	ParseFen(fen, pos);
+	MaterialKeys[WHITE][eg] = pos->materialKey;
+	MirrorBoard(pos);
+	MaterialKeys[BLACK][eg] = pos->materialKey;
+}
+
+Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable) {
+
+	U64 key = pos->materialKey;
+	Material_Entry *entry = &materialTable->entry[key >> MT_HASH_SHIFT];
+
+    // Search for a matching key signature
+    if (entry->key == key)
+		return entry;
+
+	memset(entry, 0, sizeof(Material_Entry));
+
+	entry->key = key;
+
+	entry->gamePhase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
+               		      - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
+               		      - 1 * (pos->pceNum[wN] + pos->pceNum[bN] 
+               		      	   + pos->pceNum[wB] + pos->pceNum[bB]);
+
+    entry->gamePhase = (entry->gamePhase * 256 + 12) / 24;
+
+    entry->eval = Endgame_probe(pos, key);
+
+    if ((entry->evalExists = entry->eval != VALUE_NONE) != 0)
+    	return entry;
+
+    for (int c = WHITE; c <= BLACK; c++)
+    	if (is_KXK(pos, c)) {
+        	entry->eval = EndgameKXK(pos, c);
+        	return entry;
+      	}
 
     const int pieceCount[2][6] = {
         { pos->pceNum[wB] > 1, pos->pceNum[wP], pos->pceNum[wN],
@@ -29,55 +69,32 @@ void MaterialProbe(const S_BOARD *pos, MaterialEntry *me) {
           pos->pceNum[bB]    , pos->pceNum[bR], pos->pceNum[bQ] }
     };
 
-    me->imbalance = imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK);
+    entry->imbalance = imbalance(pieceCount, WHITE) - imbalance(pieceCount, BLACK);
+    return entry;
 }
 
-int Endgame_eval(const S_BOARD *pos, MaterialEntry *me) {
+int Endgame_probe(const S_BOARD *pos, U64 key) {
 
-	const int egScore = egScore(pos->mPhases[WHITE] - pos->mPhases[BLACK]);
-	const int strongSide = egScore > 0 ? WHITE : BLACK;
-	const int pawnStrong = egScore > 0 ? wP : bP;
-	const int pawnWeak   = egScore > 0 ? bP : wP;
+	if ((pos->bigPce[WHITE] + pos->bigPce[BLACK]) <= 5) {
 
-	if (me->gamePhase >= 192) {
+		const int egScore = egScore(pos->mPhases[WHITE] - pos->mPhases[BLACK]);
+		const int strongSide = egScore > 0 ? WHITE : BLACK;
 
-		if (   !pos->pceNum[pawnStrong]
-			&& !pos->pceNum[pawnWeak]) {
-
-			if (is_KXK(pos, strongSide))
-				return EndgameKXK(pos, strongSide);
-
-			else if (is_KBNK(pos, strongSide))
-				return EndgameKBNK(pos, strongSide);
-
-			else if (is_KQKR(pos, strongSide))
-				return EndgameKQKR(pos, strongSide);
-
-			else if (is_KRKB(pos, strongSide))
-				return EndgameKRKB(pos, strongSide);
-
-			else if (is_KRKN(pos, strongSide))
-				return EndgameKRKN(pos, strongSide);
-
-			else if (is_KNNK(pos, strongSide))
-				return 0;
+		for (int eg = KBNK; eg <= KNNKP; eg++) {
+			if (key == MaterialKeys[strongSide][eg]) {
+				switch(eg) {
+					case KBNK:  return EndgameKBNK(pos, strongSide);
+					case KQKR:  return EndgameKQKR(pos, strongSide);
+					case KQKP:  return EndgameKQKP(pos, strongSide);
+					case KRKP:  return EndgameKRKP(pos, strongSide);
+					case KRKB:  return EndgameKRKB(pos, strongSide);
+					case KRKN:  return EndgameKRKN(pos, strongSide);
+					case KNNK:  return EndgameKNNK(pos, strongSide);
+					case KNNKP: return EndgameKNNKP(pos, strongSide);
+					default : exit(EXIT_FAILURE);
+				}
+			}
 		}
-
-		else if (   !pos->pceNum[pawnStrong]
-				 &&  pos->pceNum[pawnWeak]) {
-
-			if (is_KQKP(pos, strongSide))
-				return EndgameKQKP(pos, strongSide);
-
-			else if (is_KRKP(pos, strongSide))
-				return EndgameKRKP(pos, strongSide);
-
-			else if (is_KNNKP(pos, strongSide))
-				return EndgameKNNKP(pos, strongSide);
-		}
-
-		else if (is_KXK(pos, strongSide))
-			return EndgameKXK(pos, strongSide);
 	}
 
 	return VALUE_NONE;
@@ -262,6 +279,13 @@ int EndgameKRKN(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
+int EndgameKNNK(const S_BOARD *pos, int strongSide) {
+
+	ASSERT(pos->material[strongSide] == 2 * PieceValue[EG][wN]);
+
+	return strongSide == pos->side ? 0 : 0;
+}
+
 int EndgameKNNKP(const S_BOARD *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
@@ -284,44 +308,4 @@ int EndgameKNNKP(const S_BOARD *pos, int strongSide) {
 bool is_KXK(const S_BOARD *pos, int strongSide) {
 	return (   pos->material[ strongSide] >= PieceValue[EG][wR]
 		    && pos->material[!strongSide] == PieceValue[EG][wK]);
-}
-
-bool is_KBNK(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wB] + PieceValue[EG][wN]
-		    && pos->material[!strongSide] == PieceValue[EG][wK]);
-}
-
-bool is_KQKR(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wQ]
-		    && pos->material[!strongSide] == PieceValue[EG][wR]);
-}
-
-bool is_KQKP(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wQ]
-		    && pos->material[!strongSide] == PieceValue[EG][wP]);
-}
-
-bool is_KRKP(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wR]
-		    && pos->material[!strongSide] == PieceValue[EG][wP]);
-}
-
-bool is_KRKB(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wR]
-		    && pos->material[!strongSide] == PieceValue[EG][wB]);
-}
-
-bool is_KRKN(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wR]
-		    && pos->material[!strongSide] == PieceValue[EG][wN]);
-}
-
-bool is_KNNK(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wN] * 2
-		    && pos->material[!strongSide] == PieceValue[EG][wK]);
-}
-
-bool is_KNNKP(const S_BOARD *pos, int strongSide) {
-	return (   pos->material[ strongSide] == PieceValue[EG][wN] * 2
-		    && pos->material[!strongSide] == PieceValue[EG][wP]);
 }
