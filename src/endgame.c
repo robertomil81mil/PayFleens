@@ -56,7 +56,7 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
     if ((entry->evalExists = entry->eval != VALUE_NONE) != 0)
     	return entry;
 
-    for (int c = WHITE; c <= BLACK; c++)
+    for (int c = WHITE; c < COLOUR_NB; c++)
     	if (is_KXK(pos, c)) {
         	entry->eval = EndgameKXK(pos, c);
         	return entry;
@@ -209,7 +209,7 @@ int EndgameKRKP(const S_BOARD *pos, int strongSide) {
 	ASSERT(pos->material[strongSide] == PieceValue[EG][wR]);
  	ASSERT(pos->material[weakSide] == PieceValue[EG][wP]);
 
- 	int wksq, bksq, rsq, psq, queeningSq, rook, pawn, result;
+ 	int wksq, bksq, rsq, psq, queeningSq, pfile, rook, pawn, result;
 
  	rook = strongSide == WHITE ? wR : bR;
     pawn = weakSide   == WHITE ? wP : bP;
@@ -219,6 +219,8 @@ int EndgameKRKP(const S_BOARD *pos, int strongSide) {
 	rsq  = relativeSquare(strongSide, pos->pList[rook][0]);
 	psq  = relativeSquare(strongSide, pos->pList[pawn][0]);
 
+	pfile = file_of(SQ64(psq));
+
 	queeningSq = FR2SQ(file_of(SQ64(psq)), RANK_1);
 
 	// If the stronger side's king is in front of the pawn, it's a win
@@ -226,10 +228,11 @@ int EndgameKRKP(const S_BOARD *pos, int strongSide) {
 		&& rank_of(SQ64(psq)) >  rank_of(SQ64(wksq)))
 		result = PieceValue[EG][wR] - distanceBetween(wksq, psq);
 
-	// If the weaker side's king is too far from the pawn and the rook,
-	// it's a win.
+	// If the weaker side's king is too far from the pawn,
+	// and the rook can stop the pawn, the it's a win.
 	else if (   distanceBetween(bksq, psq) >= 3 + (pos->side == weakSide)
-       		 && distanceBetween(bksq, rsq) >= 3)
+       		 && distanceBetween(bksq, rsq) >= 2
+       		 && !((FileBBMask[pfile-1] | FileBBMask[pfile+1]) & SQ64(rsq)))
     	result = PieceValue[EG][wR] - distanceBetween(wksq, psq);
 
 	// If the pawn is far advanced and supported by the defending king,
