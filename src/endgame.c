@@ -44,23 +44,23 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
 
 	entry->key = key;
 
+	entry->eval = Endgame_probe(pos, key);
+
+	if ((entry->evalExists = entry->eval != VALUE_NONE) != 0)
+    	return entry;
+
+	for (int c = WHITE; c < COLOUR_NB; c++)
+    	if (is_KXK(pos, c)) {
+        	entry->eval = EndgameKXK(pos, c);
+        	return entry;
+      	}
+
 	entry->gamePhase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
                		      - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
                		      - 1 * (pos->pceNum[wN] + pos->pceNum[bN] 
                		      	   + pos->pceNum[wB] + pos->pceNum[bB]);
 
     entry->gamePhase = (entry->gamePhase * 256 + 12) / 24;
-
-    entry->eval = Endgame_probe(pos, key);
-
-    if ((entry->evalExists = entry->eval != VALUE_NONE) != 0)
-    	return entry;
-
-    for (int c = WHITE; c < COLOUR_NB; c++)
-    	if (is_KXK(pos, c)) {
-        	entry->eval = EndgameKXK(pos, c);
-        	return entry;
-      	}
 
     const int pieceCount[2][6] = {
         { pos->pceNum[wB] > 1, pos->pceNum[wP], pos->pceNum[wN],

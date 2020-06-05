@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bitboards.h"
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
@@ -140,6 +141,11 @@ int move_canSimplify(int move, const S_BOARD *pos) {
         return 0;
     else
         return 1;
+}
+
+int advancedPawnPush(int move, const S_BOARD *pos) {
+    return (   PiecePawn[pos->pieces[FROMSQ(move)]]
+            && relativeRank(!pos->side, SQ64(TOSQ(move))) > RANK_5);
 }
 
 int IsRepetition(const S_BOARD *pos) {
@@ -589,8 +595,8 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     const int PvNode = (alpha != beta - 1);
 
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-    int MoveNum = 0, played = 0;
-    int eval, value, best, oldAlpha = 0;
+    int MoveNum = 0, played = 0, moveIsBadCapture;
+    int eval, value, best, futilityValue, futilityBase, oldAlpha = 0;
     uint16_t ttMove = NOMOVE; int bestMove = NOMOVE;
 
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
@@ -625,8 +631,9 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
         oldAlpha = alpha;
 
     best = eval;
-    alpha = MAX(alpha, eval);
+    alpha = MAX(alpha, best);
     if (alpha >= beta) return eval;
+    futilityBase = best + QFutilityMargin;
 
     S_MOVELIST list[1];
     GenerateAllCaps(pos,list);
@@ -635,20 +642,30 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
         PickNextMove(MoveNum, list);
 
-        //int captured = CAPTURED(list->moves[MoveNum].move);
-
-        /*if ( ( eval + PieceVal[ captured  ] + 200 < alpha ) 
-        &&   ( pos->material[pos->side^1] - PieceVal[captured] > ENDGAME_MAT ) 
-        &&   ( PROMOTED(list->moves[MoveNum].move) == EMPTY ) )
-            continue;*/
-
-        if (   !move_canSimplify(list->moves[MoveNum].move, pos)
-            && PROMOTED(list->moves[MoveNum].move) == EMPTY
-            && badCapture(list->moves[MoveNum].move, pos))
+        if (!MakeMove(pos,list->moves[MoveNum].move))
             continue;
 
-        if ( !MakeMove(pos,list->moves[MoveNum].move))
-            continue;
+        if (   !InCheck
+            && !SqAttacked(pos->KingSq[pos->side], !pos->side, pos)
+            &&  futilityBase > -KNOWN_WIN
+            && (moveIsBadCapture = badCapture(list->moves[MoveNum].move, pos))
+            && !move_canSimplify(list->moves[MoveNum].move, pos)
+            && !advancedPawnPush(list->moves[MoveNum].move, pos)) {
+
+            futilityValue = futilityBase + PieceValue[EG][CAPTURED(list->moves[MoveNum].move)];
+
+            if (futilityValue <= alpha) {
+                best = MAX(best, futilityValue);
+                TakeMove(pos);
+                continue;
+            }
+
+            if (futilityBase <= alpha && moveIsBadCapture) {
+                best = MAX(best, futilityBase);
+                TakeMove(pos);
+                continue;
+            }
+        }
 
         played +=1;
         info->currentMove[height] = list->moves[MoveNum].move;
