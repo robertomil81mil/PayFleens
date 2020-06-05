@@ -358,7 +358,8 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     if (   !PvNode 
         && !InCheck 
         &&  depth <= RazorDepth 
-        &&  eval + RazorMargin < alpha)
+        &&  eval + RazorMargin < alpha
+        &&  eval < KNOWN_WIN)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
     if (   !PvNode

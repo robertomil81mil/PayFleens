@@ -36,9 +36,15 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
 	U64 key = pos->materialKey;
 	Material_Entry *entry = &materialTable->entry[key >> MT_HASH_SHIFT];
 
-    // Search for a matching key signature
-    if (entry->key == key)
+    // Search for a matching key signature,
+    // if eval exist compute it and return.
+    if (entry->key == key) {
+
+		if (entry->evalExists)
+    		entry->eval = Endgame_probe(pos, key);
+
 		return entry;
+    }
 
 	memset(entry, 0, sizeof(Material_Entry));
 
