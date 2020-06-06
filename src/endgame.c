@@ -41,7 +41,7 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
     if (entry->key == key) {
 
 		if (entry->evalExists)
-    		entry->eval = Endgame_probe(pos, key);
+			entry->eval = Endgame_probe(pos, key);
 
 		return entry;
     }
@@ -54,12 +54,6 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
 
 	if ((entry->evalExists = entry->eval != VALUE_NONE) != 0)
     	return entry;
-
-	for (int c = WHITE; c < COLOUR_NB; c++)
-    	if (is_KXK(pos, c)) {
-        	entry->eval = EndgameKXK(pos, c);
-        	return entry;
-      	}
 
 	entry->gamePhase = 24 - 4 * (pos->pceNum[wQ] + pos->pceNum[bQ])
                		      - 2 * (pos->pceNum[wR] + pos->pceNum[bR])
@@ -102,6 +96,11 @@ int Endgame_probe(const S_BOARD *pos, U64 key) {
 			}
 		}
 	}
+
+	for (int c = WHITE; c < COLOUR_NB; c++)
+		if (is_KXK(pos, c)) {
+			return EndgameKXK(pos, c);
+		}
 
 	return VALUE_NONE;
 }
