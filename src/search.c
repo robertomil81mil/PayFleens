@@ -144,7 +144,7 @@ int move_canSimplify(int move, const S_BOARD *pos) {
 }
 
 int advancedPawnPush(int move, const S_BOARD *pos) {
-    return (   PiecePawn[pos->pieces[FROMSQ(move)]]
+    return (   PiecePawn[pos->pieces[TOSQ(move)]]
             && relativeRank(!pos->side, SQ64(TOSQ(move))) > RANK_5);
 }
 
@@ -643,17 +643,19 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
         PickNextMove(MoveNum, list);
 
+        moveIsBadCapture = badCapture(list->moves[MoveNum].move, pos);
+
         if (!MakeMove(pos,list->moves[MoveNum].move))
             continue;
 
         if (   !InCheck
             && !SqAttacked(pos->KingSq[pos->side], !pos->side, pos)
             &&  futilityBase > -KNOWN_WIN
-            && (moveIsBadCapture = badCapture(list->moves[MoveNum].move, pos))
+            &&  moveIsBadCapture
             && !move_canSimplify(list->moves[MoveNum].move, pos)
             && !advancedPawnPush(list->moves[MoveNum].move, pos)) {
 
-            futilityValue = futilityBase + PieceValue[EG][CAPTURED(list->moves[MoveNum].move)];
+            futilityValue = futilityBase + PieceValue[EG][pos->pieces[CAPTURED(list->moves[MoveNum].move)]];
 
             if (futilityValue <= alpha) {
                 best = MAX(best, futilityValue);
