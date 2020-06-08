@@ -132,6 +132,24 @@ int badCapture(int move, const S_BOARD *pos) {
     return 0;
 }
 
+int see(const S_BOARD *pos, int move, int threshold) {
+
+    int from = FROMSQ(move), to = TOSQ(move);
+    int nextVictim = pos->pieces[from];
+
+    int balance = PieceValue[EG][pos->pieces[to]] - threshold;
+
+    if (balance < 0)
+        return 0;
+
+    balance -= PieceValue[EG][nextVictim];
+
+    if (balance >= 0)
+        return 1;
+
+    return (!pos->side) != pos->side;
+}
+
 int move_canSimplify(int move, const S_BOARD *pos) {
 
     int captured = CAPTURED(move);
@@ -643,7 +661,8 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
         PickNextMove(MoveNum, list);
 
-        moveIsBadCapture = badCapture(list->moves[MoveNum].move, pos);
+        moveIsBadCapture = (!see(pos, list->moves[MoveNum].move, 1)
+                         || badCapture(list->moves[MoveNum].move, pos));
 
         if (!MakeMove(pos,list->moves[MoveNum].move))
             continue;

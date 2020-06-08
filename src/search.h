@@ -44,6 +44,7 @@ void PickNextMove(int moveNum, S_MOVELIST *list);
 int badCapture(int move, const S_BOARD *pos);
 int move_canSimplify(int move, const S_BOARD *pos);
 int advancedPawnPush(int move, const S_BOARD *pos);
+int see(const S_BOARD *pos, int move, int threshold);
 int IsRepetition(const S_BOARD *pos);
 
 int KnightAttack(int side, int sq, const S_BOARD *pos);
