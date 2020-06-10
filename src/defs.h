@@ -105,6 +105,7 @@ typedef struct TT_Entry TT_Entry;
 
 struct Material_Entry {
     U64 key;
+    int factor;
     int imbalance;
     int gamePhase;
     int eval, evalExists;

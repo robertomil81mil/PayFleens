@@ -33,6 +33,11 @@ enum {
     KRKN,
     KNNK,
     KNNKP,
+    KBPKB,
+    KBPPKB,
+    KRPKB,
+    KRPKR,
+    KRPPKRP,
     ENDGAME_NB,
 };
 
@@ -46,13 +51,23 @@ int EndgameKRKN(const S_BOARD *pos, int strongSide);
 int EndgameKNNK(const S_BOARD *pos, int strongSide);
 int EndgameKNNKP(const S_BOARD *pos, int strongSide);
 
+int EndgameKBPsK(const S_BOARD *pos, int strongSide);
+int EndgameKBPKB(const S_BOARD *pos, int strongSide);
+int EndgameKBPPKB(const S_BOARD *pos, int strongSide);
+int EndgameKRPKB(const S_BOARD *pos, int strongSide);
+int EndgameKRPKR(const S_BOARD *pos, int strongSide);
+int EndgameKRPPKRP(const S_BOARD *pos, int strongSide);
+
 bool is_KXK(const S_BOARD *pos, int strongSide);
+bool is_KBPsK(const S_BOARD *pos, int strongSide);
 
 void endgameInit(S_BOARD *pos);
 void endgameAdd(S_BOARD *pos, int eg, char *fen);
+int fixSquare(const S_BOARD *pos, int strongSide, int sq);
 
 Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable);
-int Endgame_probe(const S_BOARD *pos, U64 key);
+int EndgameValue_probe(const S_BOARD *pos, U64 key);
+int EndgameFactor_probe(const S_BOARD *pos, U64 key);
 
 static const int PushToEdges[64] = {
    55, 49, 44, 38, 38, 44, 49, 55,
@@ -78,3 +93,4 @@ static const int PushToCorners[64] = {
 
 static const int PushClose[8] = { 0, 0, 55, 44, 33, 22, 11, 5  };
 static const int PushAway [8] = { 0, 2, 11, 22, 33, 44, 49, 55 };
+static const int KRPPKRPScaleFactors[RANK_NB] = { 0, 18, 20, 28, 42, 88, 0, 0 };

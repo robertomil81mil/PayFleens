@@ -1138,7 +1138,8 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     blockedPiecesW(pos);
     blockedPiecesB(pos);
 
-    factor = evaluateScaleFactor(pos, egScore(score));
+    factor = me->factor != SCALE_NORMAL
+           ? me->factor : evaluateScaleFactor(pos, egScore(score));
 
     score = (mgScore(score) * (256 - me->gamePhase)
           +  egScore(score) * me->gamePhase * factor / SCALE_NORMAL) / 256;

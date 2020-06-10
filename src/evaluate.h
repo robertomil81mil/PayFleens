@@ -37,6 +37,7 @@ enum {
     SCALE_OCB_ONE_KNIGHT   = 106,
     SCALE_OCB_ONE_ROOK     =  96,
     SCALE_NORMAL           = 128,
+    SCALE_MAX              = 256,
 };
 
 struct EvalTrace {
