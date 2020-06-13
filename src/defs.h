@@ -95,6 +95,7 @@ typedef struct EngineOptions EngineOptions;
 typedef struct evalInfo evalInfo;
 typedef struct evalData evalData;
 typedef struct EvalTrace EvalTrace;
+typedef struct KPKPos KPKPos;
 typedef struct Material_Entry Material_Entry;
 typedef struct Material_Table Material_Table;
 typedef struct Limits Limits;
@@ -297,9 +298,6 @@ extern int PieceSlides[13];
 
 extern int Mirror64[64];
 extern int Mirror120[64];
-
-extern U64 FileBBMask[8];
-extern U64 RankBBMask[8];
 
 extern U64 PassedPawnMasks[2][64];
 extern U64 OutpostSquareMasks[2][64];

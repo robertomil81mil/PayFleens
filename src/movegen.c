@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 
+#include "bitboards.h"
 #include "defs.h"
 #include "evaluate.h"
 
@@ -530,7 +531,7 @@ int moveBestCaseValue(const S_BOARD *pos) {
     }
 
     // Check for a potential pawn promotion
-    if ( pos->pawns[pos->side] & (pos->side == WHITE ? RankBBMask[RANK_7] : RankBBMask[RANK_2]))
+    if (pos->pawns[pos->side] & (pos->side == WHITE ? RanksBB[RANK_7] : RanksBB[RANK_2]))
         value += SEEPieceValues[wQ] - SEEPieceValues[wP];
 
     return value;
@@ -737,11 +738,8 @@ void KingAreaMask() {
 }
 
 void PawnAttacksMasks() {
-	int sq;
-	int index;
-	int t_sq;
-	int dir;
-	int pce;
+
+	int sq, t_sq, pce, index;
 
 	for(sq = 0; sq < 64; ++sq) {
 		PawnAttacks[WHITE][sq] = 0ULL;
@@ -751,8 +749,7 @@ void PawnAttacksMasks() {
 	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
 		if(!SQOFFBOARD(sq)) {
 			for(index = 0; index < NumDir[pce]; ++index) {
-				dir = PceDir[pce][index];
-				t_sq = sq + dir;
+				t_sq = sq + PceDir[pce][index];
 				if(!SQOFFBOARD(t_sq)) {
 					PawnAttacks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 				}
@@ -763,8 +760,7 @@ void PawnAttacksMasks() {
 	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
 		if(!SQOFFBOARD(sq)) {
 			for(index = 0; index < NumDir[pce]; ++index) {
-				dir = PceDir[pce][index];
-				t_sq = sq + dir;
+				t_sq = sq + PceDir[pce][index];
 				if(!SQOFFBOARD(t_sq)) {
 					PawnAttacks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
 				}

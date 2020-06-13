@@ -51,6 +51,11 @@ enum {
     KING_FLANK   = FileEBB | FileFBB | FileGBB | FileHBB,
 };
 
+extern const uint64_t FilesBB[FILE_NB];
+extern const uint64_t RanksBB[RANK_NB];
+extern const int Files[FILE_NB];
+extern const int Ranks[RANK_NB];
+
 extern int SquareDistance[120][120];
 extern int FileDistance[120][120];
 extern int RankDistance[120][120];
@@ -58,6 +63,11 @@ extern int RankDistance[120][120];
 int file_of(int sq);
 int rank_of(int sq);
 int map_to_queenside(int file);
+
+uint64_t forwardRanks(int colour, int sq);
+uint64_t forwardFile(int colour, int sq);
+uint64_t passedPawnSpan(int colour, int sq);
+uint64_t adjacentFiles(int sq);
 
 int relativeRank(int colour, int sq);
 int relativeSquare(int colour, int sq);
@@ -74,6 +84,9 @@ int backmost(int colour, U64 b);
 
 int getlsb(U64 bb);
 int getmsb(U64 bb);
+
+int poplsb(uint64_t *bb);
+int popmsb(uint64_t *bb);
 
 int popcount(U64 bb);
 bool several(U64 bb);

@@ -25,6 +25,7 @@
 extern Material_Table Table;
 
 enum {
+    KPK,
     KBNK,
     KQKR,
     KQKP,
@@ -33,6 +34,7 @@ enum {
     KRKN,
     KNNK,
     KNNKP,
+    KPKP,
     KBPKB,
     KBPPKB,
     KRPKB,
@@ -42,6 +44,7 @@ enum {
 };
 
 int EndgameKXK(const S_BOARD *pos, int strongSide);
+int EndgameKPK(const S_BOARD *pos, int strongSide);
 int EndgameKBNK(const S_BOARD *pos, int strongSide);
 int EndgameKQKR(const S_BOARD *pos, int strongSide);
 int EndgameKQKP(const S_BOARD *pos, int strongSide);
@@ -51,6 +54,8 @@ int EndgameKRKN(const S_BOARD *pos, int strongSide);
 int EndgameKNNK(const S_BOARD *pos, int strongSide);
 int EndgameKNNKP(const S_BOARD *pos, int strongSide);
 
+int EndgameKPsK(const S_BOARD *pos, int strongSide);
+int EndgameKPKP(const S_BOARD *pos, int strongSide);
 int EndgameKBPsK(const S_BOARD *pos, int strongSide);
 int EndgameKBPKB(const S_BOARD *pos, int strongSide);
 int EndgameKBPPKB(const S_BOARD *pos, int strongSide);
@@ -59,6 +64,7 @@ int EndgameKRPKR(const S_BOARD *pos, int strongSide);
 int EndgameKRPPKRP(const S_BOARD *pos, int strongSide);
 
 bool is_KXK(const S_BOARD *pos, int strongSide);
+bool is_KPsK(const S_BOARD *pos, int strongSide);
 bool is_KBPsK(const S_BOARD *pos, int strongSide);
 
 void endgameInit(S_BOARD *pos);

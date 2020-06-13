@@ -24,6 +24,12 @@
 #include "bitboards.h"
 #include "defs.h"
 
+const uint64_t FilesBB[FILE_NB] = {FileABB, FileBBB, FileCBB, FileDBB, FileEBB, FileFBB, FileGBB, FileHBB};
+const uint64_t RanksBB[RANK_NB] = {Rank1BB, Rank2BB, Rank3BB, Rank4BB, Rank5BB, Rank6BB, Rank7BB, Rank8BB};
+
+const int Files[FILE_NB] = {FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H};
+const int Ranks[RANK_NB] = {RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8};
+
 int file_of(int sq) {
     ASSERT(0 <= sq && sq < 64);
     return sq % FILE_NB;
@@ -37,6 +43,31 @@ int rank_of(int sq) {
 int map_to_queenside(int file) {
     ASSERT(0 <= file && file < FILE_NB);
     return MIN(file, FILE_H - file);
+}
+
+uint64_t adjacentFiles(int sq) {
+	ASSERT(0 <= sq && sq < 64);
+	return (  (FilesBB[file_of(sq)] & ~FilesBB[FILE_H]) << 1
+			| (FilesBB[file_of(sq)] & ~FilesBB[FILE_A]) >> 1);
+}
+
+uint64_t forwardRanks(int colour, int sq) {
+	ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+	return colour == WHITE ? ~RanksBB[RANK_1] << 8 * (rank_of(sq) - RANK_1)
+                    	   : ~RanksBB[RANK_8] >> 8 * (RANK_8 - rank_of(sq));
+}
+
+uint64_t forwardFile(int colour, int sq) {
+	ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+	return forwardRanks(colour, sq) & FilesBB[file_of(sq)];
+}
+
+uint64_t passedPawnSpan(int colour, int sq) {
+	ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+	return forwardRanks(colour, sq) & (adjacentFiles(sq) | FilesBB[file_of(sq)]);
 }
 
 int relativeRank(int colour, int sq) {
@@ -95,6 +126,18 @@ int getlsb(U64 bb) {
 
 int getmsb(U64 bb) {
     return __builtin_clzll(bb) ^ 63;
+}
+
+int poplsb(uint64_t *bb) {
+    int lsb = getlsb(*bb);
+    *bb &= *bb - 1;
+    return lsb;
+}
+
+int popmsb(uint64_t *bb) {
+    int msb = getmsb(*bb);
+    *bb ^= 1ull << msb;
+    return msb;
 }
 
 int popcount(U64 bb) {

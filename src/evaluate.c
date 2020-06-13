@@ -388,7 +388,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
     pawnbrothers =  pos->pieces[sq-1] == pce
                  || pos->pieces[sq+1] == pce;
 
-    opposed = FileBBMask[FilesBrd[sq]] & pos->pawns[side^1];
+    opposed = FilesBB[FilesBrd[sq]] & pos->pawns[side^1];
     support = pos->pawn_ctrl[side][sq];
 
     //printf("%c Pawn:%s\n",PceChar[pce], PrSq(sq));
@@ -584,11 +584,11 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
     R  = relativeRank(side, SQ64(sq));
     KR = relativeRank(side, SQ64(pos->KingSq[side^1]));
 
-    if (!(pos->pawns[COLOUR_NB] & FileBBMask[FilesBrd[sq]])) {
+    if (!(pos->pawns[COLOUR_NB] & FilesBB[FilesBrd[sq]])) {
         score += RookOpen;
         if (TRACE) T.RookOpen[side]++;
     }
-    if (!(pos->pawns[side] & FileBBMask[FilesBrd[sq]])) {
+    if (!(pos->pawns[side] & FilesBB[FilesBrd[sq]])) {
         score += RookSemi;
         if (TRACE) T.RookSemi[side]++;
     }
@@ -668,10 +668,10 @@ int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
     center = clamp(FilesBrd[KingSq], FILE_B, FILE_G);
     for (file = center - 1; file <= center + 1; ++file) {
 
-        ours = (pos->pawns[side] & FileBBMask[file]);
+        ours = (pos->pawns[side] & FilesBB[file]);
         ourRank = ours ? relativeRank(side, frontmost(side^1, ours)) : 0;
 
-        theirs = (pos->pawns[side^1] & FileBBMask[file]);
+        theirs = (pos->pawns[side^1] & FilesBB[file]);
         theirRank = theirs ? relativeRank(side, frontmost(side^1, theirs)) : 0;
 
         d = map_to_queenside(file);

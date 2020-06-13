@@ -376,14 +376,14 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     if (   !PvNode 
         && !InCheck 
         &&  depth <= RazorDepth 
-        &&  eval + RazorMargin < alpha
-        &&  eval < KNOWN_WIN)
+        &&  eval + RazorMargin < alpha)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
     if (   !PvNode
         && !InCheck
         &&  depth <= BetaPruningDepth
-        &&  eval - BetaMargin * depth > beta)
+        &&  eval - BetaMargin * depth > beta
+        &&  eval < KNOWN_WIN)
         return eval;
 
     if (   !PvNode
@@ -403,7 +403,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         value = -search( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
         TakeNullMove(pos);
 
-        if (value >= beta) {
+        if (value >= beta && abs(beta) < KNOWN_WIN) {
             info->nullCut++;
             return beta;
         }
