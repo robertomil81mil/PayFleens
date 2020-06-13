@@ -146,10 +146,10 @@ int EndgameFactor_probe(const S_BOARD *pos, U64 key) {
 
 	for (int c = WHITE; c < COLOUR_NB; ++c) {
 		if (is_KBPsK(pos, c)) {
-			return EndgameKBPsK(pos, c);
+		    return EndgameKBPsK(pos, c);
 		}
 		if (is_KPsK(pos, c)) {
-			return EndgameKPsK(pos, c);
+		    return EndgameKPsK(pos, c);
 		}
 	}
 
@@ -401,9 +401,9 @@ int EndgameKPsK(const S_BOARD *pos, int strongSide) {
 	// If all pawns are ahead of the king, on a single rook file and
 	// the king is within one file of the pawns, it's a draw.
 	if (   !(pawns & ~forwardRanks(weakSide, SQ64(ksq)))
-    	&& !((pawns & ~FileABB) && (pawns & ~FileHBB))
-    	&&  distanceByFile(ksq, SQ120(getlsb(pawns))) <= 1)
-    	return SCALE_FACTOR_DRAW;
+		&& !((pawns & ~FileABB) && (pawns & ~FileHBB))
+		&&  distanceByFile(ksq, SQ120(getlsb(pawns))) <= 1)
+		return SCALE_FACTOR_DRAW;
 
 	return SCALE_NORMAL;
 }
@@ -427,7 +427,7 @@ int EndgameKPKP(const S_BOARD *pos, int strongSide) {
 	// If the pawn has advanced to the fifth rank or further, and is not a
 	// rook pawn, it's too dangerous to assume that it's at least a draw.
 	if (rank_of(psq) >= RANK_5 && file_of(psq) != FILE_A)
-    	return SCALE_NORMAL;
+		return SCALE_NORMAL;
 
 	// Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
 	// it's probably at least a draw even with the pawn.
@@ -821,7 +821,7 @@ bool is_KXK(const S_BOARD *pos, int strongSide) {
 
 bool is_KPsK(const S_BOARD *pos, int strongSide) {
 	return ((  pos->material[strongSide] - PieceValue[EG][wP]
-		     * popcount(pos->pawns[strongSide]) == PieceValue[EG][wK])
+			 * popcount(pos->pawns[strongSide]) == PieceValue[EG][wK])
 			&& popcount(pos->pawns[strongSide]) >= 2
 			&& pos->material[!strongSide] == PieceValue[EG][wK]);
 }

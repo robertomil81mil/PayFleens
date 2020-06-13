@@ -138,6 +138,7 @@ typedef struct {
 	int castlePerm;
 	int enPas;
 	int fiftyMove;
+	int plyFromNull;
 	U64 posKey;
 	U64 materialKey;
 
@@ -158,6 +159,7 @@ typedef struct {
 	int ply;
 	int hisPly;
 	int gamePly;
+	int plyFromNull;
 
 	int castlePerm;
 

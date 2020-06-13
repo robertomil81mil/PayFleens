@@ -250,6 +250,7 @@ int MakeMove(S_BOARD *pos, int move) {
     pos->history[pos->hisPly].fiftyMove = pos->fiftyMove;
     pos->history[pos->hisPly].enPas = pos->enPas;
     pos->history[pos->hisPly].castlePerm = pos->castlePerm;
+    pos->history[pos->hisPly].plyFromNull = pos->plyFromNull;
 
     pos->castlePerm &= CastlePerm[from];
     pos->castlePerm &= CastlePerm[to];
@@ -270,6 +271,7 @@ int MakeMove(S_BOARD *pos, int move) {
         pos->fiftyMove = 0;
     }
 
+    pos->plyFromNull++;
 	pos->hisPly++;
 	pos->gamePly++;
 	pos->ply++;
@@ -345,6 +347,7 @@ void TakeMove(S_BOARD *pos) {
 	if(pos->enPas != NO_SQ) HASH_EP;
     HASH_CA;
 
+    pos->plyFromNull = pos->history[pos->hisPly].plyFromNull;
     pos->materialKey = pos->history[pos->hisPly].materialKey;
     pos->castlePerm = pos->history[pos->hisPly].castlePerm;
     pos->fiftyMove = pos->history[pos->hisPly].fiftyMove;
@@ -416,10 +419,12 @@ void MakeNullMove(S_BOARD *pos) {
     pos->history[pos->hisPly].fiftyMove = pos->fiftyMove;
     pos->history[pos->hisPly].enPas = pos->enPas;
     pos->history[pos->hisPly].castlePerm = pos->castlePerm;
+    pos->history[pos->hisPly].plyFromNull = pos->plyFromNull;
     pos->enPas = NO_SQ;
 
     pos->side ^= 1;
     pos->hisPly++;
+    pos->plyFromNull = 0;
     HASH_SIDE;
    
     ASSERT(CheckBoard(pos));
@@ -437,6 +442,7 @@ void TakeNullMove(S_BOARD *pos) {
 
     if(pos->enPas != NO_SQ) HASH_EP;
 
+    pos->plyFromNull = pos->history[pos->hisPly].plyFromNull;
     pos->castlePerm = pos->history[pos->hisPly].castlePerm;
     pos->fiftyMove = pos->history[pos->hisPly].fiftyMove;
     pos->enPas = pos->history[pos->hisPly].enPas;

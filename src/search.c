@@ -179,6 +179,30 @@ int IsRepetition(const S_BOARD *pos) {
     return 0;
 }
 
+int posIsDrawn(const S_BOARD *pos, int ply) {
+
+    if (pos->fiftyMove > 99 && !SqAttacked(pos->KingSq[pos->side],!pos->side,pos))
+        return 1;
+
+    // Return a draw score if a position has a two fold after the root,
+    // or a three fold which occurs in part before the root move.
+    int end = MIN(pos->fiftyMove, pos->plyFromNull);
+
+    if (end >= 4) {
+
+        int reps = 0;
+        
+        for (int i = pos->hisPly - 4; i >= pos->hisPly - end; i -= 2) {
+
+            if (    pos->posKey == pos->history[i].posKey
+                && (i > pos->hisPly - ply || ++reps == 2))
+                return 1;
+        }
+    }
+
+    return 0;
+}
+
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
     for (int index = 0; index < 13; index++)
@@ -327,7 +351,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     uint16_t ttMove = NOMOVE; int bestMove = NOMOVE, excludedMove = NOMOVE;
 
     if (!RootNode) {
-        if (info->stop || IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
+        if (info->stop || posIsDrawn(pos, pos->ply))
             return depth < 4 ? 0 : 0 + (2 * (info->nodes & 1) - 1);
 
         if (pos->ply >= MAX_PLY)
@@ -605,7 +629,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
     int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
 
-    if (IsRepetition(pos) || (pos->fiftyMove > 99 && !InCheck))
+    if (posIsDrawn(pos, pos->ply))
         return 0;
 
     if (pos->ply >= MAX_PLY)
