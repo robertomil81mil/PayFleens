@@ -16,16 +16,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
+#pragma once
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
+void MirrorEvalTest(S_BOARD *pos);
 
-extern const uint64_t Random64Poly[781];
+#if defined(DEBUG)
+
+int MoveListOk(const S_MOVELIST *list, const S_BOARD *pos);
+int SqIs120(const int sq);
+int PceValidEmptyOffbrd(const int pce);
+int SqOnBoard(const int sq);
+int SideValid(const int side);
+int FileRankValid(const int fr);
+int PieceValidEmpty(const int pce);
+int PieceValid(const int pce);
+void Perft(int depth, S_BOARD *pos);
+void PerftTest(int depth, S_BOARD *pos);
 
 #endif

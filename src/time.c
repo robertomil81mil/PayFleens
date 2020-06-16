@@ -97,18 +97,14 @@ void ReadInput(S_SEARCHINFO *info) {
     if (InputWaiting()) {
         info->stop = TRUE;
         do {
-            bytes=read(fileno(stdin),input,256);
-        } while (bytes<0);
+            bytes = read(fileno(stdin), input, 256);
+        } while (bytes < 0);
 
         endc = strchr(input,'\n');
-        if (endc) *endc=0;
+        if (endc) *endc = 0;
 
         return;
     }
-}
-
-double center(double v, double lo, double hi) {
-    return v < lo ? lo : v > hi ? hi : v;
 }
 
 double move_importance(int ply) {
@@ -144,7 +140,8 @@ void TimeManagementInit(S_SEARCHINFO *info, Limits *limits, int ply) {
     double slowMover       = Options.SlowMover;
     double hypMyTime;
 
-    info->startTime = limits->start; // Save off the start time of the search
+    // Save off the start time of the search
+    info->startTime = limits->start;
 
     // Allocate time if we are handling the clock
     if (limits->limitedBySelf) {
@@ -196,7 +193,7 @@ int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduct
 
     int previousScore = info->depth == 1 ? 32000 : info->values[info->depth-1];
     double fallingEval = (383 + 19 * (previousScore - info->values[info->depth])) / 692.0;
-    fallingEval = center(fallingEval, 0.5, 1.5);
+    fallingEval = clamp(fallingEval, 0.5, 1.5);
 
     TimeRdction = lastBestMoveDepth + 9 < completedDepth ? 1.97 : 0.98;
     double reduction = (1.36 + info->previousTimeReduction) / (2.29 * TimeRdction);

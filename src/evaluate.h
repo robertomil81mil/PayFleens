@@ -152,6 +152,8 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable);
 
 extern evalData e;
 
+extern int PieceValPhases[13];
+
 static const int PceDir[13][8] = {
     { 0, 0, 0, 0, 0, 0, 0, 0 },
     {  9, 11, 0, 0, 0, 0, 0, 0 },

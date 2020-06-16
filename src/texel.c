@@ -26,6 +26,7 @@
 
 #include "defs.h"
 #include "evaluate.h"
+#include "hashkeys.h"
 #include "search.h"
 #include "texel.h"
 #include "time.h"
@@ -492,19 +493,6 @@ void print_3(char *name, int params[NTERMS][PHASE_NB], int i, int A, int B, int 
     }
 
     printf("};\n\n");
-}
-
-uint64_t rand64() {
-
-    // http://vigna.di.unimi.it/ftp/papers/xorshift.pdf
-
-    static uint64_t seed = 1070372ull;
-
-    seed ^= seed >> 12;
-    seed ^= seed << 25;
-    seed ^= seed >> 27;
-
-    return seed * 2685821657736338717ull;
 }
 
 #endif

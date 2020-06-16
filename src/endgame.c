@@ -4,9 +4,12 @@
 
 #include "bitbase.h"
 #include "bitboards.h"
+#include "board.h"
+#include "data.h"
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
+#include "init.h"
 
 Material_Table Table;
 
@@ -193,7 +196,7 @@ int EndgameKPK(const S_BOARD *pos, int strongSide) {
 	ASSERT(pos->material[strongSide] == PieceValue[EG][wK] + PieceValue[EG][wP]);
  	ASSERT(pos->material[weakSide] == PieceValue[EG][wK]);
 
- 	int pawn = weakSide == WHITE ? wP : bP;
+ 	int pawn = strongSide == WHITE ? wP : bP;
 
 	// Assume strongSide is white and the pawn is on files A-D
 	int wksq = fixSquare(pos, strongSide, SQ64(pos->KingSq[strongSide]));
@@ -203,7 +206,7 @@ int EndgameKPK(const S_BOARD *pos, int strongSide) {
 	int us = strongSide == pos->side ? WHITE : BLACK;
 
 	if (!Bitbases_probe(wksq, psq, bksq, us))
-    	return 0;
+    	return VALUE_DRAW;
 
 	int result = KNOWN_WIN + PieceValue[EG][wP] + rank_of(SQ64(pos->pList[pawn][0]));
 
@@ -230,7 +233,7 @@ int EndgameKBNK(const S_BOARD *pos, int strongSide) {
 
   	result =  KNOWN_WIN
             + PushClose[distanceBetween(winnerKSq, loserKSq)]
-            + PushToCorners[opposite_colors(SQ64(bishopSq), SQ64(A1)) ? SQ64(loserKSq) ^ 63
+            + PushToCorners[opposite_colors(SQ64(bishopSq), SQ64(A1)) ? SQ64(loserKSq) ^ 56
             														  : SQ64(loserKSq)];
 
 	ASSERT(abs(result) < MATE_IN_MAX);
@@ -364,7 +367,7 @@ int EndgameKNNK(const S_BOARD *pos, int strongSide) {
 
 	ASSERT(pos->material[strongSide] == 2 * PieceValue[EG][wN]);
 
-	return strongSide == pos->side ? 0 : 0;
+	return strongSide == pos->side ? VALUE_DRAW : VALUE_DRAW;
 }
 
 int EndgameKNNKP(const S_BOARD *pos, int strongSide) {
@@ -415,7 +418,7 @@ int EndgameKPKP(const S_BOARD *pos, int strongSide) {
 	ASSERT(pos->material[strongSide] == PieceValue[EG][wK] + PieceValue[EG][wP]);
  	ASSERT(pos->material[weakSide] == PieceValue[EG][wK] + PieceValue[EG][wP]);
 
- 	int pawn = weakSide == WHITE ? wP : bP;
+ 	int pawn = strongSide == WHITE ? wP : bP;
 
 	// Assume strongSide is white and the pawn is on files A-D
 	int wksq = fixSquare(pos, strongSide, SQ64(pos->KingSq[strongSide]));
@@ -427,7 +430,7 @@ int EndgameKPKP(const S_BOARD *pos, int strongSide) {
 	// If the pawn has advanced to the fifth rank or further, and is not a
 	// rook pawn, it's too dangerous to assume that it's at least a draw.
 	if (rank_of(psq) >= RANK_5 && file_of(psq) != FILE_A)
-		return SCALE_NORMAL;
+	    return SCALE_NORMAL;
 
 	// Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
 	// it's probably at least a draw even with the pawn.
@@ -614,7 +617,7 @@ int EndgameKRPKB(const S_BOARD *pos, int strongSide) {
     	int bsq = pos->pList[bishop][0];
     	int psq = pos->pList[pawn][0];
     	int r = relativeRank(strongSide, SQ64(psq));
-    	int push = strongSide == WHITE ? NORTH : SOUTH;
+    	int push = strongSide == WHITE ? 10 : -10;
 
     	// If the pawn is on the 5th rank and the pawn (currently) is on
     	// the same color square as the bishop then there is a chance of
@@ -689,7 +692,7 @@ int EndgameKRPKR(const S_BOARD *pos, int strongSide) {
 	int f = file_of(wpsq);
 	int r = rank_of(wpsq);
 	int queeningSq = FR2SQ(f, RANK_8);
-	int blockSq = wpsq120 + NORTH;
+	int blockSq = wpsq120 + 10;
 	int tempo = pos->side == strongSide;
 
 	// If the pawn is not too far advanced and the defending king defends the
@@ -703,7 +706,7 @@ int EndgameKRPKR(const S_BOARD *pos, int strongSide) {
     // If the defending king blocks the pawn and the attacking king is too far
 	// away, it's a draw.
 	if (   r <= RANK_5
-    	&& bksq120 == wpsq120 + NORTH
+    	&& bksq == wpsq + NORTH
     	&& distanceBetween(wksq120, wpsq120) - tempo >= 2
     	&& distanceBetween(wksq120, brsq120) - tempo >= 2)
     	return SCALE_FACTOR_DRAW;
@@ -811,7 +814,7 @@ int fixSquare(const S_BOARD *pos, int strongSide, int sq) {
 	if (file_of(SQ64(pos->pList[pawn][0])) >= FILE_E)
 		sq = sq ^ FILE_H;
 
-    return strongSide == WHITE ? sq : sq ^ 63;
+    return strongSide == WHITE ? sq : sq ^ 56;
 }
 
 bool is_KXK(const S_BOARD *pos, int strongSide) {
@@ -821,9 +824,9 @@ bool is_KXK(const S_BOARD *pos, int strongSide) {
 
 bool is_KPsK(const S_BOARD *pos, int strongSide) {
 	return ((  pos->material[strongSide] - PieceValue[EG][wP]
-			 * popcount(pos->pawns[strongSide]) == PieceValue[EG][wK])
-			&& popcount(pos->pawns[strongSide]) >= 2
-			&& pos->material[!strongSide] == PieceValue[EG][wK]);
+		     * popcount(pos->pawns[strongSide]) == PieceValue[EG][wK])
+		    && popcount(pos->pawns[strongSide]) >= 2
+		    && pos->material[!strongSide] == PieceValue[EG][wK]);
 }
 
 bool is_KBPsK(const S_BOARD *pos, int strongSide) {

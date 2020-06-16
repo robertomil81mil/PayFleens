@@ -30,8 +30,6 @@
 #define ASSERT(n) \
 if(!(n)) { \
 printf("%s - Failed",#n); \
-printf("On %s ",__DATE__); \
-printf("At %s ",__TIME__); \
 printf("In File %s ",__FILE__); \
 printf("At Line %d\n",__LINE__); \
 exit(1);}
@@ -44,6 +42,8 @@ typedef unsigned long long U64;
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
 
+#define clamp(v, lo, hi) ((v) < (lo) ? (lo) : (v) > (hi) ? (hi) : (v))
+
 enum {
 	BRD_SQ_NUM = 120,
 	MAXPOSITIONMOVES = 256, 
@@ -51,12 +51,25 @@ enum {
 };
 
 enum {
+	VALUE_DRAW = 0,
 	MAX_PLY = 128,
 	KNOWN_WIN = 10000,
     INFINITE = 32000,
+    VALUE_NONE = 32001,
     MATE_IN_MAX = INFINITE - MAX_PLY,
     MATED_IN_MAX = MAX_PLY - INFINITE,
-    VALUE_NONE = 32001
+};
+
+enum {
+	NORTH =  8,
+	EAST  =  1,
+	SOUTH = -NORTH,
+	WEST  = -EAST,
+
+	NORTH_EAST = NORTH + EAST,
+	SOUTH_EAST = SOUTH + EAST,
+	SOUTH_WEST = SOUTH + WEST,
+	NORTH_WEST = NORTH + WEST
 };
 
 enum { NOMOVE = 0, NULL_MOVE = 22 };
@@ -81,15 +94,7 @@ enum {
   A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD
 };
 
-enum { FALSE, TRUE };
-
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
-
-enum {
-    MT_KEY_SIZE   = 16,
-    MT_SIZE       = 1 << MT_KEY_SIZE,
-    MT_HASH_SHIFT = 64 - MT_KEY_SIZE,
-};
 
 typedef struct EngineOptions EngineOptions;
 typedef struct evalInfo evalInfo;
@@ -103,18 +108,6 @@ typedef struct PVariation PVariation;
 typedef struct TTable TTable;
 typedef struct TT_Cluster TT_Cluster;
 typedef struct TT_Entry TT_Entry;
-
-struct Material_Entry {
-    U64 key;
-    int factor;
-    int imbalance;
-    int gamePhase;
-    int eval, evalExists;
-};
-
-struct Material_Table {
-    Material_Entry entry[MT_SIZE];
-};
 
 struct PVariation {
     int line[MAX_PLY];
@@ -147,10 +140,9 @@ typedef struct {
 typedef struct {
 
 	int pieces[BRD_SQ_NUM];
-	U64 pawns[3];
-	int pawn_ctrl[2][120];
+	int pawn_ctrl[COLOUR_NB][120];
 
-	int KingSq[2];
+	int KingSq[COLOUR_NB];
 
 	int side;
 	int enPas;
@@ -163,6 +155,7 @@ typedef struct {
 
 	int castlePerm;
 
+	U64 pawns[3];
 	U64 posKey;
 	U64 materialKey;
 
@@ -178,7 +171,7 @@ typedef struct {
 	// piece list
 	int pList[13][10];
 
-	int PSQT[2];
+	int PSQT[COLOUR_NB];
 
 	PVariation pv;
 
@@ -208,177 +201,3 @@ typedef struct {
 	int POST_THINKING;
 
 } S_SEARCHINFO;
-
-/* GAME MOVE */
-
-/*
-0000 0000 0000 0000 0000 0111 1111 -> From 0x7F
-0000 0000 0000 0011 1111 1000 0000 -> To >> 7, 0x7F
-0000 0000 0011 1100 0000 0000 0000 -> Captured >> 14, 0xF
-0000 0000 0100 0000 0000 0000 0000 -> EP 0x40000
-0000 0000 1000 0000 0000 0000 0000 -> Pawn Start 0x80000
-0000 1111 0000 0000 0000 0000 0000 -> Promoted Piece >> 20, 0xF
-0001 0000 0000 0000 0000 0000 0000 -> Castle 0x1000000
-*/
-
-#define MFLAGCAP 0x7C000
-#define MFLAGPROM 0xF00000
-
-#define FROMSQ(m) ((m) & 0x7F)
-#define TOSQ(m) (((m)>>7) & 0x7F)
-#define CAPTURED(m) (((m)>>14) & 0xF)
-#define PROMOTED(m) (((m)>>20) & 0xF)
-
-#define MFLAGEP 0x40000
-#define MFLAGPS 0x80000
-#define MFLAGCA 0x1000000
-
-#define MFLAGCAP 0x7C000
-#define MFLAGPROM 0xF00000
-
-/* MACROS */
-
-#define FR2SQ(f,r) ( (21 + (f) ) + ( (r) * 10 ) )
-#define SQOFFBOARD(sq) (FilesBrd[(sq)]==OFFBOARD)
-#define SQ64(sq120) (Sq120ToSq64[(sq120)])
-#define SQ120(sq64) (Sq64ToSq120[(sq64)])
-#define POP(b) PopBit(b)
-#define CNT(b) CountBits(b)
-#define CLRBIT(bb,sq) ((bb) &= ClearMask[(sq)])
-#define SETBIT(bb,sq) ((bb) |= SetMask[(sq)])
-
-#define IsBQ(p) (PieceBishopQueen[(p)])
-#define IsRQ(p) (PieceRookQueen[(p)])
-#define IsKn(p) (PieceKnight[(p)])
-#define IsKi(p) (PieceKing[(p)])
-
-#define MIRROR64(sq) (Mirror64[(sq)])
-
-#define NORTH 10
-#define SOUTH -10
-#define EAST  1
-#define WEST  -1
-#define NE    11
-#define SW    -11
-#define NW    9
-#define SE    -9
-
-/* GLOBALS */
-
-extern int Sq120ToSq64[BRD_SQ_NUM];
-extern int Sq64ToSq120[64];
-extern U64 SetMask[64];
-extern U64 ClearMask[64];
-extern U64 PieceKeys[13][120];
-extern U64 SideKey;
-extern U64 CastleKeys[16];
-extern char PceChar[];
-extern char SideChar[];
-extern char RankChar[];
-extern char FileChar[];
-
-extern int PieceBig[13];
-extern int PieceMaj[13];
-extern int PieceMin[13];
-extern int PieceValue[PHASE_NB][PIECE_NB];
-extern int PieceCol[13];
-extern int PiecePawn[13];
-extern int PiecePawnW[13];
-extern int PiecePawnB[13];
-extern int PieceValPhases[13];
-
-extern int FilesBrd[BRD_SQ_NUM];
-extern int RanksBrd[BRD_SQ_NUM];
-
-extern int PieceKnight[13];
-extern int PieceBishop[13];
-extern int PieceRook[13];
-extern int PieceKing[13];
-extern int PieceRookQueen[13];
-extern int PieceBishopQueen[13];
-extern int PieceSlides[13];
-
-extern int Mirror64[64];
-extern int Mirror120[64];
-
-extern U64 PassedPawnMasks[2][64];
-extern U64 OutpostSquareMasks[2][64];
-extern U64 IsolatedMask[64];
-extern U64 PawnAttacks[2][64];
-
-extern U64 KingAreaMasks[COLOUR_NB][64];
-extern void KingAreaMask();
-extern U64 kingAreaMasks(int colour, int sq);
-extern void PawnAttacksMasks();
-extern U64 pawnAttacks(int colour, int sq);
-extern U64 outpostSquareMasks(int colour, int sq);
-
-/* FUNCTIONS */
-
-// init.c
-extern void AllInit();
-
-// bitboards.c
-extern void PrintBitBoard(U64 bb);
-extern int PopBit(U64 *bb);
-extern int CountBits(U64 b);
-
-// hashkeys.c
-extern U64 GeneratePosKey(const S_BOARD *pos);
-extern U64 GenerateMaterialKey(const S_BOARD *pos);
-
-// board.c
-extern void ResetBoard(S_BOARD *pos);
-extern int ParseFen(char *fen, S_BOARD *pos);
-extern void PrintBoard(const S_BOARD *pos);
-extern void UpdateListsMaterial(S_BOARD *pos);
-extern int CheckBoard(const S_BOARD *pos);
-extern void MirrorBoard(S_BOARD *pos);
-extern void PrintNonBits(const S_BOARD *pos, int side);
-
-// attack.c
-extern int SqAttacked(const int sq, const int side, const S_BOARD *pos);
-extern int SqAttackedByPawn(const int sq, const int side, const S_BOARD *pos);
-extern int SqAttackedByBishopQueen(const int sq, const int side, const S_BOARD *pos);
-extern int SqAttackedByRookQueen(const int sq, const int side, const S_BOARD *pos);
-extern int SqAttackedByKnight(const int sq, const int side, const S_BOARD *pos);
-
-// io.c
-extern char *PrMove(const int move);
-extern char *PrSq(const int sq);
-extern void PrintMoveList(const S_MOVELIST *list);
-extern int ParseMove(char *ptrChar, S_BOARD *pos);
-
-//validate.c
-extern int SqOnBoard(const int sq);
-extern int SideValid(const int side);
-extern int FileRankValid(const int fr);
-extern int PieceValidEmpty(const int pce);
-extern int PieceValid(const int pce);
-extern void MirrorEvalTest(S_BOARD *pos);
-extern int SqIs120(const int sq);
-extern int PceValidEmptyOffbrd(const int pce);
-extern int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos);
-
-// movegen.c
-extern void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
-extern void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
-extern int MoveExists(S_BOARD *pos, const int move);
-extern int LegalMoveExist(S_BOARD *pos);
-extern void InitMvvLva();
-extern void setSquaresNearKing();
-extern int moveBestCaseValue(const S_BOARD *pos);
-
-// makemove.c
-extern int MakeMove(S_BOARD *pos, int move);
-extern void TakeMove(S_BOARD *pos);
-extern void MakeNullMove(S_BOARD *pos);
-extern void TakeNullMove(S_BOARD *pos);
-
-// perft.c
-extern void PerftTest(int depth, S_BOARD *pos);
-
-// polybook.c
-extern int GetBookMove(S_BOARD *board);
-extern void CleanPolyBook();
-extern void InitPolyBook();

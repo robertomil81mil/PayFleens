@@ -21,81 +21,146 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "board.h"
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
+#include "io.h"
+#include "makemove.h"
+#include "movegen.h"
 #include "search.h"
 #include "time.h"
 #include "ttable.h"
+#include "validate.h"
 
-int MoveListOk(const S_MOVELIST *list,  const S_BOARD *pos) {
-	if(list->count < 0 || list->count >= MAXPOSITIONMOVES) {
-		return FALSE;
-	}
+uint64_t leafNodes;
 
-	int MoveNum;
-	int from = 0;
-	int to = 0;
-	for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+#ifdef DEBUG
+
+int MoveListOk(const S_MOVELIST *list, const S_BOARD *pos) {
+
+	if (list->count < 0 || list->count >= MAXPOSITIONMOVES)
+		return 0;
+
+	int from, to;
+
+	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
 		to = TOSQ(list->moves[MoveNum].move);
 		from = FROMSQ(list->moves[MoveNum].move);
-		if(!SqOnBoard(to) || !SqOnBoard(from)) {
-			return FALSE;
-		}
-		if(!PieceValid(pos->pieces[from])) {
+		if (!SqOnBoard(to) || !SqOnBoard(from))
+			return 0;
+		
+		if (!PieceValid(pos->pieces[from])) {
 			PrintBoard(pos);
-			return FALSE;
-		}
+			return 0;
+        }
 	}
 
-	return TRUE;
+	return 1;
 }
 
 int SqIs120(const int sq) {
-	return (sq>=0 && sq<120);
+	return (sq >= 0 && sq < 120);
 }
 
 int PceValidEmptyOffbrd(const int pce) {
 	return (PieceValidEmpty(pce) || pce == OFFBOARD);
 }
+
 int SqOnBoard(const int sq) {
-	return FilesBrd[sq]==OFFBOARD ? 0 : 1;
+	return !(FilesBrd[sq] == OFFBOARD);
 }
 
 int SideValid(const int side) {
-	return (side==WHITE || side == BLACK) ? 1 : 0;
+	return (side == WHITE || side == BLACK);
 }
 
 int FileRankValid(const int fr) {
-	return (fr >= 0 && fr <= 7) ? 1 : 0;
+	return (fr >= 0 && fr <= 7);
 }
 
 int PieceValidEmpty(const int pce) {
-	return (pce >= EMPTY && pce <= bK) ? 1 : 0;
+	return (pce >= EMPTY && pce <= bK);
 }
 
 int PieceValid(const int pce) {
-	return (pce >= wP && pce <= bK) ? 1 : 0;
+	return (pce >= wP && pce <= bK);
 }
+
+void Perft(int depth, S_BOARD *pos) {
+
+    ASSERT(CheckBoard(pos));
+
+    if (depth == 0) {
+        leafNodes++;
+        return;
+    }   
+
+    S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
+
+    for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {   
+       
+        if (!MakeMove(pos, list->moves[MoveNum].move))
+            continue;
+
+        Perft(depth - 1, pos);
+        TakeMove(pos);
+    }
+
+    return;
+}
+
+
+void PerftTest(int depth, S_BOARD *pos) {
+
+    ASSERT(CheckBoard(pos));
+
+    PrintBoard(pos);
+    printf("\nStarting Test To Depth:%d\n",depth);  
+    leafNodes = 0;
+    int move;
+    
+    S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);         
+
+    for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+        move = list->moves[MoveNum].move;
+        if (!MakeMove(pos, move))
+            continue;
+        
+        uint64_t cumnodes = leafNodes;
+        Perft(depth - 1, pos);
+        TakeMove(pos);        
+        uint64_t oldnodes = leafNodes - cumnodes;
+        printf("move %d : %s : %I64d\n",MoveNum+1, PrMove(move), oldnodes);
+    }
+    
+    printf("\nTest Complete : %I64d nodes visited\n",leafNodes);
+
+    return;
+}
+
+#endif
 
 void MirrorEvalTest(S_BOARD *pos) {
     FILE *file;
     file = fopen("../perftsuite.epd","r");
-    char lineIn [1024];
-    int ev1 = 0; int ev2 = 0;
-    int positions = 0;
-    if(file == NULL) {
+    char lineIn[1024];
+    int ev1, ev2, positions = 0;
+
+    if (file == NULL) {
         printf("File Not Found\n");
         return;
     }  else {
-        while(fgets (lineIn , 1024 , file) != NULL) {
+        while(fgets(lineIn , 1024 ,file) != NULL) {
             ParseFen(lineIn, pos);
             positions++;
             ev1 = EvalPosition(pos, &Table);
             MirrorBoard(pos);
             ev2 = EvalPosition(pos, &Table);
 
-            if(ev1 != ev2) {
+            if (ev1 != ev2) {
                 printf("\n\n\n");
                 ParseFen(lineIn, pos);
                 PrintBoard(pos);
@@ -108,11 +173,12 @@ void MirrorEvalTest(S_BOARD *pos) {
                 return;
             }
 
-            if( (positions % 1000) == 0)   {
+            if ((positions % 1000) == 0)
                 printf("position %d\n",positions);
-            }
 
             memset(&lineIn[0], 0, sizeof(lineIn));
         }
     }
+
+    printf("MirrorEvalTest() finished with succes!\n");
 }

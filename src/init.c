@@ -22,201 +22,278 @@
 #include <stdlib.h>
 
 #include "bitboards.h"
+#include "board.h"
 #include "defs.h"
 #include "evaluate.h"
+#include "hashkeys.h"
+#include "init.h"
+#include "movegen.h"
 #include "search.h"
 #include "ttable.h"
 
-#define RAND_64 	((U64)rand() | \
-					(U64)rand() << 15 | \
-					(U64)rand() << 30 | \
-					(U64)rand() << 45 | \
-					((U64)rand() & 0xf) << 60 )
+uint64_t PassedPawnMasks[COLOUR_NB][64];
+uint64_t OutpostSquareMasks[COLOUR_NB][64];
+uint64_t KingAreaMasks[COLOUR_NB][64];
+uint64_t PawnAttacks[COLOUR_NB][64];
+uint64_t IsolatedMask[64];
 
-int Sq120ToSq64[BRD_SQ_NUM];
-int Sq64ToSq120[64];
-
-U64 SetMask[64];
-U64 ClearMask[64];
-
-U64 PieceKeys[13][120];
-U64 SideKey;
-U64 CastleKeys[16];
-
-int FilesBrd[BRD_SQ_NUM];
-int RanksBrd[BRD_SQ_NUM];
-
-U64 PassedPawnMasks[2][64];
-U64 OutpostSquareMasks[2][64];
-U64 IsolatedMask[64];
-
-int SquareDistance[120][120];
-int FileDistance[120][120];
-int RankDistance[120][120];
-
-void InitEvalMasks() {
-
-	int sq, tsq;
-
-	for(sq = 0; sq < 64; ++sq) {
-		IsolatedMask[sq] = 0ULL;
-		PassedPawnMasks[WHITE][sq] = 0ULL;
-		PassedPawnMasks[BLACK][sq] = 0ULL;
-		OutpostSquareMasks[WHITE][sq] = 0ULL;
-		OutpostSquareMasks[BLACK][sq] = 0ULL;
-    }
-
-	for (sq = 0; sq < 64; ++sq) {
-
-		PassedPawnMasks[WHITE][sq] = passedPawnSpan(WHITE, sq);
-		PassedPawnMasks[BLACK][sq] = passedPawnSpan(BLACK, sq);
-
-        if (file_of(sq) > FILE_A) {
-            IsolatedMask[sq] |= FilesBB[file_of(sq) - 1];
-
-            tsq = sq + 7;
-            while(tsq < 64) {
-                PassedPawnMasks[WHITE][sq] |= (1ULL << tsq);
-                tsq += 8;
-            }
-
-            tsq = sq - 9;
-            while(tsq >= 0) {
-                PassedPawnMasks[BLACK][sq] |= (1ULL << tsq);
-                tsq -= 8;
-            }
-        }
-
-        if (file_of(sq) < FILE_H) {
-            IsolatedMask[sq] |= FilesBB[file_of(sq) + 1];
-
-            tsq = sq + 9;
-            while(tsq < 64) {
-                PassedPawnMasks[WHITE][sq] |= (1ULL << tsq);
-                tsq += 8;
-            }
-
-            tsq = sq - 7;
-            while(tsq >= 0) {
-                PassedPawnMasks[BLACK][sq] |= (1ULL << tsq);
-                tsq -= 8;
-            }
-        }
-	}
-
-	for (int colour = WHITE; colour < COLOUR_NB; ++colour) { 
-        for (sq = 0; sq < 64; ++sq) 
-        	OutpostSquareMasks[colour][sq] = PassedPawnMasks[colour][sq] & ~FilesBB[file_of(sq)];
-    }
-}
-
-void InitFilesRanksBrd() {
-
-	int index = 0;
-	int file = FILE_A;
-	int rank = RANK_1;
-	int sq = A1;
-	int s1,s2;
-
-	for(index = 0; index < BRD_SQ_NUM; ++index) {
-		FilesBrd[index] = OFFBOARD;
-		RanksBrd[index] = OFFBOARD;
-	}
-
-	for(rank = RANK_1; rank <= RANK_8; ++rank) {
-		for(file = FILE_A; file <= FILE_H; ++file) {
-			sq = FR2SQ(file,rank);
-			FilesBrd[sq] = file;
-			RanksBrd[sq] = rank;
-		}
-	}
-
-	for (s1 = 0; s1 < 120; ++s1) {
-      	for (s2 = 0; s2 < 120; ++s2) { 
-      		FileDistance[s1][s2]   = abs(FilesBrd[s1] - FilesBrd[s2]);
-            RankDistance[s1][s2]   = abs(RanksBrd[s1] - RanksBrd[s2]);
-            SquareDistance[s1][s2] = MAX(FileDistance[s1][s2], RankDistance[s1][s2]);
-      	}
-	}
-}
-
-void InitHashKeys() {
-
-	int index = 0;
-	int index2 = 0;
-	for(index = 0; index < 13; ++index) {
-		for(index2 = 0; index2 < 120; ++index2) {
-			PieceKeys[index][index2] = RAND_64;
-		}
-	}
-	SideKey = RAND_64;
-	for(index = 0; index < 16; ++index) {
-		CastleKeys[index] = RAND_64;
-	}
-
-}
-
-void InitBitMasks() {
-	int index = 0;
-
-	for(index = 0; index < 64; index++) {
-		SetMask[index] = 0ULL;
-		ClearMask[index] = 0ULL;
-	}
-
-	for(index = 0; index < 64; index++) {
-		SetMask[index] |= (1ULL << index);
-		ClearMask[index] = ~SetMask[index];
-	}
-}
-
-void InitSq120To64() {
-
-	int index = 0;
-	int file = FILE_A;
-	int rank = RANK_1;
-	int sq = A1;
-	int sq64 = 0;
-	for(index = 0; index < BRD_SQ_NUM; ++index) {
-		Sq120ToSq64[index] = 65;
-	}
-
-	for(index = 0; index < 64; ++index) {
-		Sq64ToSq120[index] = 120;
-	}
-
-	for(rank = RANK_1; rank <= RANK_8; ++rank) {
-		for(file = FILE_A; file <= FILE_H; ++file) {
-			sq = FR2SQ(file,rank);
-			ASSERT(SqOnBoard(sq));
-			Sq64ToSq120[sq64] = sq;
-			Sq120ToSq64[sq] = sq64;
-			sq64++;
-		}
-	}
-}
-
-U64 kingAreaMasks(int colour, int sq) {
+uint64_t kingAreaMasks(int colour, int sq) {
     ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return KingAreaMasks[colour][sq];
 }
 
-U64 outpostSquareMasks(int colour, int sq) {
+uint64_t outpostSquareMasks(int colour, int sq) {
     ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return OutpostSquareMasks[colour][sq];
 }
 
-U64 pawnAttacks(int colour, int sq) {
+uint64_t pawnAttacks(int colour, int sq) {
     ASSERT(0 <= colour && colour < COLOUR_NB);
     ASSERT(0 <= sq && sq < 64);
     return PawnAttacks[colour][sq];
 }
 
+void KingAreaMask() {
+
+	int sq, t_sq, pce, dir, index;
+
+	for(sq = 0; sq < 64; ++sq) {
+		KingAreaMasks[WHITE][sq] = 0ULL;
+		KingAreaMasks[BLACK][sq] = 0ULL;
+	}
+	pce = wK;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				dir = PceDir[pce][index];
+				t_sq = sq + dir;
+				KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq));
+				KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq));
+				if(!SQOFFBOARD(t_sq)) {
+					KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+					KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+				if(FilesBrd[sq] == FILE_A) {
+					if (!SQOFFBOARD(sq+12)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+12));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+12));
+					}
+					if (!SQOFFBOARD(sq+2)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+2));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+2));
+					}
+					if (!SQOFFBOARD(sq-8)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-8));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-8));
+					}
+				}
+				if(FilesBrd[sq] == FILE_H) {
+					if (!SQOFFBOARD(sq-12)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-12));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-12));
+					}
+					if (!SQOFFBOARD(sq-2)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-2));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-2));
+					}
+					if (!SQOFFBOARD(sq+8)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+8));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+8));
+					}
+				}
+				if(RanksBrd[sq] == RANK_1) {
+					if (!SQOFFBOARD(sq+19)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+19));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+19));
+					} 
+					if (!SQOFFBOARD(sq+20)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+20));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+20));
+					} 
+					if (!SQOFFBOARD(sq+21)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+21));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+21));
+					}
+					if(FilesBrd[sq] == FILE_A) {
+						if (!SQOFFBOARD(sq+22)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+22));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+22));
+						}
+					}
+					if(FilesBrd[sq] == FILE_H) {
+						if (!SQOFFBOARD(sq+18)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq+18));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq+18));
+						}
+					}
+				}
+				if(RanksBrd[sq] == RANK_8) {
+					if (!SQOFFBOARD(sq-19)) { 
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-19));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-19));
+					} 
+					if (!SQOFFBOARD(sq-20)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-20));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-20));
+					} 
+					if (!SQOFFBOARD(sq-21)) {
+						KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-21));
+						KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-21));
+					}
+					if(FilesBrd[sq] == FILE_A) {
+						if (!SQOFFBOARD(sq-18)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-18));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-18));
+						}
+					}
+					if(FilesBrd[sq] == FILE_H) {
+						if (!SQOFFBOARD(sq-22)) {
+							KingAreaMasks[WHITE][SQ64(sq)] |= (1ULL << SQ64(sq-22));
+							KingAreaMasks[BLACK][SQ64(sq)] |= (1ULL << SQ64(sq-22));
+						}
+					}
+				}
+			}
+		}	
+	}
+}
+
+void PawnAttacksMasks() {
+
+	int sq, t_sq, pce, index;
+
+	for(sq = 0; sq < 64; ++sq) {
+		PawnAttacks[WHITE][sq] = 0ULL;
+		PawnAttacks[BLACK][sq] = 0ULL;
+	}
+	pce = wP;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				t_sq = sq + PceDir[pce][index];
+				if(!SQOFFBOARD(t_sq)) {
+					PawnAttacks[WHITE][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+			}
+		}	
+	}
+	pce = bP;
+	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+		if(!SQOFFBOARD(sq)) {
+			for(index = 0; index < NumDir[pce]; ++index) {
+				t_sq = sq + PceDir[pce][index];
+				if(!SQOFFBOARD(t_sq)) {
+					PawnAttacks[BLACK][SQ64(sq)] |= (1ULL << SQ64(t_sq));
+				}
+			}
+		}	
+	}
+}
+
+void setSquaresNearKing() {
+
+    for (int i = 0; i < 120; ++i)
+        for (int j = 0; j < 120; ++j)
+        {
+            e.sqNearK[WHITE][i][j] = 0;
+            e.sqNearK[BLACK][i][j] = 0;
+            // e.sqNearK[side^1] [ KingSq[side^1] ] [t_sq] 
+
+            if ( !SQOFFBOARD(i) && !SQOFFBOARD(j) ) {
+
+            	if (j == i) {
+            		e.sqNearK[WHITE][i][j] = 1;
+                    e.sqNearK[BLACK][i][j] = 1;
+            	}
+
+                /* squares constituting the ring around both kings */
+                if (j == i + 10 || j == i - 10 
+				||  j == i + 1  || j == i - 1 
+				||  j == i + 9  || j == i - 9 
+				||  j == i + 11 || j == i - 11) {
+                	e.sqNearK[WHITE][i][j] = 1;
+                    e.sqNearK[BLACK][i][j] = 1;
+                }
+
+                if (FilesBrd[i] == FILE_A && FilesBrd[j] == FILE_C) {
+
+                	if (j == i + 12
+                	||  j == i + 2 
+                	||  j == i - 8) {
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
+                	}
+                }
+                if (FilesBrd[i] == FILE_H && FilesBrd[j] == FILE_F) {
+
+                	if (j == i - 12
+                	||  j == i - 2 
+                	||  j == i + 8) {
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
+                	}
+                }
+                if (RanksBrd[i] == RANK_1) {
+
+                	if (j == i + 19
+                	||  j == i + 20 
+                	||  j == i + 21) {
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
+                    }
+                    if (FilesBrd[i] == FILE_A) {
+                    	if (j == i + 22) {
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                    if (FilesBrd[i] == FILE_H) {
+                    	if (j == i + 18) {
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                }
+                if (RanksBrd[i] == RANK_8) {
+
+                	if (j == i - 19
+                	||  j == i - 20 
+                	||  j == i - 21) {
+                		e.sqNearK[WHITE][i][j] = 1;
+                    	e.sqNearK[BLACK][i][j] = 1;
+                    }
+                    if (FilesBrd[i] == FILE_A) {
+                    	if (j == i - 18) {
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                    if (FilesBrd[i] == FILE_H) {
+                    	if (j == i - 22) {
+                    		e.sqNearK[WHITE][i][j] = 1;
+                    		e.sqNearK[BLACK][i][j] = 1;
+                    	}
+                    }
+                }
+            }
+        }
+}
+
+void InitEvalMasks() {
+
+	for (int sq = 0; sq < 64; ++sq) {
+		IsolatedMask[sq] = adjacentFiles(sq);
+		PassedPawnMasks[WHITE][sq] = passedPawnSpan(WHITE, sq);
+		PassedPawnMasks[BLACK][sq] = passedPawnSpan(BLACK, sq);
+		OutpostSquareMasks[WHITE][sq] = PassedPawnMasks[WHITE][sq] & ~FilesBB[file_of(sq)];
+		OutpostSquareMasks[BLACK][sq] = PassedPawnMasks[BLACK][sq] & ~FilesBB[file_of(sq)];
+    }
+}
+
 void AllInit() {
 	InitSq120To64();
-	InitBitMasks();
 	InitHashKeys();
 	InitFilesRanksBrd();
 	InitEvalMasks();

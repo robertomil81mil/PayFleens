@@ -43,6 +43,24 @@ enum {
     ENDGAME_NB,
 };
 
+enum {
+    MT_KEY_SIZE   = 16,
+    MT_SIZE       = 1 << MT_KEY_SIZE,
+    MT_HASH_SHIFT = 64 - MT_KEY_SIZE,
+};
+
+struct Material_Entry {
+    U64 key;
+    int factor;
+    int imbalance;
+    int gamePhase;
+    int eval, evalExists;
+};
+
+struct Material_Table {
+    Material_Entry entry[MT_SIZE];
+};
+
 int EndgameKXK(const S_BOARD *pos, int strongSide);
 int EndgameKPK(const S_BOARD *pos, int strongSide);
 int EndgameKBNK(const S_BOARD *pos, int strongSide);

@@ -16,16 +16,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
+extern uint64_t PieceKeys[13][120];
+extern uint64_t CastleKeys[16];
+extern uint64_t SideKey;
 
-extern const uint64_t Random64Poly[781];
+uint64_t rand64();
+void InitHashKeys();
 
-#endif
+uint64_t GeneratePosKey(const S_BOARD *pos);
+uint64_t GenerateMaterialKey(const S_BOARD *pos);
+
+#define HASH_PCE(pce,sq) (pos->posKey ^= (PieceKeys[(pce)][(sq)]))
+#define HASH_CA (pos->posKey ^= (CastleKeys[(pos->castlePerm)]))
+#define HASH_SIDE (pos->posKey ^= (SideKey))
+#define HASH_EP (pos->posKey ^= (PieceKeys[EMPTY][(pos->enPas)]))

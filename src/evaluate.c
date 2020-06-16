@@ -23,9 +23,13 @@
 #include <string.h>
 
 #include "bitboards.h"
+#include "board.h"
+#include "data.h"
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
+#include "init.h"
+#include "validate.h"
 
 EvalTrace T, EmptyTrace;
 evalInfo ei;

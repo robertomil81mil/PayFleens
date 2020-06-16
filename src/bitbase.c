@@ -21,7 +21,9 @@
 
 #include "bitbase.h"
 #include "bitboards.h"
+#include "board.h"
 #include "defs.h"
+#include "init.h"
 
 // There are 24 possible pawn squares: files A to D and ranks from 2 to 7.
 // Positions with the pawn on files E to H will be mirrored before probing.

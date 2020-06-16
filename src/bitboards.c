@@ -22,7 +22,10 @@
 #include <stdio.h>
 
 #include "bitboards.h"
+#include "board.h"
+#include "data.h"
 #include "defs.h"
+#include "init.h"
 
 const uint64_t FilesBB[FILE_NB] = {FileABB, FileBBB, FileCBB, FileDBB, FileEBB, FileFBB, FileGBB, FileHBB};
 const uint64_t RanksBB[RANK_NB] = {Rank1BB, Rank2BB, Rank3BB, Rank4BB, Rank5BB, Rank6BB, Rank7BB, Rank8BB};
@@ -43,31 +46,6 @@ int rank_of(int sq) {
 int map_to_queenside(int file) {
     ASSERT(0 <= file && file < FILE_NB);
     return MIN(file, FILE_H - file);
-}
-
-uint64_t adjacentFiles(int sq) {
-	ASSERT(0 <= sq && sq < 64);
-	return (  (FilesBB[file_of(sq)] & ~FilesBB[FILE_H]) << 1
-			| (FilesBB[file_of(sq)] & ~FilesBB[FILE_A]) >> 1);
-}
-
-uint64_t forwardRanks(int colour, int sq) {
-	ASSERT(0 <= colour && colour < COLOUR_NB);
-    ASSERT(0 <= sq && sq < 64);
-	return colour == WHITE ? ~RanksBB[RANK_1] << 8 * (rank_of(sq) - RANK_1)
-                    	   : ~RanksBB[RANK_8] >> 8 * (RANK_8 - rank_of(sq));
-}
-
-uint64_t forwardFile(int colour, int sq) {
-	ASSERT(0 <= colour && colour < COLOUR_NB);
-    ASSERT(0 <= sq && sq < 64);
-	return forwardRanks(colour, sq) & FilesBB[file_of(sq)];
-}
-
-uint64_t passedPawnSpan(int colour, int sq) {
-	ASSERT(0 <= colour && colour < COLOUR_NB);
-    ASSERT(0 <= sq && sq < 64);
-	return forwardRanks(colour, sq) & (adjacentFiles(sq) | FilesBB[file_of(sq)]);
 }
 
 int relativeRank(int colour, int sq) {
@@ -106,25 +84,21 @@ int distanceByRank(int s1, int s2) {
     return RankDistance[s1][s2];
 }
 
-int clamp(int v, int lo, int hi) {
-    return v < lo ? lo : v > hi ? hi : v;
-}
-
-int frontmost(int colour, U64 b) {
+int frontmost(int colour, uint64_t bb) {
     ASSERT(0 <= colour && colour < COLOUR_NB);
-    return colour == WHITE ? getmsb(b) : getlsb(b);
+    return colour == WHITE ? getmsb(bb) : getlsb(bb);
 }
 
-int backmost(int colour, U64 b) {
+int backmost(int colour, uint64_t bb) {
     ASSERT(0 <= colour && colour < COLOUR_NB);
-    return colour == WHITE ? getlsb(b) : getmsb(b);
+    return colour == WHITE ? getlsb(bb) : getmsb(bb);
 }
 
-int getlsb(U64 bb) {
+int getlsb(uint64_t bb) {
     return __builtin_ctzll(bb);
 }
 
-int getmsb(U64 bb) {
+int getmsb(uint64_t bb) {
     return __builtin_clzll(bb) ^ 63;
 }
 
@@ -140,15 +114,30 @@ int popmsb(uint64_t *bb) {
     return msb;
 }
 
-int popcount(U64 bb) {
+int popcount(uint64_t bb) {
     return __builtin_popcountll(bb);
 }
 
-bool several(U64 bb) {
+void setBit(uint64_t *bb, int i) {
+    ASSERT(!testBit(*bb, i));
+    *bb ^= 1ull << i;
+}
+
+void clearBit(uint64_t *bb, int i) {
+    ASSERT(testBit(*bb, i));
+    *bb ^= 1ull << i;
+}
+
+bool testBit(uint64_t bb, int i) {
+    ASSERT(0 <= i && i < 64);
+    return bb & (1ull << i);
+}
+
+bool several(uint64_t bb) {
     return bb & (bb - 1);
 }
 
-bool onlyOne(U64 bb) {
+bool onlyOne(uint64_t bb) {
     return bb && !several(bb);
 }
 
@@ -158,36 +147,56 @@ bool opposite_colors(int s1, int s2) {
     return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1;
 }
 
-int PopBit(U64 *bb) {
-	U64 b = *bb ^ (*bb - 1);
-	unsigned int fold = (unsigned) ((b & 0xffffffff) ^ (b >> 32));
-	*bb &= (*bb - 1);
-	return BitTable[(fold * 0x783a9b23) >> 26];
+uint64_t shift(uint64_t bb, int D) {
+  return  D == NORTH      ?  bb             << 8 : D == SOUTH      ?  bb             >> 8
+        : D == NORTH+NORTH?  bb             <<16 : D == SOUTH+SOUTH?  bb             >>16
+        : D == EAST       ? (bb & ~FileHBB) << 1 : D == WEST       ? (bb & ~FileABB) >> 1
+        : D == NORTH_EAST ? (bb & ~FileHBB) << 9 : D == NORTH_WEST ? (bb & ~FileABB) << 7
+        : D == SOUTH_EAST ? (bb & ~FileHBB) >> 7 : D == SOUTH_WEST ? (bb & ~FileABB) >> 9
+        : 0;
 }
 
-int CountBits(U64 b) {
-  int r;
-  for(r = 0; b; r++, b &= b - 1);
-  return r;
+uint64_t adjacentFiles(int sq) {
+    ASSERT(0 <= sq && sq < 64);
+    return (  shift(FilesBB[file_of(sq)], EAST) 
+            | shift(FilesBB[file_of(sq)], WEST));
 }
 
-void PrintBitBoard(U64 bb) {
+uint64_t forwardRanks(int colour, int sq) {
+    ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+    return colour == WHITE ? ~RanksBB[RANK_1] << 8 * (rank_of(sq) - RANK_1)
+                           : ~RanksBB[RANK_8] >> 8 * (RANK_8 - rank_of(sq));
+}
 
-	U64 shiftMe = 1ULL;
+uint64_t forwardFile(int colour, int sq) {
+    ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+    return forwardRanks(colour, sq) & FilesBB[file_of(sq)];
+}
+
+uint64_t passedPawnSpan(int colour, int sq) {
+    ASSERT(0 <= colour && colour < COLOUR_NB);
+    ASSERT(0 <= sq && sq < 64);
+    return forwardRanks(colour, sq) & (adjacentFiles(sq) | FilesBB[file_of(sq)]);
+}
+
+void PrintBitBoard(uint64_t bb) {
+
+	uint64_t shiftMe = 1ULL;
 	
-	int rank = 0, file = 0, sq = 0, sq64 = 0;
+	int sq, sq64;
 	
 	printf("\n");
-	for(rank = RANK_8; rank >= RANK_1; --rank) {
-		for(file = FILE_A; file <= FILE_H; ++file) {
-			sq = FR2SQ(file,rank);	// 120 based		
+	for (int rank = RANK_8; rank >= RANK_1; --rank) {
+		for (int file = FILE_A; file <= FILE_H; ++file) {
+			sq = FR2SQ(file, rank);	// 120 based		
 			sq64 = SQ64(sq); // 64 based
 			
-			if((shiftMe << sq64) & bb) 
+			if ((shiftMe << sq64) & bb) 
 				printf("X");
 			else 
-				printf("-");
-				
+				printf("-");	
 		}
 		printf("\n");
 	}  

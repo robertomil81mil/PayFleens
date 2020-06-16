@@ -16,16 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
+#pragma once
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
-
-extern const uint64_t Random64Poly[781];
-
-#endif
+int GetBookMove(S_BOARD *board);
+void CleanPolyBook();
+void InitPolyBook();

@@ -16,16 +16,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
+void InitMvvLva();
+int LegalMoveExist(S_BOARD *pos);
+int MoveExists(S_BOARD *pos, const int move);
 
-extern const uint64_t Random64Poly[781];
-
-#endif
+void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
+void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);

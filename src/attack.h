@@ -16,16 +16,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
+#include "data.h"
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
+#define IsBQ(p) (PieceBishopQueen[(p)])
+#define IsRQ(p) (PieceRookQueen[(p)])
+#define IsKn(p) (PieceKnight[(p)])
+#define IsKi(p) (PieceKing[(p)])
 
-extern const uint64_t Random64Poly[781];
+int SqAttacked(const int sq, const int side, const S_BOARD *pos);
 
-#endif
+static const int KnDir[8] = { -8, -19,	-21, -12, 8, 19, 21, 12 };
+static const int RkDir[4] = { -1, -10,	1, 10 };
+static const int BiDir[4] = { -9, -11, 11, 9 };
+static const int KiDir[8] = { -1, -10,	1, 10, -9, -11, 11, 9 };

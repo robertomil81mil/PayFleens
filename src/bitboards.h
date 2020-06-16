@@ -64,11 +64,6 @@ int file_of(int sq);
 int rank_of(int sq);
 int map_to_queenside(int file);
 
-uint64_t forwardRanks(int colour, int sq);
-uint64_t forwardFile(int colour, int sq);
-uint64_t passedPawnSpan(int colour, int sq);
-uint64_t adjacentFiles(int sq);
-
 int relativeRank(int colour, int sq);
 int relativeSquare(int colour, int sq);
 int relativeSquare32(int colour, int sq);
@@ -78,29 +73,32 @@ int distanceByFile(int s1, int s2);
 int distanceByRank(int s1, int s2);
 bool opposite_colors(int s1, int s2);
 
-int clamp(int v, int lo, int hi);
-int frontmost(int colour, U64 b);
-int backmost(int colour, U64 b);
+int frontmost(int colour, uint64_t bb);
+int backmost(int colour, uint64_t bb);
 
-int getlsb(U64 bb);
-int getmsb(U64 bb);
+int getlsb(uint64_t bb);
+int getmsb(uint64_t bb);
 
 int poplsb(uint64_t *bb);
 int popmsb(uint64_t *bb);
 
-int popcount(U64 bb);
-bool several(U64 bb);
-bool onlyOne(U64 bb);
+void setBit(uint64_t *bb, int i);
+void clearBit(uint64_t *bb, int i);
+bool testBit(uint64_t bb, int i);
 
-static const U64 KingFlank[8] = {
+int popcount(uint64_t bb);
+bool several(uint64_t bb);
+bool onlyOne(uint64_t bb);
+void PrintBitBoard(uint64_t bb);
+
+uint64_t forwardRanks(int colour, int sq);
+uint64_t forwardFile(int colour, int sq);
+uint64_t passedPawnSpan(int colour, int sq);
+uint64_t shift(uint64_t bb, int D);
+uint64_t adjacentFiles(int sq);
+
+static const uint64_t KingFlank[8] = {
 	QUEEN_FLANK ^ FileDBB, QUEEN_FLANK, QUEEN_FLANK,
 	CENTER_FLANK, CENTER_FLANK,
 	KING_FLANK, KING_FLANK, KING_FLANK ^ FileEBB
-};
-
-static const int BitTable[64] = {
-  63, 30, 3, 32, 25, 41, 22, 33, 15, 50, 42, 13, 11, 53, 19, 34, 61, 29, 2,
-  51, 21, 43, 45, 10, 18, 47, 1, 54, 9, 57, 0, 35, 62, 31, 40, 4, 49, 5, 52,
-  26, 60, 6, 23, 44, 46, 27, 56, 16, 7, 39, 48, 24, 59, 14, 12, 55, 38, 28,
-  58, 20, 37, 17, 36, 8
 };

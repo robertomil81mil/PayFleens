@@ -16,16 +16,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "defs.h"
-#ifndef POLYKEYS_H
-#define POLYKEYS_H
+#pragma once
 
-#ifdef _MSC_VER
-#  define U64_POLY(u) (u##ui64)
-#else
-#  define U64_POLY(u) (u##ULL)
-#endif
+void AllInit();
 
-extern const uint64_t Random64Poly[781];
+uint64_t kingAreaMasks(int colour, int sq);
+uint64_t outpostSquareMasks(int colour, int sq);
+uint64_t pawnAttacks(int colour, int sq);
 
-#endif
+extern uint64_t PassedPawnMasks[COLOUR_NB][64];
+extern uint64_t OutpostSquareMasks[COLOUR_NB][64];
+extern uint64_t KingAreaMasks[COLOUR_NB][64];
+extern uint64_t PawnAttacks[COLOUR_NB][64];
+extern uint64_t IsolatedMask[64];

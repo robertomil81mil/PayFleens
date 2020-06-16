@@ -24,14 +24,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "board.h"
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
+#include "init.h"
+#include "io.h"
+#include "makemove.h"
+#include "movegen.h"
+#include "polybook.h"
 #include "search.h"
 #include "texel.h"
 #include "time.h"
 #include "ttable.h"
 #include "uci.h"
+#include "validate.h"
 
 EngineOptions Options; // Our global engine options
 

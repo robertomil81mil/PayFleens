@@ -16,52 +16,81 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// hashkeys.c
-#include <stdio.h>
-
+#include "board.h"
 #include "defs.h"
+#include "hashkeys.h"
+#include "validate.h"
 
-U64 GeneratePosKey(const S_BOARD *pos) {
+uint64_t PieceKeys[13][120];
+uint64_t SideKey;
+uint64_t CastleKeys[16];
 
-	int sq = 0;
-	U64 finalKey = 0;
-	int piece = EMPTY;
+uint64_t rand64() {
+
+    // http://vigna.di.unimi.it/ftp/papers/xorshift.pdf
+
+    static uint64_t seed = 1070372ull;
+
+    seed ^= seed >> 12;
+    seed ^= seed << 25;
+    seed ^= seed >> 27;
+
+    return seed * 2685821657736338717ull;
+}
+
+void InitHashKeys() {
+
+	int index, index2;
+
+	for (index = 0; index < 13; ++index)
+		for (index2 = 0; index2 < 120; ++index2)
+			PieceKeys[index][index2] = rand64();
+
+	for (index = 0; index < 16; ++index)
+		CastleKeys[index] = rand64();
+
+	SideKey = rand64();
+}
+
+uint64_t GeneratePosKey(const S_BOARD *pos) {
+
+	uint64_t finalKey = 0;
+	int sq, piece;
 	
 	// pieces
-	for(sq = 0; sq < BRD_SQ_NUM; ++sq) {
+	for (sq = 0; sq < BRD_SQ_NUM; ++sq) {
 		piece = pos->pieces[sq];
-		if(piece!=NO_SQ && piece!=EMPTY && piece != OFFBOARD) {
-			ASSERT(piece>=wP && piece<=bK);
+		if (piece != NO_SQ && piece != EMPTY && piece != OFFBOARD) {
+			ASSERT(piece >= wP && piece <= bK);
 			finalKey ^= PieceKeys[piece][sq];
 		}		
 	}
-	
-	if(pos->side == WHITE) {
-		finalKey ^= SideKey;
-	}
 		
-	if(pos->enPas != NO_SQ) {
-		ASSERT(pos->enPas>=0 && pos->enPas<BRD_SQ_NUM);
+	if (pos->enPas != NO_SQ) {
+		ASSERT(pos->enPas >= 0 && pos->enPas < BRD_SQ_NUM);
 		ASSERT(SqOnBoard(pos->enPas));
 		ASSERT(RanksBrd[pos->enPas] == RANK_3 || RanksBrd[pos->enPas] == RANK_6);
 		finalKey ^= PieceKeys[EMPTY][pos->enPas];
 	}
+
+	if (pos->side == WHITE)
+		finalKey ^= SideKey;
 	
-	ASSERT(pos->castlePerm>=0 && pos->castlePerm<=15);
+	ASSERT(pos->castlePerm >= 0 && pos->castlePerm <= 15);
 	
 	finalKey ^= CastleKeys[pos->castlePerm];
 	
 	return finalKey;
 }
 
-U64 GenerateMaterialKey(const S_BOARD *pos) {
+uint64_t GenerateMaterialKey(const S_BOARD *pos) {
 
-	U64 materialKey = 0;
+	uint64_t materialKey = 0;
 
 	for (int pc = wP; pc <= bK; ++pc) {
 		if (pos->pceNum[pc]) {		
 			for (int cnt = 0; cnt < pos->pceNum[pc]; ++cnt) {
-				ASSERT(cnt);
+				ASSERT(cnt >= 0);
 				materialKey ^= PieceKeys[pc][cnt];
 			}
 		}
