@@ -20,12 +20,12 @@
 
 void AllInit();
 
-uint64_t kingAreaMasks(int colour, int sq);
 uint64_t outpostSquareMasks(int colour, int sq);
 uint64_t pawnAttacks(int colour, int sq);
+uint64_t kingAreaMasks(int sq);
 
 extern uint64_t PassedPawnMasks[COLOUR_NB][64];
 extern uint64_t OutpostSquareMasks[COLOUR_NB][64];
-extern uint64_t KingAreaMasks[COLOUR_NB][64];
 extern uint64_t PawnAttacks[COLOUR_NB][64];
+extern uint64_t KingAreaMasks[64];
 extern uint64_t IsolatedMask[64];

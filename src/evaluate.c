@@ -51,7 +51,7 @@ bool opposite_bishops(const S_BOARD *pos) {
 
 int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int sq) {
     ASSERT(0 <= sq && sq < 120);
-    return popcount(pos->pawns[colour] & (WHITE_SQUARES & SQ64(sq)) ? WHITE_SQUARES : BLACK_SQUARES);
+    return popcount(pos->pawns[colour] & (testBit(WHITE_SQUARES, SQ64(sq))) ? WHITE_SQUARES : BLACK_SQUARES);
 }
 
 int isPiece(const int piece, const int sq, const S_BOARD *pos) {
@@ -60,7 +60,10 @@ int isPiece(const int piece, const int sq, const S_BOARD *pos) {
 
 int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
-    int index, t_sq, mobility = 0, att = 0;
+    int index, t_sq, ksq, mobility = 0, att = 0;
+
+    ksq = FR2SQ(clamp(FilesBrd[pos->KingSq[!side]], FILE_B, FILE_G),
+                clamp(RanksBrd[pos->KingSq[!side]], RANK_2, RANK_7));
 
     for (index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
@@ -68,10 +71,10 @@ int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
         if (  !SQOFFBOARD(t_sq)
             && PieceCol[pos->pieces[t_sq]] != side) {
 
-            if (!pos->pawn_ctrl[side^1][t_sq])
+            if (!pos->pawn_ctrl[!side][t_sq])
                 mobility++;
 
-            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+            if (e.sqNearK[ksq][t_sq])
                 att++;
         }
     }
@@ -87,7 +90,10 @@ int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
 int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
-    int index, t_sq, mobility = 0, att = 0;
+    int index, t_sq, ksq, mobility = 0, att = 0;
+
+    ksq = FR2SQ(clamp(FilesBrd[pos->KingSq[!side]], FILE_B, FILE_G),
+                clamp(RanksBrd[pos->KingSq[!side]], RANK_2, RANK_7));
 
     for (index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
@@ -96,20 +102,20 @@ int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
 
             if (pos->pieces[t_sq] == EMPTY) {
 
-                if (!pos->pawn_ctrl[side^1][t_sq])
+                if (!pos->pawn_ctrl[!side][t_sq])
                     mobility++;
 
-                if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                if (e.sqNearK[ksq][t_sq])
                     att++;
 
             } else { // non empty sq
 
                 if (PieceCol[pos->pieces[t_sq]] != side) { // opponent's piece
 
-                    if (!pos->pawn_ctrl[side^1][t_sq])
+                    if (!pos->pawn_ctrl[!side][t_sq])
                         mobility++;
 
-                    if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
+                    if (e.sqNearK[ksq][t_sq])
                         att++;
                 }
                 break;
@@ -367,7 +373,7 @@ const int ComplexityAdjustment  = S(   0,-117);
 int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
 
     int score = 0, bonus, support, pawnbrothers;
-    int sq, t_sq, blockSq, w, R, Su, Up;
+    int sq, t_sq, ksq, blockSq, w, R, Su, Up;
     U64 opposed;
 
     sq = pos->pList[pce][pceNum];
@@ -377,12 +383,15 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
     if (TRACE) T.PawnValue[side]++;
     if (TRACE) T.PawnPSQT32[relativeSquare32(side, SQ64(sq))][side]++;
 
+    ksq = FR2SQ(clamp(FilesBrd[pos->KingSq[!side]], FILE_B, FILE_G),
+                clamp(RanksBrd[pos->KingSq[!side]], RANK_2, RANK_7));
+
     for (int index = 0; index < NumDir[pce]; ++index) {
         t_sq = sq + PceDir[pce][index];
 
-        if (!SQOFFBOARD(t_sq))
-            if (e.sqNearK[side^1][pos->KingSq[side^1]][t_sq])
-                ei.attCnt[side]++;
+        if (  !SQOFFBOARD(t_sq)
+            && e.sqNearK[ksq][t_sq])
+            ei.attCnt[side]++;
     }
 
     R  = relativeRank(side, SQ64(sq));
@@ -877,13 +886,13 @@ int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
     const int strongSide = egScore > 0 ? WHITE : BLACK;
     const int pawnStrong = egScore > 0 ? wP : bP;
 
-    if (  !pos->pceNum[pawnStrong]
-        && pos->material[strongSide] - pos->material[!strongSide] <= PieceValue[EG][wB])
+    if (   !pos->pceNum[pawnStrong]
+        && (pos->material[strongSide] - pos->material[!strongSide]) <= PieceValue[EG][wB])
         return pos->material[ strongSide] <  PieceValue[EG][wR] ? SCALE_FACTOR_DRAW    :
                pos->material[!strongSide] <= PieceValue[EG][wB] ? SCALE_DRAWISH_BISHOP :
                                                                   SCALE_DRAWISH_ROOK   ;
 
-    if (opposite_bishops(pos)) {
+    /*if (opposite_bishops(pos)) {
 
         if (   (!pos->pceNum[wN] && !pos->pceNum[bN])
             || (!pos->pceNum[wR] && !pos->pceNum[bR]) 
@@ -899,6 +908,27 @@ int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
 
         if ((   (!pos->pceNum[wN] && !pos->pceNum[bN])
              || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
+            && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
+            return SCALE_OCB_ONE_ROOK;
+        }
+    }*/
+
+    if (opposite_bishops(pos)) {
+
+        if (   !pos->pceNum[wN] && !pos->pceNum[bN]
+            && !pos->pceNum[wR] && !pos->pceNum[bR] 
+            && !pos->pceNum[wQ] && !pos->pceNum[bQ]) {
+            return SCALE_OCB_BISHOPS_ONLY;
+        }
+
+        if (   !pos->pceNum[wR] && !pos->pceNum[bR]
+            && !pos->pceNum[wQ] && !pos->pceNum[bQ]
+            && (pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
+            return SCALE_OCB_ONE_KNIGHT;
+        }
+
+        if (   !pos->pceNum[wN] && !pos->pceNum[bN]
+            && !pos->pceNum[wQ] && !pos->pceNum[bQ]
             && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
             return SCALE_OCB_ONE_ROOK;
         }
@@ -1119,9 +1149,8 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     // setboard 8/3k3p/6p1/3nK1P1/8/8/7P/8 b - - 3 64
     // setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
-    //int startTime = GetTimeMs();
 
-    int score, factor;
+    int score, factor, s1, s2;
     Material_Entry* me = Material_probe(pos, materialTable);
 
     if (me->evalExists)
@@ -1129,8 +1158,14 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
 
     memset(&ei, 0, sizeof(evalInfo));
 
-    ei.kingAreas[WHITE] = kingAreaMasks(WHITE, SQ64(pos->KingSq[WHITE]));
-    ei.kingAreas[BLACK] = kingAreaMasks(BLACK, SQ64(pos->KingSq[BLACK]));
+    s1 = makeSq(clamp(FilesBrd[pos->KingSq[WHITE]], FILE_B, FILE_G),
+                clamp(RanksBrd[pos->KingSq[WHITE]], RANK_2, RANK_7));
+
+    s2 = makeSq(clamp(FilesBrd[pos->KingSq[BLACK]], FILE_B, FILE_G),
+                clamp(RanksBrd[pos->KingSq[BLACK]], RANK_2, RANK_7));
+
+    ei.kingAreas[WHITE] = kingAreaMasks(s1);
+    ei.kingAreas[BLACK] = kingAreaMasks(s2);
 
     score  = pos->mPhases[WHITE] - pos->mPhases[BLACK];
     score += pos->PSQT[WHITE] - pos->PSQT[BLACK];
@@ -1152,7 +1187,6 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
 
     score += pos->side == WHITE ? TEMPO : -TEMPO;
     
-    //printf("Elapsed %d\n",GetTimeMs() - startTime);
     return pos->side == WHITE ? score : -score;     
 }
 

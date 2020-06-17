@@ -43,6 +43,8 @@ extern int FileDistance[120][120];
 extern int RankDistance[120][120];
 
 #define FR2SQ(f, r) ((21 + (f)) + ((r) * 10))
+#define makeSq(f, r) ((f) + ((r) * 8))
+
 #define SQ64(sq120) (Sq120ToSq64[(sq120)])
 #define SQ120(sq64) (Sq64ToSq120[(sq64)])
 #define SQOFFBOARD(sq) (FilesBrd[(sq)] == OFFBOARD)

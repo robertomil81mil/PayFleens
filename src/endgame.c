@@ -559,11 +559,11 @@ int EndgameKBPPKB(const S_BOARD *pos, int strongSide) {
 
 	if (relativeRank(strongSide, psq1) > relativeRank(strongSide, psq2)) {
     	blockSq1 = psq1 + push;
-    	blockSq2 = SQ64(FR2SQ(file_of(psq2), rank_of(psq1)));
+    	blockSq2 = makeSq(file_of(psq2), rank_of(psq1));
 	}
 	else {
     	blockSq1 = psq2 + push;
-    	blockSq2 = SQ64(FR2SQ(file_of(psq1), rank_of(psq2)));
+    	blockSq2 = makeSq(file_of(psq1), rank_of(psq2));
 	}
 
 	switch (distanceByFile(SQ120(psq1), SQ120(psq2))) {

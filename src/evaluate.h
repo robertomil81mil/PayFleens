@@ -115,7 +115,7 @@ struct evalInfo {
 };
 
 struct evalData {
-    int sqNearK [2][120][120];
+    int sqNearK[120][120];
     int PSQT[13][120];
 };
 
