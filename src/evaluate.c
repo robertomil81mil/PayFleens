@@ -1129,7 +1129,7 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     // setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
 
-    int score, factor, s1, s2;
+    int eval, factor, s1, s2;
     Material_Entry* me = Material_probe(pos, materialTable);
 
     if (me->evalExists)
@@ -1146,27 +1146,29 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     ei.kingAreas[WHITE] = kingAreaMasks(s1);
     ei.kingAreas[BLACK] = kingAreaMasks(s2);
 
-    score  = pos->mPhases[WHITE] - pos->mPhases[BLACK];
-    score += pos->PSQT[WHITE] - pos->PSQT[BLACK];
-    score += ei.Mob[WHITE] - ei.Mob[BLACK];
-    score += me->imbalance;
-    score += evaluatePieces(pos);
-    score += evaluateComplexity(pos, score);
+    eval  = pos->mPhases[WHITE] - pos->mPhases[BLACK];
+    eval += pos->PSQT[WHITE] - pos->PSQT[BLACK];
+    eval += ei.Mob[WHITE] - ei.Mob[BLACK];
+    eval += me->imbalance;
+    eval += evaluatePieces(pos);
+    eval += evaluateComplexity(pos, eval);
 
     blockedPiecesW(pos);
     blockedPiecesB(pos);
 
     factor = me->factor != SCALE_NORMAL
-           ? me->factor : evaluateScaleFactor(pos, egScore(score));
+           ? me->factor : evaluateScaleFactor(pos, egScore(eval));
 
-    score = (mgScore(score) * (256 - me->gamePhase)
-          +  egScore(score) * me->gamePhase * factor / SCALE_NORMAL) / 256;
+    eval = (mgScore(eval) * (256 - me->gamePhase)
+          +  egScore(eval) * me->gamePhase * factor / SCALE_NORMAL) / 256;
 
-    score += ei.blockages[WHITE] - ei.blockages[BLACK];
+    eval += ei.blockages[WHITE] - ei.blockages[BLACK];
 
-    score += pos->side == WHITE ? TEMPO : -TEMPO;
+    eval += pos->side == WHITE ? TEMPO : -TEMPO;
+
+    eval = eval * (100 - pos->fiftyMove) / 100;
     
-    return pos->side == WHITE ? score : -score;     
+    return pos->side == WHITE ? eval : -eval;     
 }
 
 void printEvalFactor( int WMG, int WEG, int BMG, int BEG ) {

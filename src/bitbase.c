@@ -27,9 +27,13 @@
 
 // There are 24 possible pawn squares: files A to D and ranks from 2 to 7.
 // Positions with the pawn on files E to H will be mirrored before probing.
-#define MAX_INDEX 196608 // stm * psq * wksq * bksq = 196608
+// There are 128 possible king squares: 64 for White and 64 for Black.
+// We calculate MAX_INDEX as follow: stm * psq * wksq * bksq = 196608
+#define MAX_INDEX 196608
 
-// Each position contains: stm, wksq, psq, bksq and result
+// Each position contains: stm, wksq, psq, bksq and result,
+// stm and squares are obtained from an index,
+// the result will be computed later.
 KPKPos db[MAX_INDEX];
 
 // Each uint32_t stores results of 32 positions, one per bit
@@ -98,9 +102,9 @@ void KPKPosition(unsigned idx) {
     // Immediate win if a pawn can be promoted without getting captured
     else if (   edb->us == WHITE
              && rank_of(edb->psq) == RANK_7
-             && edb->ksq[WHITE] != edb->psq + 8
-             && (    distanceBetween(SQ120(edb->ksq[BLACK]), SQ120(edb->psq + 8)) > 1
-                 || (KingAreaMasks[edb->ksq[WHITE]] & (edb->psq + 8))))
+             && edb->ksq[WHITE] != edb->psq + NORTH
+             && (    distanceBetween(SQ120(edb->ksq[BLACK]), SQ120(edb->psq + NORTH)) > 1
+                 || (KingAreaMasks[edb->ksq[WHITE]] & (edb->psq + NORTH))))
         edb->result = WIN;
 
     // Immediate draw if it is a stalemate or a king captures undefended pawn
@@ -141,12 +145,12 @@ int classify(unsigned idx) {
     if (Us == WHITE) {
 
         if (rank_of(db[idx].psq) < RANK_7)      // Single push
-            r |= db[idxpos(Them, db[idx].ksq[Them], db[idx].ksq[Us], db[idx].psq + 8)].result;
+            r |= db[idxpos(Them, db[idx].ksq[Them], db[idx].ksq[Us], db[idx].psq + NORTH)].result;
 
         if (   rank_of(db[idx].psq) == RANK_2   // Double push
-            && db[idx].psq + 8 != db[idx].ksq[Us]
-            && db[idx].psq + 8 != db[idx].ksq[Them])
-            r |= db[idxpos(Them, db[idx].ksq[Them], db[idx].ksq[Us], db[idx].psq + 8 + 8)].result;
+            && db[idx].psq + NORTH != db[idx].ksq[Us]
+            && db[idx].psq + NORTH != db[idx].ksq[Them])
+            r |= db[idxpos(Them, db[idx].ksq[Them], db[idx].ksq[Us], db[idx].psq + NORTH + NORTH)].result;
     }
 
     return result = r & Good  ? Good  : r & UNKNOWN ? UNKNOWN : Bad;
