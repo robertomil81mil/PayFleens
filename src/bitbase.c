@@ -29,7 +29,7 @@
 // Positions with the pawn on files E to H will be mirrored before probing.
 #define MAX_INDEX 196608 // stm * psq * wksq * bksq = 196608
 
-// Each index stores a position: stm, wksq, psq, bksq and result
+// Each position contains: stm, wksq, psq, bksq and result
 KPKPos db[MAX_INDEX];
 
 // Each uint32_t stores results of 32 positions, one per bit
@@ -49,7 +49,7 @@ unsigned idxpos(int us, int bksq, int wksq, int psq) {
 #define wksq(idx) ((idx >>  0) & 0x3F)
 #define bksq(idx) ((idx >>  6) & 0x3F)
 #define us(idx)   ((idx >> 12) & 0x01)
-#define psq(idx)  (SQ64(FR2SQ(((idx >> 13) & 0x3), (RANK_7 - ((idx >> 15) & 0x7)))))
+#define psq(idx)  (makeSq(((idx >> 13) & 0x3), (RANK_7 - ((idx >> 15) & 0x7))))
 
 bool Bitbases_probe(int wksq, int wpsq, int bksq, int us) {
 
@@ -100,13 +100,13 @@ void KPKPosition(unsigned idx) {
              && rank_of(edb->psq) == RANK_7
              && edb->ksq[WHITE] != edb->psq + 8
              && (    distanceBetween(SQ120(edb->ksq[BLACK]), SQ120(edb->psq + 8)) > 1
-                 || (KingAreaMasks[WHITE][edb->ksq[WHITE]] & (edb->psq + 8))))
+                 || (KingAreaMasks[edb->ksq[WHITE]] & (edb->psq + 8))))
         edb->result = WIN;
 
     // Immediate draw if it is a stalemate or a king captures undefended pawn
     else if (   edb->us == BLACK
-             && (  !(KingAreaMasks[BLACK][edb->ksq[BLACK]] & ~(KingAreaMasks[WHITE][edb->ksq[WHITE]] | PawnAttacks[WHITE][edb->psq]))
-                 || (KingAreaMasks[BLACK][edb->ksq[BLACK]] & edb->psq & ~KingAreaMasks[WHITE][edb->ksq[WHITE]])))
+             && (  !(KingAreaMasks[edb->ksq[BLACK]] & ~(KingAreaMasks[edb->ksq[WHITE]] | PawnAttacks[WHITE][edb->psq]))
+                 || (KingAreaMasks[edb->ksq[BLACK]] & edb->psq & ~KingAreaMasks[edb->ksq[WHITE]])))
         edb->result = DRAW;
 
     // Position will be classified later
@@ -132,7 +132,7 @@ int classify(unsigned idx) {
     const int Bad  = (Us == WHITE ? DRAW  : WIN);
 
     int r = INVALID, result;
-    U64 b = KingAreaMasks[Us][db[idx].ksq[Us]];
+    U64 b = KingAreaMasks[db[idx].ksq[Us]];
 
     while (b)
         r |= Us == WHITE ? db[idxpos(Them, db[idx].ksq[Them]  , poplsb(&b), db[idx].psq)].result

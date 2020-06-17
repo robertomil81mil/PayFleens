@@ -892,27 +892,6 @@ int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
                pos->material[!strongSide] <= PieceValue[EG][wB] ? SCALE_DRAWISH_BISHOP :
                                                                   SCALE_DRAWISH_ROOK   ;
 
-    /*if (opposite_bishops(pos)) {
-
-        if (   (!pos->pceNum[wN] && !pos->pceNum[bN])
-            || (!pos->pceNum[wR] && !pos->pceNum[bR]) 
-            || (!pos->pceNum[wQ] && !pos->pceNum[bQ])) {
-            return SCALE_OCB_BISHOPS_ONLY;
-        }
-
-        if ((   (!pos->pceNum[wR] && !pos->pceNum[bR])
-             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
-            && (pos->pceNum[wN] == 1 && pos->pceNum[bN] == 1)) {
-            return SCALE_OCB_ONE_KNIGHT;
-        }
-
-        if ((   (!pos->pceNum[wN] && !pos->pceNum[bN])
-             || (!pos->pceNum[wQ] && !pos->pceNum[bQ]))
-            && (pos->pceNum[wR] == 1 && pos->pceNum[bR] == 1)) {
-            return SCALE_OCB_ONE_ROOK;
-        }
-    }*/
-
     if (opposite_bishops(pos)) {
 
         if (   !pos->pceNum[wN] && !pos->pceNum[bN]
