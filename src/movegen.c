@@ -59,46 +59,6 @@ void InitMvvLva() {
 			MvvLvaScores[Victim][Attacker] = VictimScore[Victim] + 6 - (VictimScore[Attacker] / 100);
 }
 
-int LegalMoveExist(S_BOARD *pos) {
-
-	S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
-
-    int played = 0;
-	for(int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-
-        if (!MakeMove(pos,list->moves[MoveNum].move))
-            continue;
-
-        played += 1;
-        TakeMove(pos);
-
-		if (played >= 1)
-			return 1;
-    }
-
-	return 0;
-}
-
-int MoveExists(S_BOARD *pos, const int move) {
-
-	S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
-
-	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-
-        if (!MakeMove(pos,list->moves[MoveNum].move))
-            continue;
-
-        TakeMove(pos);
-
-		if (list->moves[MoveNum].move == move)
-			return 1;
-    }
-
-	return 0;
-}
-
 static void AddQuietMove( const S_BOARD *pos, int move, S_MOVELIST *list) {
 
 	ASSERT(SqOnBoard(FROMSQ(move)));

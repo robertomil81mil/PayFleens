@@ -24,8 +24,16 @@ int MakeMove(S_BOARD *pos, int move);
 void TakeMove(S_BOARD *pos);
 void MakeNullMove(S_BOARD *pos);
 void TakeNullMove(S_BOARD *pos);
+void PickNextMove(int moveNum, S_MOVELIST *list);
+
+int LegalMoveExist(S_BOARD *pos);
+int MoveExists(S_BOARD *pos, const int move);
 
 int moveBestCaseValue(const S_BOARD *pos);
+int badCapture(int move, const S_BOARD *pos);
+int move_canSimplify(int move, const S_BOARD *pos);
+int advancedPawnPush(int move, const S_BOARD *pos);
+int see(const S_BOARD *pos, int move, int threshold);
 
 /* GAME MOVE
 

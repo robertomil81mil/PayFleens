@@ -107,6 +107,17 @@ void ReadInput(S_SEARCHINFO *info) {
     }
 }
 
+void CheckTime(S_SEARCHINFO *info) {
+    // .. check if time up, or interrupt from GUI
+    if (   info->timeset 
+        && info->depth > 1 
+        && elapsedTime(info) > info->maximumTime - 10) {
+        info->stop = 1;
+    }
+
+    ReadInput(info);
+}
+
 double move_importance(int ply) {
 
     const double XScale = 6.85;

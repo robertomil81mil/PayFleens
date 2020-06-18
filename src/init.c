@@ -23,6 +23,7 @@
 
 #include "bitboards.h"
 #include "board.h"
+#include "data.h"
 #include "defs.h"
 #include "evaluate.h"
 #include "hashkeys.h"

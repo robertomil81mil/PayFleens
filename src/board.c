@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 
+#include "attack.h"
 #include "bitboards.h"
 #include "board.h"
 #include "data.h"
@@ -434,6 +435,44 @@ void MirrorBoard(S_BOARD *pos) {
 	pos->materialKey = GenerateMaterialKey(pos);
 
     ASSERT(CheckBoard(pos));
+}
+
+int IsRepetition(const S_BOARD *pos) {
+
+    int index = 0;
+
+    for (index = pos->hisPly - pos->fiftyMove; index < pos->hisPly-1; ++index) {
+        ASSERT(index >= 0 && index < MAXGAMEMOVES);
+        if (pos->posKey == pos->history[index].posKey) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int posIsDrawn(const S_BOARD *pos, int ply) {
+
+    if (    pos->fiftyMove > 99 
+    	&& !SqAttacked(pos->KingSq[pos->side],!pos->side, pos))
+        return 1;
+
+    // Return a draw score if a position has a two fold after the root,
+    // or a three fold which occurs in part before the root move.
+    int end = MIN(pos->fiftyMove, pos->plyFromNull);
+
+    if (end >= 4) {
+
+        int reps = 0;
+        
+        for (int i = pos->hisPly - 4; i >= pos->hisPly - end; i -= 2) {
+
+            if (    pos->posKey == pos->history[i].posKey
+                && (i > pos->hisPly - ply || ++reps == 2))
+                return 1;
+        }
+    }
+
+    return 0;
 }
 
 void InitFilesRanksBrd() {

@@ -29,6 +29,7 @@
 #include "evaluate.h"
 #include "hashkeys.h"
 #include "makemove.h"
+#include "movegen.h"
 #include "validate.h"
 
 const int CastlePerm[120] = {
@@ -437,6 +438,67 @@ void TakeNullMove(S_BOARD *pos) {
 	ASSERT(pos->ply >= 0 && pos->ply < MAX_PLY);
 }
 
+void PickNextMove(int moveNum, S_MOVELIST *list) {
+
+    S_MOVE temp;
+    int best = 0, bestNum = moveNum;
+
+    for (int index = moveNum; index < list->count; ++index) {
+        if (list->moves[index].score > best) {
+            best = list->moves[index].score;
+            bestNum = index;
+        }
+    }
+
+    ASSERT(moveNum >= 0 && moveNum < list->count);
+    ASSERT(bestNum >= 0 && bestNum < list->count);
+    ASSERT(bestNum >= moveNum);
+
+    temp = list->moves[moveNum];
+    list->moves[moveNum] = list->moves[bestNum];
+    list->moves[bestNum] = temp;
+}
+
+int LegalMoveExist(S_BOARD *pos) {
+
+	S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
+
+    int played = 0;
+	for(int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+
+        if (!MakeMove(pos,list->moves[MoveNum].move))
+            continue;
+
+        played += 1;
+        TakeMove(pos);
+
+		if (played >= 1)
+			return 1;
+    }
+
+	return 0;
+}
+
+int MoveExists(S_BOARD *pos, const int move) {
+
+	S_MOVELIST list[1];
+    GenerateAllMoves(pos,list);
+
+	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+
+        if (!MakeMove(pos,list->moves[MoveNum].move))
+            continue;
+
+        TakeMove(pos);
+
+		if (list->moves[MoveNum].move == move)
+			return 1;
+    }
+
+	return 0;
+}
+
 int moveBestCaseValue(const S_BOARD *pos) {
 
 	static const int SEEPieceValues[13] = {
@@ -466,4 +528,76 @@ int moveBestCaseValue(const S_BOARD *pos) {
         value += SEEPieceValues[wQ] - SEEPieceValues[wP];
 
     return value;
+}
+
+int see(const S_BOARD *pos, int move, int threshold) {
+
+    int from = FROMSQ(move), to = TOSQ(move);
+    int nextVictim = pos->pieces[from];
+
+    int balance = PieceValue[EG][pos->pieces[to]] - threshold;
+
+    if (balance < 0)
+        return 0;
+
+    balance -= PieceValue[EG][nextVictim];
+
+    if (balance >= 0)
+        return 1;
+
+    return (!pos->side) != pos->side;
+}
+
+int badCapture(int move, const S_BOARD *pos) {
+
+    const int THEM = !pos->side;
+
+    int from = FROMSQ(move);
+    int to = TOSQ(move);
+    int captured = CAPTURED(move);
+
+    int Knight = pos->side == WHITE ? bN : wN;
+    int Bishop = pos->side == WHITE ? bB : wB;
+
+    // Captures by pawn do not lose material
+    if (pos->pieces[from] == wP || pos->pieces[from] == bP) return 0;
+
+    // Captures "lower takes higher" (as well as BxN) are good by definition
+    if (PieceValue[EG][captured] >= PieceValue[EG][pos->pieces[from]] - 30) return 0;
+
+    if (   pos->pawn_ctrl[THEM][to]
+        && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
+        return 1;
+
+    if (PieceValue[EG][captured] + 500 < PieceValue[EG][pos->pieces[from]]) {
+    
+        if (pos->pceNum[Knight])
+            if (KnightAttack(THEM, to, pos)) return 1;
+
+        if (pos->pceNum[Bishop]) {
+            if (BishopAttack(THEM, to, 11, pos)) return 1;
+            if (BishopAttack(THEM, to,  9, pos)) return 1;
+            if (BishopAttack(THEM, to, -9, pos)) return 1;
+            if (BishopAttack(THEM, to,-11, pos)) return 1;
+        }
+    }
+
+    // If a capture is not processed, it cannot be considered bad
+    return 0;
+}
+
+int move_canSimplify(int move, const S_BOARD *pos) {
+
+    int captured = CAPTURED(move);
+
+    if (  (captured == wP || captured == bP)
+        || pos->material[!pos->side] - PieceValue[EG][captured] > ENDGAME_MAT)
+        return 0;
+    else
+        return 1;
+}
+
+int advancedPawnPush(int move, const S_BOARD *pos) {
+    return (   PiecePawn[pos->pieces[FROMSQ(move)]]
+            && relativeRank(!pos->side, SQ64(TOSQ(move))) > RANK_5);
 }

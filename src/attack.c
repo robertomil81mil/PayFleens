@@ -23,6 +23,7 @@
 #include "attack.h"
 #include "defs.h"
 #include "board.h"
+#include "data.h"
 #include "validate.h"
 
 int SqAttacked(const int sq, const int side, const S_BOARD *pos) {
@@ -99,4 +100,30 @@ int SqAttacked(const int sq, const int side, const S_BOARD *pos) {
 	}
 	
 	return 0;
+}
+
+int KnightAttack(int side, int sq, const S_BOARD *pos) {
+    int Knight = side == WHITE ? wN : bN, t_sq;
+
+    for (int index = 0; index < 8; ++index) {
+        t_sq = sq + PceDir[wN][index];
+        if (!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
+            return 1;
+    }
+    return 0;
+}
+
+int BishopAttack(int side, int sq, int dir, const S_BOARD *pos) {
+    int Bishop = side == WHITE ? wB : bB;
+    int t_sq = sq + dir;
+
+    while (!SQOFFBOARD(t_sq)) {
+        if (pos->pieces[t_sq] != EMPTY) {
+            if (pos->pieces[t_sq] == Bishop)
+                return 1;
+            return 0;
+        }
+        t_sq += dir;
+    }
+    return 0;
 }

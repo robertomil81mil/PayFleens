@@ -32,6 +32,7 @@ int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduct
 
 int InputWaiting();
 void ReadInput(S_SEARCHINFO *info);
+void CheckTime(S_SEARCHINFO *info);
 
 static const int MoveHorizon   = 50;
 static const double MaxRatio   = 7.3;

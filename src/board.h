@@ -25,6 +25,10 @@ void UpdateListsMaterial(S_BOARD *pos);
 void ResetBoard(S_BOARD *pos);
 void MirrorBoard(S_BOARD *pos);
 void PrintBoard(const S_BOARD *pos);
+
+int IsRepetition(const S_BOARD *pos);
+int posIsDrawn(const S_BOARD *pos, int ply);
+
 void InitFilesRanksBrd();
 void InitSq120To64();
 

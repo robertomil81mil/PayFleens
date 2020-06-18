@@ -20,9 +20,6 @@
 
 #include "defs.h"
 
-void InitMvvLva();
-int LegalMoveExist(S_BOARD *pos);
-int MoveExists(S_BOARD *pos, const int move);
-
 void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
 void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
+void InitMvvLva();

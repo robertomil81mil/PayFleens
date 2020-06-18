@@ -39,179 +39,12 @@
 #include "ttable.h"
 #include "uci.h"
 
-int LMRTable[64][64]; // Init LMR Table 
-
-void CheckUp(S_SEARCHINFO *info) {
-    // .. check if time up, or interrupt from GUI
-    if (   info->timeset 
-        && info->depth > 1 
-        && elapsedTime(info) > info->maximumTime - 10) {
-        info->stop = 1;
-    }
-
-    ReadInput(info);
-}
-
-void PickNextMove(int moveNum, S_MOVELIST *list) {
-
-    S_MOVE temp;
-    int best = 0, bestNum = moveNum;
-
-    for (int index = moveNum; index < list->count; ++index) {
-        if (list->moves[index].score > best) {
-            best = list->moves[index].score;
-            bestNum = index;
-        }
-    }
-
-    ASSERT(moveNum>=0 && moveNum<list->count);
-    ASSERT(bestNum>=0 && bestNum<list->count);
-    ASSERT(bestNum>=moveNum);
-
-    temp = list->moves[moveNum];
-    list->moves[moveNum] = list->moves[bestNum];
-    list->moves[bestNum] = temp;
-}
-
-int KnightAttack(int side, int sq, const S_BOARD *pos) {
-    int Knight = side == WHITE ? wN : bN, t_sq;
-
-    for (int index = 0; index < 8; ++index) {
-        t_sq = sq + PceDir[wN][index];
-        if (!SQOFFBOARD(t_sq) && pos->pieces[t_sq] == Knight)
-            return 1;
-    }
-    return 0;
-}
-
-int BishopAttack(int side, int sq, int dir, const S_BOARD *pos) {
-    int t_sq = sq + dir;
-    int Bishop = side == WHITE ? wB : bB;
-
-    while (!SQOFFBOARD(t_sq)) {
-        if (pos->pieces[t_sq] != EMPTY ) {
-            if (pos->pieces[t_sq] == Bishop)
-                return 1;
-            return 0;
-        }
-        t_sq += dir;
-    }
-    return 0;
-}
-
-int badCapture(int move, const S_BOARD *pos) {
-
-    const int THEM = !pos->side;
-
-    int from = FROMSQ(move);
-    int to = TOSQ(move);
-    int captured = CAPTURED(move);
-
-    int Knight = pos->side == WHITE ? bN : wN;
-    int Bishop = pos->side == WHITE ? bB : wB;
-
-    // Captures by pawn do not lose material
-    if (pos->pieces[from] == wP || pos->pieces[from] == bP) return 0;
-
-    // Captures "lower takes higher" (as well as BxN) are good by definition
-    if (PieceValue[EG][captured] >= PieceValue[EG][pos->pieces[from]] - 30) return 0;
-
-    if (   pos->pawn_ctrl[THEM][to]
-        && PieceValue[EG][captured] + 200 < PieceValue[EG][pos->pieces[from]])
-        return 1;
-
-    if (PieceValue[EG][captured] + 500 < PieceValue[EG][pos->pieces[from]]) {
-    
-        if (pos->pceNum[Knight])
-            if (KnightAttack(THEM, to, pos)) return 1;
-
-        if (pos->pceNum[Bishop]) {
-            if (BishopAttack(THEM, to, 11, pos)) return 1;
-            if (BishopAttack(THEM, to,  9, pos)) return 1;
-            if (BishopAttack(THEM, to, -9, pos)) return 1;
-            if (BishopAttack(THEM, to,-11, pos)) return 1;
-        }
-    }
-
-    // If a capture is not processed, it cannot be considered bad
-    return 0;
-}
-
-int see(const S_BOARD *pos, int move, int threshold) {
-
-    int from = FROMSQ(move), to = TOSQ(move);
-    int nextVictim = pos->pieces[from];
-
-    int balance = PieceValue[EG][pos->pieces[to]] - threshold;
-
-    if (balance < 0)
-        return 0;
-
-    balance -= PieceValue[EG][nextVictim];
-
-    if (balance >= 0)
-        return 1;
-
-    return (!pos->side) != pos->side;
-}
-
-int move_canSimplify(int move, const S_BOARD *pos) {
-
-    int captured = CAPTURED(move);
-
-    if (  (captured == wP || captured == bP)
-        || pos->material[pos->side^1] - PieceValue[EG][captured] > ENDGAME_MAT )
-        return 0;
-    else
-        return 1;
-}
-
-int advancedPawnPush(int move, const S_BOARD *pos) {
-    return (   PiecePawn[pos->pieces[TOSQ(move)]]
-            && relativeRank(!pos->side, SQ64(TOSQ(move))) > RANK_5);
-}
-
-int IsRepetition(const S_BOARD *pos) {
-
-    int index = 0;
-
-    for(index = pos->hisPly - pos->fiftyMove; index < pos->hisPly-1; ++index) {
-        ASSERT(index >= 0 && index < MAXGAMEMOVES);
-        if(pos->posKey == pos->history[index].posKey) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int posIsDrawn(const S_BOARD *pos, int ply) {
-
-    if (pos->fiftyMove > 99 && !SqAttacked(pos->KingSq[pos->side],!pos->side,pos))
-        return 1;
-
-    // Return a draw score if a position has a two fold after the root,
-    // or a three fold which occurs in part before the root move.
-    int end = MIN(pos->fiftyMove, pos->plyFromNull);
-
-    if (end >= 4) {
-
-        int reps = 0;
-        
-        for (int i = pos->hisPly - 4; i >= pos->hisPly - end; i -= 2) {
-
-            if (    pos->posKey == pos->history[i].posKey
-                && (i > pos->hisPly - ply || ++reps == 2))
-                return 1;
-        }
-    }
-
-    return 0;
-}
+int LMRTable[64][64]; // Late Move Reductions Table 
 
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
-    for (int index = 0; index < 13; index++)
-        for (int index2 = 0; index2 < BRD_SQ_NUM; index2++)
+    for (int index = 0; index < 13; ++index)
+        for (int index2 = 0; index2 < BRD_SQ_NUM; ++index2)
             pos->searchHistory[index][index2] = 0;
     
     pos->ply = 0;
@@ -343,7 +176,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     info->seldepth = (height == 0) ? 0 : MAX(info->seldepth, height);
 
     if ((info->nodes & 1023) == 1023)
-        CheckUp(info);
+        CheckTime(info);
 
     const int PvNode   = (alpha != beta - 1);
     const int RootNode = (pos->ply == 0);
@@ -632,7 +465,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     info->seldepth = MAX(info->seldepth, height);
 
     if ((info->nodes & 1023) == 1023)
-        CheckUp(info);
+        CheckTime(info);
 
     int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
 
@@ -645,7 +478,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     const int PvNode = (alpha != beta - 1);
 
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-    int MoveNum = 0, played = 0, moveIsBadCapture;
+    int MoveNum = 0, played = 0, moveIsBadCapture, moveIsPruneable, PieceOnTo;
     int eval, value, best, futilityValue, futilityBase, oldAlpha = 0;
     uint16_t ttMove = NOMOVE; int move = NOMOVE, bestMove = NOMOVE;
 
@@ -696,17 +529,21 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
         moveIsBadCapture = (!see(pos, move, 1)
                          || badCapture(move, pos));
 
+        moveIsPruneable = (    moveIsBadCapture
+                           && !move_canSimplify(move, pos)
+                           && !advancedPawnPush(move, pos));
+
+        PieceOnTo = pos->pieces[TOSQ(move)];
+
         if (!MakeMove(pos, move))
             continue;
 
         if (   !InCheck
             && !SqAttacked(pos->KingSq[pos->side], !pos->side, pos)
             &&  futilityBase > -KNOWN_WIN
-            &&  moveIsBadCapture
-            && !move_canSimplify(move, pos)
-            && !advancedPawnPush(move, pos)) {
+            &&  moveIsPruneable) {
 
-            futilityValue = futilityBase + PieceValue[EG][pos->pieces[CAPTURED(move)]];
+            futilityValue = futilityBase + PieceValue[EG][PieceOnTo];
 
             if (futilityValue <= alpha) {
                 best = MAX(best, futilityValue);

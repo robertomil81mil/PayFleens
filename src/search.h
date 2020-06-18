@@ -38,18 +38,6 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
 
 void initLMRTable();
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);
-void CheckUp(S_SEARCHINFO *info);
-void PickNextMove(int moveNum, S_MOVELIST *list);
-
-int badCapture(int move, const S_BOARD *pos);
-int move_canSimplify(int move, const S_BOARD *pos);
-int advancedPawnPush(int move, const S_BOARD *pos);
-int see(const S_BOARD *pos, int move, int threshold);
-int IsRepetition(const S_BOARD *pos);
-int posIsDrawn(const S_BOARD *pos, int ply);
-
-int KnightAttack(int side, int sq, const S_BOARD *pos);
-int BishopAttack(int side, int sq, int dir, const S_BOARD *pos);
 
 static const int BetaPruningDepth     = 8;
 static const int BetaMargin           = 85;

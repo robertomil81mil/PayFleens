@@ -43,6 +43,26 @@ static const int PieceRookQueen[13] = { false, false, false, false, true, true, 
 static const int PieceBishopQueen[13] = { false, false, false, true, false, true, false, false, false, true, false, true, false };
 static const int PieceSlides[13] = { false, false, false, true, true, true, false, false, false, true, true, true, false };
 
+static const int PceDir[13][8] = {
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    {  9, 11, 0, 0, 0, 0, 0, 0 },
+    { -8, -19,  -21, -12, 8, 19, 21, 12 },
+    { -9, -11, 11, 9, 0, 0, 0, 0 },
+    { -1, -10,  1, 10, 0, 0, 0, 0 },
+    { -1, -10,  1, 10, -9, -11, 11, 9 },
+    { -1, -10,  1, 10, -9, -11, 11, 9 },
+    { -9, -11, 0, 0, 0, 0, 0, 0 },
+    { -8, -19,  -21, -12, 8, 19, 21, 12 },
+    { -9, -11, 11, 9, 0, 0, 0, 0 },
+    { -1, -10,  1, 10, 0, 0, 0, 0 },
+    { -1, -10,  1, 10, -9, -11, 11, 9 },
+    { -1, -10,  1, 10, -9, -11, 11, 9 }
+};
+
+static const int NumDir[13] = {
+ 0, 2, 8, 4, 4, 8, 8, 2, 8, 4, 4, 8, 8
+};
+
 static const int Mirror64[64] = {
 56	,	57	,	58	,	59	,	60	,	61	,	62	,	63	,
 48	,	49	,	50	,	51	,	52	,	53	,	54	,	55	,
