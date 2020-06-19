@@ -37,6 +37,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
 
 void initLMRTable();
+int valueDraw(S_SEARCHINFO *info);
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);
 
 static const int BetaPruningDepth     = 8;

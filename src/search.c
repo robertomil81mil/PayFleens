@@ -39,7 +39,12 @@
 #include "ttable.h"
 #include "uci.h"
 
-int LMRTable[64][64]; // Late Move Reductions Table 
+int LMRTable[64][64]; // Late Move Reductions Table
+
+// Add a small random variance to draw scores, to avoid 3fold-blindness
+int valueDraw(S_SEARCHINFO *info) {
+    return VALUE_DRAW + (2 * (info->nodes & 1)) - 1;
+}
 
 void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
 
@@ -190,7 +195,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
 
     if (!RootNode) {
         if (info->stop || posIsDrawn(pos, pos->ply))
-            return depth < 4 ? VALUE_DRAW : VALUE_DRAW + (2 * (info->nodes & 1) - 1);
+            return valueDraw(info);
 
         if (pos->ply >= MAX_PLY)
             return EvalPosition(pos, &Table);
@@ -226,6 +231,9 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     pos->searchKillers[1][pos->ply+1] = NOMOVE;
 
     if (ttHit) {
+
+        if (eval == VALUE_DRAW)
+            eval = valueDraw(info);
 
         if (    ttValue != VALUE_NONE
             && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
