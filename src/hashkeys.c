@@ -52,7 +52,7 @@ void InitHashKeys() {
 	SideKey = rand64();
 }
 
-uint64_t GeneratePosKey(const S_BOARD *pos) {
+uint64_t GeneratePosKey(const Board *pos) {
 
 	uint64_t finalKey = 0;
 	int sq, piece;
@@ -83,7 +83,7 @@ uint64_t GeneratePosKey(const S_BOARD *pos) {
 	return finalKey;
 }
 
-uint64_t GenerateMaterialKey(const S_BOARD *pos) {
+uint64_t GenerateMaterialKey(const Board *pos) {
 
 	uint64_t materialKey = 0;
 

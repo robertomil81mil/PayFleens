@@ -46,7 +46,7 @@ int RankDistance[120][120];
 
 #ifdef DEBUG
 
-int PceListOk(const S_BOARD *pos) {
+int PceListOk(const Board *pos) {
 
 	int pce, num, sq;
 
@@ -67,13 +67,11 @@ int PceListOk(const S_BOARD *pos) {
     return 1;
 }
 
-int CheckBoard(const S_BOARD *pos) {
+int CheckBoard(const Board *pos) {
 
-	int t_pceNum[13] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	int t_bigPce[2] = { 0, 0};
-	int t_majPce[2] = { 0, 0};
-	int t_minPce[2] = { 0, 0};
-	int t_material[2] = { 0, 0};
+	int t_pceNum[13]  = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int t_bigPce[2]   = { 0, 0 };
+	int t_material[2] = { 0, 0 };
 
 	int sq64, t_piece, t_pce_num, sq120, pcount, colour;
 
@@ -97,11 +95,9 @@ int CheckBoard(const S_BOARD *pos) {
 		t_piece = pos->pieces[sq120];
 		t_pceNum[t_piece]++;
 		colour = PieceCol[t_piece];
-		if (PieceBig[t_piece] == true) t_bigPce[colour]++;
-		if (PieceMin[t_piece] == true) t_minPce[colour]++;
-		if (PieceMaj[t_piece] == true) t_majPce[colour]++;
-
 		t_material[colour] += PieceValue[EG][t_piece];
+
+		if (PieceBig[t_piece]) t_bigPce[colour]++;
 	}
 
 	for (t_piece = wP; t_piece <= bK; ++t_piece) {
@@ -117,24 +113,22 @@ int CheckBoard(const S_BOARD *pos) {
 	ASSERT(pcount == (pos->pceNum[bP] + pos->pceNum[wP]));
 
 	// check bitboards squares
-	while(t_pawns[WHITE]) {
+	while (t_pawns[WHITE]) {
 		sq64 = poplsb(&t_pawns[WHITE]);
 		ASSERT(pos->pieces[SQ120(sq64)] == wP);
 	}
 
-	while(t_pawns[BLACK]) {
+	while (t_pawns[BLACK]) {
 		sq64 = poplsb(&t_pawns[BLACK]);
 		ASSERT(pos->pieces[SQ120(sq64)] == bP);
 	}
 
-	while(t_pawns[COLOUR_NB]) {
+	while (t_pawns[COLOUR_NB]) {
 		sq64 = poplsb(&t_pawns[COLOUR_NB]);
 		ASSERT(pos->pieces[SQ120(sq64)] == bP || pos->pieces[SQ120(sq64)] == wP);
 	}
 
 	ASSERT(t_material[WHITE] == pos->material[WHITE] && t_material[BLACK] == pos->material[BLACK]);
-	ASSERT(t_minPce[WHITE] == pos->minPce[WHITE] && t_minPce[BLACK] == pos->minPce[BLACK]);
-	ASSERT(t_majPce[WHITE] == pos->majPce[WHITE] && t_majPce[BLACK] == pos->majPce[BLACK]);
 	ASSERT(t_bigPce[WHITE] == pos->bigPce[WHITE] && t_bigPce[BLACK] == pos->bigPce[BLACK]);
 
 	ASSERT(pos->side==WHITE || pos->side==BLACK);
@@ -156,7 +150,7 @@ int CheckBoard(const S_BOARD *pos) {
 
 #endif
 
-void UpdateListsMaterial(S_BOARD *pos) {
+void UpdateListsMaterial(Board *pos) {
 
 	int piece, sq, index, colour;
 
@@ -168,9 +162,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 			colour = PieceCol[piece];
 			ASSERT(SideValid(colour));
 
-		    if (PieceBig[piece] == true) pos->bigPce[colour]++;
-		    if (PieceMin[piece] == true) pos->minPce[colour]++;
-		    if (PieceMaj[piece] == true) pos->majPce[colour]++;
+		    if (PieceBig[piece]) pos->bigPce[colour]++;
 
 		    pos->PSQT[colour] += e.PSQT[piece][sq];
 
@@ -203,7 +195,7 @@ void UpdateListsMaterial(S_BOARD *pos) {
 	}
 }
 
-int ParseFen(char *fen, S_BOARD *pos) {
+int ParseFen(char *fen, Board *pos) {
 
 	ASSERT(fen != NULL);
 	ASSERT(pos != NULL);
@@ -323,7 +315,7 @@ int ParseFen(char *fen, S_BOARD *pos) {
 	return 0;
 }
 
-void ResetBoard(S_BOARD *pos) {
+void ResetBoard(Board *pos) {
 
 	int index = 0;
 
@@ -334,12 +326,10 @@ void ResetBoard(S_BOARD *pos) {
 	}
 
 	for (index = 0; index < 2; ++index) {
-		pos->bigPce[index] = 0;
-		pos->majPce[index] = 0;
-		pos->minPce[index] = 0;
+		pos->bigPce[index]   = 0;
 		pos->material[index] = 0;
-		pos->mPhases[index] = 0;
-		pos->PSQT[index] = 0;
+		pos->mPhases[index]  = 0;
+		pos->PSQT[index]     = 0;
 	}
 
 	for (index = 0; index < 64; ++index)
@@ -365,7 +355,7 @@ void ResetBoard(S_BOARD *pos) {
 	pos->posKey = pos->materialKey = 0ULL;
 }
 
-void PrintBoard(const S_BOARD *pos) {
+void PrintBoard(const Board *pos) {
 
 	int sq,file,rank,piece;
 
@@ -397,7 +387,7 @@ void PrintBoard(const S_BOARD *pos) {
 	printf("PosKey:%"PRIu64"\n",pos->posKey);
 }
 
-void MirrorBoard(S_BOARD *pos) {
+void MirrorBoard(Board *pos) {
 
     int tempPiecesArray[64];
     int tempSide = !pos->side;
@@ -437,7 +427,7 @@ void MirrorBoard(S_BOARD *pos) {
     ASSERT(CheckBoard(pos));
 }
 
-int IsRepetition(const S_BOARD *pos) {
+int IsRepetition(const Board *pos) {
 
     int index = 0;
 
@@ -450,7 +440,7 @@ int IsRepetition(const S_BOARD *pos) {
     return 0;
 }
 
-int posIsDrawn(const S_BOARD *pos, int ply) {
+int posIsDrawn(const Board *pos, int ply) {
 
     if (    pos->fiftyMove > 99 
     	&& !SqAttacked(pos->KingSq[pos->side],!pos->side, pos))

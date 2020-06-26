@@ -97,7 +97,7 @@ void runTexelTuning() {
 
     TexelEntry *tes;
     int iteration = -1;
-    S_BOARD pos[1];
+    Board pos[1];
     double K, error, best = 1e6, rate = LEARNING;
     TexelVector params = {0}, cparams = {0}, phases = {0};
 
@@ -161,7 +161,7 @@ void runTexelTuning() {
     }
 }
 
-void initTexelEntries(TexelEntry *tes, S_BOARD *pos) {
+void initTexelEntries(TexelEntry *tes, Board *pos) {
 
     char line[256];
     int i, j, k, eval, coeffs[NTERMS];

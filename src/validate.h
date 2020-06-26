@@ -18,11 +18,11 @@
 
 #pragma once
 
-void MirrorEvalTest(S_BOARD *pos);
+void MirrorEvalTest(Board *pos);
 
 #if defined(DEBUG)
 
-int MoveListOk(const S_MOVELIST *list, const S_BOARD *pos);
+int MoveListOk(const S_MOVELIST *list, const Board *pos);
 int SqIs120(const int sq);
 int PceValidEmptyOffbrd(const int pce);
 int SqOnBoard(const int sq);
@@ -30,7 +30,7 @@ int SideValid(const int side);
 int FileRankValid(const int fr);
 int PieceValidEmpty(const int pce);
 int PieceValid(const int pce);
-void Perft(int depth, S_BOARD *pos);
-void PerftTest(int depth, S_BOARD *pos);
+void Perft(int depth, Board *pos);
+void PerftTest(int depth, Board *pos);
 
 #endif

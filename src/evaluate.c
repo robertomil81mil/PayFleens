@@ -39,26 +39,26 @@ int getTropism(const int s1, const int s2) {
     return 7 - (distanceByFile(s1, s2) + distanceByRank(s1, s2));
 }
 
-int king_proximity(const int c, const int s, const S_BOARD *pos) {
+int king_proximity(const int c, const int s, const Board *pos) {
     return MIN(distanceBetween(pos->KingSq[c], s), 5);
 };
 
-bool opposite_bishops(const S_BOARD *pos) {
+bool opposite_bishops(const Board *pos) {
     return  (   pos->pceNum[wB] == 1
              && pos->pceNum[bB] == 1
              && opposite_colors(SQ64(pos->pList[wB][0]), SQ64(pos->pList[bB][0])));
 }
 
-int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int sq) {
+int pawns_on_same_color_squares(const Board *pos, const int colour, const int sq) {
     ASSERT(0 <= sq && sq < 120);
     return popcount(pos->pawns[colour] & (testBit(WHITE_SQUARES, SQ64(sq))) ? WHITE_SQUARES : BLACK_SQUARES);
 }
 
-int isPiece(const int piece, const int sq, const S_BOARD *pos) {
+int isPiece(const int piece, const int sq, const Board *pos) {
     return (pos->pieces[sq] == piece);
 }
 
-int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
+int NonSlideMob(const Board *pos, int side, int pce, int sq) {
 
     int index, t_sq, ksq, mobility = 0, att = 0;
 
@@ -88,7 +88,7 @@ int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq) {
     return mobility;
 }
 
-int SlideMob(const S_BOARD *pos, int side, int pce, int sq) {
+int SlideMob(const Board *pos, int side, int pce, int sq) {
 
     int index, t_sq, ksq, mobility = 0, att = 0;
 
@@ -370,11 +370,11 @@ const int ComplexityAdjustment  = S(   0,-117);
 
 #undef S
 
-int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
+int Pawns(const Board *pos, int side, int pce, int pceNum) {
 
     int score = 0, bonus, support, pawnbrothers;
     int sq, t_sq, ksq, blockSq, w, R, Su, Up;
-    U64 opposed;
+    uint64_t opposed;
 
     sq = pos->pList[pce][pceNum];
     ASSERT(SqOnBoard(sq));
@@ -488,7 +488,7 @@ int Pawns(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;
 }
 
-int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
+int Knights(const Board *pos, int side, int pce, int pceNum) {
 
     int score = 0, mobility, tropism;
     int defended, Count, sq, R, P1, P2;
@@ -531,7 +531,7 @@ int Knights(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;   
 }
 
-int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
+int Bishops(const Board *pos, int side, int pce, int pceNum) {
 
     int score = 0, mobility, tropism;
     int defended, Count, sq, R, P1, P2;
@@ -583,7 +583,7 @@ int Bishops(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;
 }
 
-int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
+int Rooks(const Board *pos, int side, int pce, int pceNum) {
 
     int score = 0, mobility, tropism, sq, R, KR;
 
@@ -623,7 +623,7 @@ int Rooks(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;
 }
 
-int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
+int Queens(const Board *pos, int side, int pce, int pceNum) {
 
     int score = 0, mobility, tropism, sq, Knight, Bishop;
 
@@ -673,10 +673,10 @@ int Queens(const S_BOARD *pos, int side, int pce, int pceNum) {
     return score;
 }
 
-int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
+int hypotheticalShelter(const Board *pos, int side, int KingSq) {
 
     int score = 0, d, center, file, ourRank, theirRank;
-    U64 ours, theirs;
+    uint64_t ours, theirs;
 
     center = clamp(FilesBrd[KingSq], FILE_B, FILE_G);
     for (file = center - 1; file <= center + 1; ++file) {
@@ -704,7 +704,7 @@ int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq) {
     return score;
 }
 
-int evaluateShelter(const S_BOARD *pos, int side) {
+int evaluateShelter(const Board *pos, int side) {
 
     int shelter = hypotheticalShelter(pos, side, pos->KingSq[side]);
 
@@ -728,7 +728,7 @@ int evaluateShelter(const S_BOARD *pos, int side) {
     return shelter;
 }
 
-int evaluateKings(const S_BOARD *pos, int side) {
+int evaluateKings(const Board *pos, int side) {
 
     int score = 0, count, enemyQueen;
 
@@ -762,7 +762,7 @@ int evaluateKings(const S_BOARD *pos, int side) {
     return score;
 }
 
-int evaluatePieces(const S_BOARD *pos) {
+int evaluatePieces(const Board *pos) {
     int pce, pceNum, score = 0;
     pce = wP;
     for(pceNum = 0; pceNum < pos->pceNum[pce]; ++pceNum) {
@@ -810,7 +810,7 @@ int evaluatePieces(const S_BOARD *pos) {
     return score;
 }
 
-int evaluateComplexity(const S_BOARD *pos, int score) {
+int evaluateComplexity(const Board *pos, int score) {
 
     int complexity, outflanking, pawnsOnBothFlanks, pawnEndgame, almostUnwinnable, sign, eg, v;
 
@@ -881,7 +881,7 @@ int imbalance(const int pieceCount[2][6], int side) {
     return makeScore(u / 16, v / 16);
 }
 
-int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
+int evaluateScaleFactor(const Board *pos, int egScore) {
 
     const int strongSide = egScore > 0 ? WHITE : BLACK;
     const int pawnStrong = egScore > 0 ? wP : bP;
@@ -916,7 +916,7 @@ int evaluateScaleFactor(const S_BOARD *pos, int egScore) {
     return SCALE_NORMAL;
 }
 
-void blockedPiecesW(const S_BOARD *pos) {
+void blockedPiecesW(const Board *pos) {
 
     int side = WHITE;
 
@@ -1020,7 +1020,7 @@ void blockedPiecesW(const S_BOARD *pos) {
     }
 }
 
-void blockedPiecesB(const S_BOARD *pos) {
+void blockedPiecesB(const Board *pos) {
 
     int side = BLACK;
 
@@ -1124,7 +1124,7 @@ void blockedPiecesB(const S_BOARD *pos) {
     }
 }
 
-int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
+int EvalPosition(const Board *pos, Material_Table *materialTable) {
     // setboard 8/3k3p/6p1/3nK1P1/8/8/7P/8 b - - 3 64
     // setboard r2q1rk1/p2b1p1p/1p1b2pQ/2p1pP2/1nPp4/1P1BP3/PB1P2PP/RN3RK1 w - - 1 16
     // setboard 8/6R1/2k5/6P1/8/8/4nP2/6K1 w - - 1 41 
@@ -1171,11 +1171,13 @@ int EvalPosition(const S_BOARD *pos, Material_Table *materialTable) {
     return pos->side == WHITE ? eval : -eval;     
 }
 
+int to_cp(int v) { return v * 100 / PieceValue[EG][wP]; }
+
 void printEvalFactor( int WMG, int WEG, int BMG, int BEG ) {
     printf("| %4d  %4d  | %4d  %4d  | %4d  %4d \n",WMG, WEG, BMG, BEG, WMG - BMG, WEG - BEG );
 }
 
-void printEval(const S_BOARD *pos) {
+void printEval(const Board *pos) {
 
     int v = EvalPosition(pos, &Table);
     v = pos->side == WHITE ? v : -v;
@@ -1197,7 +1199,7 @@ void printEval(const S_BOARD *pos) {
     printf("  King shield "); printEvalFactor( mgScore(ei.pkeval[WHITE]),egScore(ei.pkeval[WHITE]),mgScore(ei.pkeval[BLACK]),egScore(ei.pkeval[BLACK]));
     printf("   Initiative "); printf("| ----  ----  | ----  ----  | %4d  %4d \n", mgScore(ei.Complexity), egScore(ei.Complexity));
     printf("--------------+-------------+-------------+------------\n");
-    printf("        Total "); printf("| ----  ----  | ----  ----  | %4d cp: %d\n", v, (v * 100) / 118);
+    printf("        Total "); printf("| ----  ----  | ----  ----  | %4d cp: %d\n", v, to_cp(v));
     printf("\n");
 }
 

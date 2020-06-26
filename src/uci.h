@@ -21,7 +21,7 @@
 #include "defs.h"
 
 #define StartPosition "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define VERSION_ID "1.70" // Bench 17717027
+#define VERSION_ID "1.71" // Bench 20075397
 
 struct Limits {
     double start, time, inc, timeLimit;
@@ -34,13 +34,13 @@ struct EngineOptions {
 	double MinThinkingTime, MoveOverHead, SlowMover; 
 };
 
-void uciGo(char *str, S_SEARCHINFO *info, S_BOARD *pos);
+void uciGo(char *str, SearchInfo *info, Board *pos);
 void uciSetOption(char *str);
-void uciPosition(char* str, S_BOARD *pos);
+void uciPosition(char* str, Board *pos);
 
-void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value);
+void uciReport(SearchInfo *info, Board *pos, int alpha, int beta, int value);
 void uciReportCurrentMove(int move, int currmove, int depth);
-void printStats(S_SEARCHINFO *info);
+void printStats(SearchInfo *info);
 
 void handleCommandLine(int argc, char **argv);
 void runBenchmark(int argc, char **argv);

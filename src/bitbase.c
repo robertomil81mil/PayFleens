@@ -136,7 +136,7 @@ int classify(unsigned idx) {
     const int Bad  = (Us == WHITE ? DRAW  : WIN);
 
     int r = INVALID, result;
-    U64 b = KingAreaMasks[db[idx].ksq[Us]];
+    uint64_t b = KingAreaMasks[db[idx].ksq[Us]];
 
     while (b)
         r |= Us == WHITE ? db[idxpos(Them, db[idx].ksq[Them]  , poplsb(&b), db[idx].psq)].result

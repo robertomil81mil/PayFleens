@@ -26,9 +26,10 @@
 #define IsKn(p) (PieceKnight[(p)])
 #define IsKi(p) (PieceKing[(p)])
 
-int SqAttacked(const int sq, const int side, const S_BOARD *pos);
-int BishopAttack(int side, int sq, int dir, const S_BOARD *pos);
-int KnightAttack(int side, int sq, const S_BOARD *pos);
+int SqAttacked(const int sq, const int side, const Board *pos);
+int BishopAttack(int side, int sq, int dir, const Board *pos);
+int KnightAttack(int side, int sq, const Board *pos);
+int KingSqAttacked(const Board *pos);
 
 static const int KnDir[8] = { -8, -19,	-21, -12, 8, 19, 21, 12 };
 static const int RkDir[4] = { -1, -10,	1, 10 };

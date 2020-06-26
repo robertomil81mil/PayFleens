@@ -18,24 +18,43 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "defs.h"
 
-int MakeMove(S_BOARD *pos, int move);
-void TakeMove(S_BOARD *pos);
-void MakeNullMove(S_BOARD *pos);
-void TakeNullMove(S_BOARD *pos);
-void PickNextMove(int moveNum, S_MOVELIST *list);
+struct Move {
+	int move;
+	int score;
+};
 
-int LegalMoveExist(S_BOARD *pos);
-int MoveExists(S_BOARD *pos, const int move);
+struct MoveList {
+	Move moves[MAXPOSITIONMOVES];
+	int count;
+	int quiets;
+};
 
-int moveBestCaseValue(const S_BOARD *pos);
-int badCapture(int move, const S_BOARD *pos);
-int move_canSimplify(int move, const S_BOARD *pos);
-int advancedPawnPush(int move, const S_BOARD *pos);
-int see(const S_BOARD *pos, int move, int threshold);
+struct Undo {
+	uint64_t posKey, materialKey;
+	int move, enPas, castlePerm;
+	int fiftyMove, plyFromNull;
+};
 
-/* GAME MOVE
+int MakeMove(Board *pos, int move);
+void TakeMove(Board *pos);
+void MakeNullMove(Board *pos);
+void TakeNullMove(Board *pos);
+void PickNextMove(int moveNum, MoveList *list);
+
+int LegalMoveExist(Board *pos);
+int MoveExists(Board *pos, const int move);
+
+int moveBestCaseValue(const Board *pos);
+int badCapture(int move, const Board *pos);
+int move_canSimplify(int move, const Board *pos);
+int advancedPawnPush(int move, const Board *pos);
+int see(const Board *pos, int move, int threshold);
+
+/* MOVE
 
 0000 0000 0000 0000 0000 0111 1111 -> From 0x7F
 0000 0000 0000 0011 1111 1000 0000 -> To >> 7, 0x7F

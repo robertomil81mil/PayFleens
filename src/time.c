@@ -24,8 +24,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "board.h"
 #include "defs.h"
 #include "time.h"
+#include "search.h"
 #include "uci.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -51,7 +53,7 @@ double getTimeMs() {
 #endif
 }
 
-double elapsedTime(S_SEARCHINFO *info) {
+double elapsedTime(SearchInfo *info) {
     return getTimeMs() - info->startTime;
 }
 
@@ -90,7 +92,7 @@ int InputWaiting() {
 #endif
 }
 
-void ReadInput(S_SEARCHINFO *info) {
+void ReadInput(SearchInfo *info) {
     int  bytes;
     char input[256] = "", *endc;
 
@@ -107,7 +109,7 @@ void ReadInput(S_SEARCHINFO *info) {
     }
 }
 
-void CheckTime(S_SEARCHINFO *info) {
+void CheckTime(SearchInfo *info) {
     // .. check if time up, or interrupt from GUI
     if (   info->timeset 
         && info->depth > 1 
@@ -144,7 +146,7 @@ double remaining(int T, double myTime, double slowMover, int movesToGo, int ply)
     return myTime * MIN(ratio1, ratio2);
 }
 
-void TimeManagementInit(S_SEARCHINFO *info, Limits *limits, int ply) {
+void TimeManagementInit(SearchInfo *info, Limits *limits, int ply) {
 
     double minThinkingTime = Options.MinThinkingTime;
     double moveOverhead    = Options.MoveOverHead;
@@ -184,7 +186,7 @@ void TimeManagementInit(S_SEARCHINFO *info, Limits *limits, int ply) {
     }
 }
 
-int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduction) {
+int TerminateTimeManagement(Board *pos, SearchInfo *info, double *timeReduction) {
 
     int completedDepth, lastBestMoveDepth, lastBestMove = NOMOVE;
     double TimeRdction = 1, totBestMoveChanges = 0;

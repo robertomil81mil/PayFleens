@@ -47,7 +47,7 @@ const int CastlePerm[120] = {
     15, 15, 15, 15, 15, 15, 15, 15, 15, 15
 };
 
-static void ClearPiece(const int sq, S_BOARD *pos) {
+static void ClearPiece(const int sq, Board *pos) {
 
 	ASSERT(SqOnBoard(sq));
 	ASSERT(CheckBoard(pos));
@@ -70,11 +70,6 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 	
 	if (PieceBig[pce]) {
 		pos->bigPce[col]--;
-
-		if (PieceMaj[pce])
-			pos->majPce[col]--;
-		else
-			pos->minPce[col]--;
 	} else {
 		clearBit(&pos->pawns[col], SQ64(sq));
 		clearBit(&pos->pawns[COLOUR_NB], SQ64(sq));
@@ -102,7 +97,7 @@ static void ClearPiece(const int sq, S_BOARD *pos) {
 }
 
 
-static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
+static void AddPiece(const int sq, Board *pos, const int pce) {
 
     ASSERT(PieceValid(pce));
     ASSERT(SqOnBoard(sq));
@@ -116,11 +111,6 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 
     if (PieceBig[pce]) {
 		pos->bigPce[col]++;
-
-		if (PieceMaj[pce])
-			pos->majPce[col]++;
-		else
-			pos->minPce[col]++;
 	} else {
 		setBit(&pos->pawns[col], SQ64(sq));
 		setBit(&pos->pawns[COLOUR_NB], SQ64(sq));
@@ -138,7 +128,7 @@ static void AddPiece(const int sq, S_BOARD *pos, const int pce) {
 	pos->pList[pce][pos->pceNum[pce]++] = sq;
 }
 
-static void MovePiece(const int from, const int to, S_BOARD *pos) {
+static void MovePiece(const int from, const int to, Board *pos) {
 
     ASSERT(SqOnBoard(from));
     ASSERT(SqOnBoard(to));
@@ -189,7 +179,7 @@ static void MovePiece(const int from, const int to, S_BOARD *pos) {
 	ASSERT(t_PieceNum);
 }
 
-int MakeMove(S_BOARD *pos, int move) {
+int MakeMove(Board *pos, int move) {
 
 	ASSERT(CheckBoard(pos));
 	
@@ -311,7 +301,7 @@ int MakeMove(S_BOARD *pos, int move) {
 	return 1;
 }
 
-void TakeMove(S_BOARD *pos) {
+void TakeMove(Board *pos) {
 	
 	ASSERT(CheckBoard(pos));
 	
@@ -387,7 +377,7 @@ void TakeMove(S_BOARD *pos) {
     ASSERT(CheckBoard(pos));
 }
 
-void MakeNullMove(S_BOARD *pos) {
+void MakeNullMove(Board *pos) {
 
     ASSERT(CheckBoard(pos));
     ASSERT(!SqAttacked(pos->KingSq[pos->side],pos->side^1,pos));
@@ -416,7 +406,7 @@ void MakeNullMove(S_BOARD *pos) {
     return;
 } // MakeNullMove
 
-void TakeNullMove(S_BOARD *pos) {
+void TakeNullMove(Board *pos) {
     ASSERT(CheckBoard(pos));
 
     pos->hisPly--;
@@ -438,9 +428,9 @@ void TakeNullMove(S_BOARD *pos) {
 	ASSERT(pos->ply >= 0 && pos->ply < MAX_PLY);
 }
 
-void PickNextMove(int moveNum, S_MOVELIST *list) {
+void PickNextMove(int moveNum, MoveList *list) {
 
-    S_MOVE temp;
+    Move temp;
     int best = 0, bestNum = moveNum;
 
     for (int index = moveNum; index < list->count; ++index) {
@@ -459,47 +449,47 @@ void PickNextMove(int moveNum, S_MOVELIST *list) {
     list->moves[bestNum] = temp;
 }
 
-int LegalMoveExist(S_BOARD *pos) {
+int LegalMoveExist(Board *pos) {
 
-	S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
+	MoveList list;
+    GenerateAllMoves(pos, &list);
 
     int played = 0;
-	for(int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+	for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {
 
-        if (!MakeMove(pos,list->moves[MoveNum].move))
+        if (!MakeMove(pos, list.moves[MoveNum].move))
             continue;
 
         played += 1;
         TakeMove(pos);
 
-		if (played >= 1)
-			return 1;
+	    if (played >= 1)
+	        return 1;
     }
 
 	return 0;
 }
 
-int MoveExists(S_BOARD *pos, const int move) {
+int MoveExists(Board *pos, const int move) {
 
-	S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
+	MoveList list;
+    GenerateAllMoves(pos, &list);
 
-	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+	for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {
 
-        if (!MakeMove(pos,list->moves[MoveNum].move))
+        if (!MakeMove(pos, list.moves[MoveNum].move))
             continue;
 
         TakeMove(pos);
 
-		if (list->moves[MoveNum].move == move)
+		if (list.moves[MoveNum].move == move)
 			return 1;
     }
 
 	return 0;
 }
 
-int moveBestCaseValue(const S_BOARD *pos) {
+int moveBestCaseValue(const Board *pos) {
 
 	static const int SEEPieceValues[13] = {
     	0, 100, 450, 450, 675, 1300, 
@@ -530,7 +520,7 @@ int moveBestCaseValue(const S_BOARD *pos) {
     return value;
 }
 
-int see(const S_BOARD *pos, int move, int threshold) {
+int see(const Board *pos, int move, int threshold) {
 
     int from = FROMSQ(move), to = TOSQ(move);
     int nextVictim = pos->pieces[from];
@@ -548,7 +538,7 @@ int see(const S_BOARD *pos, int move, int threshold) {
     return (!pos->side) != pos->side;
 }
 
-int badCapture(int move, const S_BOARD *pos) {
+int badCapture(int move, const Board *pos) {
 
     const int THEM = !pos->side;
 
@@ -586,7 +576,7 @@ int badCapture(int move, const S_BOARD *pos) {
     return 0;
 }
 
-int move_canSimplify(int move, const S_BOARD *pos) {
+int move_canSimplify(int move, const Board *pos) {
 
     int captured = CAPTURED(move);
 
@@ -597,7 +587,7 @@ int move_canSimplify(int move, const S_BOARD *pos) {
         return 1;
 }
 
-int advancedPawnPush(int move, const S_BOARD *pos) {
+int advancedPawnPush(int move, const Board *pos) {
     return (   PiecePawn[pos->pieces[FROMSQ(move)]]
             && relativeRank(!pos->side, SQ64(TOSQ(move))) > RANK_5);
 }

@@ -18,16 +18,46 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #include "defs.h"
+#include "makemove.h"
+#include "search.h"
 
-int ParseFen(char *fen, S_BOARD *pos);
-void UpdateListsMaterial(S_BOARD *pos);
-void ResetBoard(S_BOARD *pos);
-void MirrorBoard(S_BOARD *pos);
-void PrintBoard(const S_BOARD *pos);
+struct Board {
 
-int IsRepetition(const S_BOARD *pos);
-int posIsDrawn(const S_BOARD *pos, int ply);
+	uint64_t posKey, materialKey, pawns[3];
+
+	int side, enPas, castlePerm, fiftyMove;
+	int ply, hisPly, gamePly, plyFromNull;
+
+	int PSQT[COLOUR_NB];
+	int KingSq[COLOUR_NB];
+	int pieces[BRD_SQ_NUM];
+	int pawn_ctrl[COLOUR_NB][BRD_SQ_NUM];
+
+	int searchHistory[PIECE_NB][BRD_SQ_NUM];
+	int searchKillers[COLOUR_NB][MAX_PLY];
+
+	// piece list
+	int pList[PIECE_NB][10];
+	int pceNum[PIECE_NB];
+	int bigPce[COLOUR_NB];
+	int mPhases[COLOUR_NB];
+	int material[COLOUR_NB];
+
+	PVariation pv;
+	Undo history[MAXGAMEMOVES];
+};
+
+int ParseFen(char *fen, Board *pos);
+void UpdateListsMaterial(Board *pos);
+void ResetBoard(Board *pos);
+void MirrorBoard(Board *pos);
+void PrintBoard(const Board *pos);
+
+int IsRepetition(const Board *pos);
+int posIsDrawn(const Board *pos, int ply);
 
 void InitFilesRanksBrd();
 void InitSq120To64();
@@ -55,7 +85,7 @@ extern int RankDistance[120][120];
 
 #if defined(DEBUG)
 
-int PceListOk(const S_BOARD *pos);
-int CheckBoard(const S_BOARD *pos);
+int PceListOk(const Board *pos);
+int CheckBoard(const Board *pos);
 
 #endif

@@ -22,18 +22,18 @@
 
 enum { OptimumTime, MaxTime };
 
-double getTimeMs();
-double elapsedTime(S_SEARCHINFO *info);
-double move_importance(int ply);
-double remaining(int T, double myTime, double slowMover, int movesToGo, int ply);
-
-void TimeManagementInit(S_SEARCHINFO *info, Limits *limits, int ply);
-int TerminateTimeManagement(S_BOARD *pos, S_SEARCHINFO *info, double *timeReduction);
-
-int InputWaiting();
-void ReadInput(S_SEARCHINFO *info);
-void CheckTime(S_SEARCHINFO *info);
-
 static const int MoveHorizon   = 50;
 static const double MaxRatio   = 7.3;
 static const double StealRatio = 0.34;
+
+double getTimeMs();
+double elapsedTime(SearchInfo *info);
+double move_importance(int ply);
+double remaining(int T, double myTime, double slowMover, int movesToGo, int ply);
+
+void TimeManagementInit(SearchInfo *info, Limits *limits, int ply);
+int TerminateTimeManagement(Board *pos, SearchInfo *info, double *timeReduction);
+
+int InputWaiting();
+void ReadInput(SearchInfo *info);
+void CheckTime(SearchInfo *info);

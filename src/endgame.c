@@ -13,9 +13,9 @@
 
 Material_Table Table;
 
-U64 MaterialKeys[COLOUR_NB][ENDGAME_NB];
+uint64_t MaterialKeys[COLOUR_NB][ENDGAME_NB];
 
-void endgameInit(S_BOARD *pos) {
+void endgameInit(Board *pos) {
 
 	Bitbases_init();
 	endgameAdd(pos, KPK, "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1");
@@ -35,7 +35,7 @@ void endgameInit(S_BOARD *pos) {
 	endgameAdd(pos, KRPPKRP, "8/6k1/6p1/6P1/5PK1/8/4R3/3r4 w - - 0 1");
 }
 
-void endgameAdd(S_BOARD *pos, int eg, char *fen) {
+void endgameAdd(Board *pos, int eg, char *fen) {
 
 	ParseFen(fen, pos);
 	MaterialKeys[WHITE][eg] = pos->materialKey;
@@ -43,9 +43,9 @@ void endgameAdd(S_BOARD *pos, int eg, char *fen) {
 	MaterialKeys[BLACK][eg] = pos->materialKey;
 }
 
-Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable) {
+Material_Entry* Material_probe(const Board *pos, Material_Table *materialTable) {
 
-	U64 key = pos->materialKey;
+	uint64_t key = pos->materialKey;
 	Material_Entry *entry = &materialTable->entry[key >> MT_HASH_SHIFT];
 
     // Search for a matching key signature,
@@ -92,7 +92,7 @@ Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable
     return entry;
 }
 
-int EndgameValue_probe(const S_BOARD *pos, U64 key) {
+int EndgameValue_probe(const Board *pos, uint64_t key) {
 
 	if ((pos->bigPce[WHITE] + pos->bigPce[BLACK]) <= 5) {
 
@@ -125,7 +125,7 @@ int EndgameValue_probe(const S_BOARD *pos, U64 key) {
 	return VALUE_NONE;
 }
 
-int EndgameFactor_probe(const S_BOARD *pos, U64 key) {
+int EndgameFactor_probe(const Board *pos, uint64_t key) {
 
 	if ((pos->bigPce[WHITE] + pos->bigPce[BLACK]) <= 7) {
 
@@ -159,7 +159,7 @@ int EndgameFactor_probe(const S_BOARD *pos, U64 key) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKXK(const S_BOARD *pos, int strongSide) {
+int EndgameKXK(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -189,7 +189,7 @@ int EndgameKXK(const S_BOARD *pos, int strongSide) {
     return strongSide == pos->side ? result : -result;
 };
 
-int EndgameKPK(const S_BOARD *pos, int strongSide) {
+int EndgameKPK(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -213,7 +213,7 @@ int EndgameKPK(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKBNK(const S_BOARD *pos, int strongSide) {
+int EndgameKBNK(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -240,7 +240,7 @@ int EndgameKBNK(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKQKR(const S_BOARD *pos, int strongSide) {
+int EndgameKQKR(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -260,7 +260,7 @@ int EndgameKQKR(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKQKP(const S_BOARD *pos, int strongSide) {
+int EndgameKQKP(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -285,7 +285,7 @@ int EndgameKQKP(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKRKP(const S_BOARD *pos, int strongSide) {
+int EndgameKRKP(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -332,7 +332,7 @@ int EndgameKRKP(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKRKB(const S_BOARD *pos, int strongSide) {
+int EndgameKRKB(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -343,7 +343,7 @@ int EndgameKRKB(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKRKN(const S_BOARD *pos, int strongSide) {
+int EndgameKRKN(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -363,14 +363,14 @@ int EndgameKRKN(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKNNK(const S_BOARD *pos, int strongSide) {
+int EndgameKNNK(const Board *pos, int strongSide) {
 
 	ASSERT(pos->material[strongSide] == 2 * PieceValue[EG][wN]);
 
 	return strongSide == pos->side ? VALUE_DRAW : VALUE_DRAW;
 }
 
-int EndgameKNNKP(const S_BOARD *pos, int strongSide) {
+int EndgameKNNKP(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -389,7 +389,7 @@ int EndgameKNNKP(const S_BOARD *pos, int strongSide) {
 	return strongSide == pos->side ? result : -result;
 }
 
-int EndgameKPsK(const S_BOARD *pos, int strongSide) {
+int EndgameKPsK(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -399,7 +399,7 @@ int EndgameKPsK(const S_BOARD *pos, int strongSide) {
 		   && popcount(pos->pawns[strongSide]) >= 2);
 
 	int ksq = pos->KingSq[weakSide];
-	U64 pawns = pos->pawns[strongSide];
+	uint64_t pawns = pos->pawns[strongSide];
 
 	// If all pawns are ahead of the king, on a single rook file and
 	// the king is within one file of the pawns, it's a draw.
@@ -411,7 +411,7 @@ int EndgameKPsK(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKPKP(const S_BOARD *pos, int strongSide) {
+int EndgameKPKP(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -437,7 +437,7 @@ int EndgameKPKP(const S_BOARD *pos, int strongSide) {
 	return Bitbases_probe(wksq, psq, bksq, us) ? SCALE_NORMAL : SCALE_FACTOR_DRAW;
 }
 
-int EndgameKBPsK(const S_BOARD *pos, int strongSide) {
+int EndgameKBPsK(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -445,9 +445,9 @@ int EndgameKBPsK(const S_BOARD *pos, int strongSide) {
 		    * popcount(pos->pawns[strongSide]) == PieceValue[EG][wB])
 		   && popcount(pos->pawns[strongSide]) >= 1);
 
-	U64 strongpawns = pos->pawns[strongSide];
-	U64 weakpawns   = pos->pawns[weakSide];
-	U64 allpawns    = pos->pawns[COLOUR_NB];
+	uint64_t strongpawns = pos->pawns[strongSide];
+	uint64_t weakpawns   = pos->pawns[weakSide];
+	uint64_t allpawns    = pos->pawns[COLOUR_NB];
 
 	// All pawns are on a single rook file?
 	if (!(strongpawns & ~FileABB) || !(strongpawns & ~FileHBB)) {
@@ -502,7 +502,7 @@ int EndgameKBPsK(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKBPKB(const S_BOARD *pos, int strongSide) {
+int EndgameKBPKB(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -532,7 +532,7 @@ int EndgameKBPKB(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKBPPKB(const S_BOARD *pos, int strongSide) {
+int EndgameKBPPKB(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -600,7 +600,7 @@ int EndgameKBPPKB(const S_BOARD *pos, int strongSide) {
 	}
 }
 
-int EndgameKRPKB(const S_BOARD *pos, int strongSide) {
+int EndgameKRPKB(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -664,7 +664,7 @@ int EndgameKRPKB(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKRPKR(const S_BOARD *pos, int strongSide) {
+int EndgameKRPKR(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -773,7 +773,7 @@ int EndgameKRPKR(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int EndgameKRPPKRP(const S_BOARD *pos, int strongSide) {
+int EndgameKRPPKRP(const Board *pos, int strongSide) {
 
 	const int weakSide = !strongSide;
 
@@ -804,7 +804,7 @@ int EndgameKRPPKRP(const S_BOARD *pos, int strongSide) {
 	return SCALE_NORMAL;
 }
 
-int fixSquare(const S_BOARD *pos, int strongSide, int sq) {
+int fixSquare(const Board *pos, int strongSide, int sq) {
 
     ASSERT(onlyOne(pos->pawns[strongSide]));
     ASSERT(0 <= sq && sq < 64);
@@ -817,19 +817,19 @@ int fixSquare(const S_BOARD *pos, int strongSide, int sq) {
     return strongSide == WHITE ? sq : sq ^ 56;
 }
 
-bool is_KXK(const S_BOARD *pos, int strongSide) {
+bool is_KXK(const Board *pos, int strongSide) {
 	return (   pos->material[ strongSide] >= PieceValue[EG][wR]
 		    && pos->material[!strongSide] == PieceValue[EG][wK]);
 }
 
-bool is_KPsK(const S_BOARD *pos, int strongSide) {
+bool is_KPsK(const Board *pos, int strongSide) {
 	return ((  pos->material[strongSide] - PieceValue[EG][wP]
 		     * popcount(pos->pawns[strongSide]) == PieceValue[EG][wK])
 		    && popcount(pos->pawns[strongSide]) >= 2
 		    && pos->material[!strongSide] == PieceValue[EG][wK]);
 }
 
-bool is_KBPsK(const S_BOARD *pos, int strongSide) {
+bool is_KBPsK(const Board *pos, int strongSide) {
     return ((  pos->material[strongSide] - PieceValue[EG][wP]
 		     * popcount(pos->pawns[strongSide]) == PieceValue[EG][wB])
     		&& popcount(pos->pawns[strongSide]) >= 1);

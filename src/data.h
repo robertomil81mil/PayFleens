@@ -30,11 +30,7 @@ static const int PieceValue[PHASE_NB][PIECE_NB] = {
 static const int PieceCol[13] = { COLOUR_NB, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK };
 
 static const int PieceBig[13] = { false, false, true, true, true, true, true, false, true, true, true, true, true };
-static const int PieceMaj[13] = { false, false, false, false, true, true, true, false, false, false, true, true, true };
-static const int PieceMin[13] = { false, false, true, true, false, false, false, false, true, true, false, false, false };
 static const int PiecePawn[13] = { false, true, false, false, false, false, false, true, false, false, false, false, false };
-static const int PiecePawnW[13] = { false, true, false, false, false, false, false, false, false, false, false, false, false };	
-static const int PiecePawnB[13] = { false, false, false, false, false, false, false, true, false, false, false, false, false };
 static const int PieceKnight[13] = { false, false, true, false, false, false, false, false, true, false, false, false, false };
 static const int PieceKing[13] = { false, false, false, false, false, false, true, false, false, false, false, false, true };
 static const int PieceBishop[13] = { false, false, false, true, false, false, false, false, false, true, false, false, false };

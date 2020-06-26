@@ -42,11 +42,11 @@
 int LMRTable[64][64]; // Late Move Reductions Table
 
 // Add a small random variance to draw scores, to avoid 3fold-blindness
-int valueDraw(S_SEARCHINFO *info) {
+int valueDraw(SearchInfo *info) {
     return VALUE_DRAW + (2 * (info->nodes & 1)) - 1;
 }
 
-void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info) {
+void ClearForSearch(Board *pos, SearchInfo *info) {
 
     for (int index = 0; index < 13; ++index)
         for (int index2 = 0; index2 < BRD_SQ_NUM; ++index2)
@@ -71,7 +71,7 @@ void initLMRTable() {
             LMRTable[depth][played] = 0.75 + log(depth) * log(played) / 2.25;
 }
 
-void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best) {
+void getBestMove(SearchInfo *info, Board *pos, Limits *limits, int *best) {
 
     // Minor house keeping for starting a search
     updateTTable(); // Table has an age component
@@ -79,7 +79,7 @@ void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best) {
     iterativeDeepening(pos, info, limits, best);
 }
 
-void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best) {
+void iterativeDeepening(Board *pos, SearchInfo *info, Limits *limits, int *best) {
 
     double timeReduction = 1;
 
@@ -110,7 +110,7 @@ void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *b
     info->previousTimeReduction = timeReduction;
 }
 
-int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
+int aspirationWindow(Board *pos, SearchInfo *info, int *best) {
 
     ASSERT(CheckBoard(pos));
 
@@ -136,13 +136,8 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
             return value;
 
         if (   (value > alpha && value < beta)
-            || (elapsedTime(info) >= WindowTimerMS && info->GAME_MODE == UCIMODE))
+            || (elapsedTime(info) >= WindowTimerMS))
             uciReport(info, pos, alpha, beta, value);
-
-        if (value > alpha && value < beta) {
-            *best = pos->pv.line[0];
-            return value;
-        }
 
         // Search failed low
         if (value <= alpha) {
@@ -152,9 +147,14 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
         }
 
         // Search failed high
-        if (value >= beta) { 
+        else if (value >= beta) { 
             beta = MIN(INFINITE, value + delta);
             failedHighCnt++;
+        }
+
+        else {
+            *best = pos->pv.line[0];
+            return value;
         }
 
         // Expand the search window
@@ -162,7 +162,7 @@ int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best) {
     }
 }
 
-int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
+int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariation *pv, int height) {
 
     ASSERT(CheckBoard(pos));
     ASSERT(beta>alpha);
@@ -170,7 +170,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     PVariation lpv;
     pv->length = 0;
 
-    int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
+    int InCheck = KingSqAttacked(pos);
 
     if (depth <= 0 && !InCheck)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
@@ -287,13 +287,13 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         // Try tactical moves which maintain rBeta
         rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
 
-        S_MOVELIST list[1];
-        GenerateAllCaps(pos,list);
+        MoveList list = {0};
+        GenerateAllCaps(pos, &list);
 
-        for (MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+        for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
 
-            PickNextMove(MoveNum, list);
-            move = list->moves[MoveNum].move;
+            PickNextMove(MoveNum, &list);
+            move = list.moves[MoveNum].move;
 
             if (move == excludedMove)
                 continue;
@@ -314,23 +314,23 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         }
     }   
 
-    S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
+    MoveList list = {0};
+    GenerateAllMoves(pos, &list);
 
     if (ttMove != NOMOVE) {
-        for (MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-            if (list->moves[MoveNum].move == ttMove) {
-                list->moves[MoveNum].score = 2000000;
+        for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
+            if (list.moves[MoveNum].move == ttMove) {
+                list.moves[MoveNum].score = 2000000;
                 //printf("TT move found \n");
                 break;
             }
         }
     }
 
-    for (MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+    for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
 
-        PickNextMove(MoveNum, list);
-        move = list->moves[MoveNum].move;
+        PickNextMove(MoveNum, &list);
+        move = list.moves[MoveNum].move;
 
         if (move == excludedMove)
             continue;
@@ -372,7 +372,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
         if (RootNode && elapsedTime(info) > WindowTimerMS)
             uciReportCurrentMove(move, played, depth);
         
-        if (isQuiet && list->quiets > 4 && depth > 2 && played > 1) {
+        if (isQuiet && list.quiets > 4 && depth > 2 && played > 1) {
 
             // Use the LMR Formula as a starting point
             R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];
@@ -461,7 +461,7 @@ int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVa
     return best;
 }
 
-int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height) {
+int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariation *pv, int height) {
 
     ASSERT(CheckBoard(pos));
     ASSERT(beta>alpha);
@@ -475,7 +475,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     if ((info->nodes & 1023) == 1023)
         CheckTime(info);
 
-    int InCheck = SqAttacked(pos->KingSq[pos->side],!pos->side,pos);
+    int InCheck = KingSqAttacked(pos);
 
     if (posIsDrawn(pos, pos->ply))
         return VALUE_DRAW;
@@ -526,13 +526,13 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
     if (alpha >= beta) return eval;
     futilityBase = best + QFutilityMargin;
 
-    S_MOVELIST list[1];
-    GenerateAllCaps(pos,list);
+    MoveList list = {0};
+    GenerateAllCaps(pos, &list);
 
-    for(MoveNum = 0; MoveNum < list->count; ++MoveNum) {
+    for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
 
-        PickNextMove(MoveNum, list);
-        move = list->moves[MoveNum].move;
+        PickNextMove(MoveNum, &list);
+        move = list.moves[MoveNum].move;
 
         moveIsBadCapture = (!see(pos, move, 1)
                          || badCapture(move, pos));
@@ -547,7 +547,7 @@ int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PV
             continue;
 
         if (   !InCheck
-            && !SqAttacked(pos->KingSq[pos->side], !pos->side, pos)
+            && !KingSqAttacked(pos)
             &&  futilityBase > -KNOWN_WIN
             &&  moveIsPruneable) {
 

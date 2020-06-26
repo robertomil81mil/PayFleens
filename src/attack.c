@@ -26,7 +26,7 @@
 #include "data.h"
 #include "validate.h"
 
-int SqAttacked(const int sq, const int side, const S_BOARD *pos) {
+int SqAttacked(const int sq, const int side, const Board *pos) {
 
 	int pce, index, t_sq;
 	
@@ -102,7 +102,11 @@ int SqAttacked(const int sq, const int side, const S_BOARD *pos) {
 	return 0;
 }
 
-int KnightAttack(int side, int sq, const S_BOARD *pos) {
+int KingSqAttacked(const Board *pos) {
+	return SqAttacked(pos->KingSq[pos->side], !pos->side, pos);
+}
+
+int KnightAttack(int side, int sq, const Board *pos) {
     int Knight = side == WHITE ? wN : bN, t_sq;
 
     for (int index = 0; index < 8; ++index) {
@@ -113,7 +117,7 @@ int KnightAttack(int side, int sq, const S_BOARD *pos) {
     return 0;
 }
 
-int BishopAttack(int side, int sq, int dir, const S_BOARD *pos) {
+int BishopAttack(int side, int sq, int dir, const Board *pos) {
     int Bishop = side == WHITE ? wB : bB;
     int t_sq = sq + dir;
 

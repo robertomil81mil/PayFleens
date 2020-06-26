@@ -73,7 +73,7 @@ char *PrMove(const int move) {
 	return MvStr;
 }
 
-int ParseMove(char *ptrChar, S_BOARD *pos) {
+int ParseMove(char *ptrChar, Board *pos) {
 
 	ASSERT(CheckBoard(pos));
 
@@ -87,39 +87,39 @@ int ParseMove(char *ptrChar, S_BOARD *pos) {
 
 	ASSERT(SqOnBoard(from) && SqOnBoard(to));
 
-	S_MOVELIST list[1];
+	MoveList list[1];
     GenerateAllMoves(pos, list);
-    int Move = 0, PromPce = EMPTY;
+    int move = 0, PromPce = EMPTY;
 
 	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-		Move = list->moves[MoveNum].move;
-		if (FROMSQ(Move) == from && TOSQ(Move) == to) {
-			PromPce = PROMOTED(Move);
+		move = list->moves[MoveNum].move;
+		if (FROMSQ(move) == from && TOSQ(move) == to) {
+			PromPce = PROMOTED(move);
 
 			if (PromPce != EMPTY) {
 
 				if (IsRQ(PromPce) && !IsBQ(PromPce) && ptrChar[4] == 'r')
-					return Move;
+					return move;
 
 				else if (!IsRQ(PromPce) && IsBQ(PromPce) && ptrChar[4]== 'b')
-					return Move;
+					return move;
 
 				else if (IsRQ(PromPce) && IsBQ(PromPce) && ptrChar[4]== 'q')
-					return Move;
+					return move;
 
 				else if (IsKn(PromPce)&& ptrChar[4] == 'n')
-					return Move;
+					return move;
 
 				continue;
 			}
-			return Move;
+			return move;
 		}
     }
 
     return NOMOVE;
 }
 
-void PrintMoveList(const S_MOVELIST *list) {
+void PrintMoveList(const MoveList *list) {
 
 	int score = 0, move = 0;
 	printf("MoveList:\n");

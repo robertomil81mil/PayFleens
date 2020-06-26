@@ -18,6 +18,6 @@
 
 #pragma once
 
-int GetBookMove(S_BOARD *board);
+int GetBookMove(Board *board);
 void CleanPolyBook();
 void InitPolyBook();

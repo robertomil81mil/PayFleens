@@ -37,7 +37,7 @@ uint64_t leafNodes;
 
 #ifdef DEBUG
 
-int MoveListOk(const S_MOVELIST *list, const S_BOARD *pos) {
+int MoveListOk(const S_MOVELIST *list, const Board *pos) {
 
 	if (list->count < 0 || list->count >= MAXPOSITIONMOVES)
 		return 0;
@@ -87,7 +87,7 @@ int PieceValid(const int pce) {
 	return (pce >= wP && pce <= bK);
 }
 
-void Perft(int depth, S_BOARD *pos) {
+void Perft(int depth, Board *pos) {
 
     ASSERT(CheckBoard(pos));
 
@@ -112,7 +112,7 @@ void Perft(int depth, S_BOARD *pos) {
 }
 
 
-void PerftTest(int depth, S_BOARD *pos) {
+void PerftTest(int depth, Board *pos) {
 
     ASSERT(CheckBoard(pos));
 
@@ -143,7 +143,7 @@ void PerftTest(int depth, S_BOARD *pos) {
 
 #endif
 
-void MirrorEvalTest(S_BOARD *pos) {
+void MirrorEvalTest(Board *pos) {
     FILE *file;
     file = fopen("../perftsuite.epd","r");
     char lineIn[1024];

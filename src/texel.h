@@ -106,7 +106,7 @@ typedef struct TexelEntry {
 typedef double TexelVector[NTERMS][PHASE_NB];
 
 void runTexelTuning();
-void initTexelEntries(TexelEntry *tes, S_BOARD *pos);
+void initTexelEntries(TexelEntry *tes, Board *pos);
 void initCoefficients(int coeffs[NTERMS]);
 void initCurrentParameters(TexelVector cparams);
 void initPhaseManager(TexelVector phases);

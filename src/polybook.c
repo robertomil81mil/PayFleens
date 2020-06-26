@@ -24,7 +24,7 @@
 #include "uci.h"
 
 typedef struct {
-	U64 key;
+	uint64_t key;
 	unsigned short move;
 	unsigned short weight;
 	unsigned int learn;
@@ -76,7 +76,7 @@ void CleanPolyBook() {
 	free(entries);
 }
 
-int HasPawnForCapture(const S_BOARD *board) {
+int HasPawnForCapture(const Board *board) {
 	int sqWithPawn = 0;
 	int targetPce = board->side == WHITE ? wP : bP;
 
@@ -97,9 +97,9 @@ int HasPawnForCapture(const S_BOARD *board) {
 	return 0;
 }
 
-uint64_t PolyKeyFromBoard(const S_BOARD *board) {
+uint64_t PolyKeyFromBoard(const Board *board) {
 
-	U64 finalKey = 0;
+	uint64_t finalKey = 0;
 	int piece, polyPiece, rank, file, offset = 768;
 	
 	for (int sq = 0; sq < BRD_SQ_NUM; ++sq) {
@@ -161,7 +161,7 @@ uint64_t endian_swap_u64(uint64_t x)
     return x;
 }
 
-int ConvertPolyMoveToInternalMove(uint16_t polyMove, S_BOARD *board) {
+int ConvertPolyMoveToInternalMove(uint16_t polyMove, Board *board) {
 	
 	int ff = (polyMove >> 6) & 7;
 	int fr = (polyMove >> 9) & 7;
@@ -194,7 +194,7 @@ int ConvertPolyMoveToInternalMove(uint16_t polyMove, S_BOARD *board) {
 	return ParseMove(moveString, board);
 }
 
-int GetBookMove(S_BOARD *board) {
+int GetBookMove(Board *board) {
 
 	const int MAXBOOKMOVES = 64;
 	S_POLY_BOOK_ENTRY *entry;

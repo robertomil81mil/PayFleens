@@ -44,20 +44,20 @@ EngineOptions Options; // Our global engine options
 
 int main(int argc, char **argv) {
 
-	S_BOARD pos[1];
-    S_SEARCHINFO info[1];
-    info->quit = 0;
+	Board pos       = {0};
+    SearchInfo info = {0};
+    info.quit = 0;
 
     // Set default options
+    Options.PolyBook        = 0;
     Options.MinThinkingTime = 20;
     Options.MoveOverHead    = 30;
     Options.SlowMover       = 84;
-    Options.PolyBook        = 0;
 
     char str[8192];
 
     // Initialize components of PayFleens
-    AllInit(); endgameInit(pos); ParseFen(StartPosition, pos);
+    AllInit(); endgameInit(&pos); ParseFen(StartPosition, &pos);
     printf("Payfleens %s by Roberto M. & Andrew Grant\n", VERSION_ID);
 
     handleCommandLine(argc, argv);
@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
 
         if (strEquals(str, "uci")) {
 
-        	info->GAME_MODE = UCIMODE;
 			printf("id name Payfleens %s\n", VERSION_ID);
 			printf("id author Roberto M. & Andrew Grant\n");
             printf("option name Hash type spin default 16 min 1 max 65536\n");
@@ -87,36 +86,36 @@ int main(int argc, char **argv) {
             uciSetOption(str);
 
         else if (strStartsWith(str, "position"))
-        	uciPosition(str, pos);
+        	uciPosition(str, &pos);
 
         else if (strStartsWith(str, "go"))
-            uciGo(str, info, pos);
+            uciGo(str, &info, &pos);
 
         else if (strEquals(str, "quit"))
             break;
 
         else if (strStartsWith(str, "print"))
-            PrintBoard(pos), fflush(stdout);
+            PrintBoard(&pos), fflush(stdout);
 
         else if (strStartsWith(str, "eval"))
-            printEval(pos), fflush(stdout);
+            printEval(&pos), fflush(stdout);
 
         else if (strStartsWith(str, "stats"))
-            printStats(info), fflush(stdout);
+            printStats(&info), fflush(stdout);
 
         else if (strStartsWith(str, "mirror"))
-            MirrorEvalTest(pos), fflush(stdout);
+            MirrorEvalTest(&pos), fflush(stdout);
     }
 
     return 0;
 }
 
-void uciGo(char *str, S_SEARCHINFO *info, S_BOARD *pos) {
+void uciGo(char *str, SearchInfo *info, Board *pos) {
 
     // Get our starting time as soon as possible
     double start = getTimeMs();
 
-    Limits limits;
+    Limits limits = {0};
 
     int bestMove = NOMOVE;
     int depth = 0, infinite = 0, mtg = 0;
@@ -208,7 +207,7 @@ void uciSetOption(char *str) {
     fflush(stdout);
 }
 
-void uciPosition(char* str, S_BOARD *pos) {
+void uciPosition(char* str, Board *pos) {
 
     str += 9;
     char *ptr = str;
@@ -241,32 +240,31 @@ void uciPosition(char* str, S_BOARD *pos) {
     }
 }
 
-void uciReport(S_SEARCHINFO *info, S_BOARD *pos, int alpha, int beta, int value) {
+void uciReport(SearchInfo *info, Board *pos, int alpha, int beta, int value) {
 
-    // Gather all of the statistics that the UCI protocol would be
-    // interested in. Also, bound the value passed by alpha and
-    // beta, since we are using a mix of fail-hard and fail-soft
+    // Gather all of the statistics that the UCI protocol
+    // would be interested in.
 
     int hashfull    = hashfullTTable();
     int depth       = info->depth;
     int seldepth    = info->seldepth;
     int elapsed     = elapsedTime(info);
-    int bounded     = MAX(alpha, MIN(value, beta));
     uint64_t nodes  = info->nodes;
     int nps         = (int)(1000 * (nodes / (1 + elapsed)));
 
     // If the score is MATE or MATED in X, convert to X
-    int score   = bounded >=  MATE_IN_MAX ?  (INFINITE - bounded + 1) / 2
-                : bounded <= MATED_IN_MAX ? -(bounded + INFINITE)     / 2 : bounded;
+    // if not covert to cp.
+    int score   = value >=  MATE_IN_MAX ?  (INFINITE - value + 1) / 2
+                : value <= MATED_IN_MAX ? -(value + INFINITE)     / 2 : to_cp(value);
 
-    char *type  = bounded >=  MATE_IN_MAX ? "mate"
-                : bounded <= MATED_IN_MAX ? "mate" : "cp";
+    char *type  = value >=  MATE_IN_MAX ? "mate"
+                : value <= MATED_IN_MAX ? "mate" : "cp";
 
     // Partial results from a windowed search have bounds
-    char *bound = bounded >=  beta ? " lowerbound "
-                : bounded <= alpha ? " upperbound " : " ";
+    char *bound = value >=  beta ? "lowerbound "
+                : value <= alpha ? "upperbound " : "";
 
-    printf("info depth %d seldepth %d score %s %d%stime %d "
+    printf("info depth %d seldepth %d score %s %d %stime %d "
            "nodes %"PRIu64" nps %d hashfull %d pv ",
            depth, seldepth, type, score, bound, elapsed, nodes, nps, hashfull);
 
@@ -284,7 +282,7 @@ void uciReportCurrentMove(int move, int currmove, int depth) {
     fflush(stdout);
 }
 
-void printStats(S_SEARCHINFO *info) {
+void printStats(SearchInfo *info) {
     printf("TTCut:%d Ordering:%.2f NullCut:%d\n",info->TTCut,(info->fhf/info->fh)*100,info->nullCut);
 }
 
@@ -316,9 +314,9 @@ void runBenchmark(int argc, char **argv) {
         ""
     };
 
-    S_BOARD pos[1];
-    S_SEARCHINFO info[1];
-    Limits limits = {0};
+    Board pos       = {0};
+    SearchInfo info = {0};
+    Limits limits   = {0};
 
     int scores[256];
     double times[256];
@@ -342,13 +340,13 @@ void runBenchmark(int argc, char **argv) {
 
         // Perform the search on the position
         limits.start = getTimeMs();
-        ParseFen(Benchmarks[i], pos);
-        getBestMove(info, pos, &limits, &bestMoves[i]);
+        ParseFen(Benchmarks[i], &pos);
+        getBestMove(&info, &pos, &limits, &bestMoves[i]);
 
         // Stat collection for later printing
-        scores[i] = info->values[depth];
+        scores[i] = info.values[depth];
         times[i] = getTimeMs() - limits.start;
-        nodes[i] = info->nodes;
+        nodes[i] = info.nodes;
 
         clearTTable(); // Reset TT between searches
     }
@@ -358,7 +356,7 @@ void runBenchmark(int argc, char **argv) {
     for (int i = 0; strcmp(Benchmarks[i], ""); i++) {
 
         // Log all collected information for the current position
-        printf("Bench [# %2d] %5d cp  Best:%6s %12d nodes %8d nps\n", i + 1, scores[i],
+        printf("Bench [# %2d] %5d cp  Best:%6s %12d nodes %8d nps\n", i + 1, to_cp(scores[i]),
             PrMove(bestMoves[i]), (int)nodes[i], (int)(1000.0f * nodes[i] / (times[i] + 1)));
     }
 
@@ -374,10 +372,10 @@ void runEvalBook(int argc, char **argv) {
 
     printf("STARTING EVALBOOK\n");
 
-    S_BOARD pos[1];
-    S_SEARCHINFO info[1];
+    Board pos       = {0};
+    SearchInfo info = {0};
+    Limits limits   = {0};
     char line[256];
-    Limits limits = {0};
     int i, best;
     double start = getTimeMs();
 
@@ -399,16 +397,16 @@ void runEvalBook(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
 
-        ParseFen(line, pos);
+        ParseFen(line, &pos);
 
-        if (!LegalMoveExist(pos))
+        if (!LegalMoveExist(&pos))
             continue;
 
-        getBestMove(info, pos, &limits, &best);
+        getBestMove(&info, &pos, &limits, &best);
         clearTTable();
 
         printf("\rINITIALIZING SCORES FROM FENS...  [%7d OF %7d]", i + 1, positions);
-        fprintf(newbook, "FEN [#   %6d] %5d %s", i+1, info->values[depth], line);
+        fprintf(newbook, "FEN [#   %6d] %5d %s", i+1, info.values[depth], line);
     }
 
     printf("Time %dms\n", (int)(getTimeMs() - start));

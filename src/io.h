@@ -22,5 +22,5 @@
 
 char *PrSq(const int sq);
 char *PrMove(const int move);
-int ParseMove(char *ptrChar, S_BOARD *pos);
-void PrintMoveList(const S_MOVELIST *list);
+int ParseMove(char *ptrChar, Board *pos);
+void PrintMoveList(const MoveList *list);

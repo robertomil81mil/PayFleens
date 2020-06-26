@@ -29,16 +29,39 @@ enum {
  	DEPTH_NONE          = -6,
 };
 
-void getBestMove(S_SEARCHINFO *info, S_BOARD *pos, Limits *limits, int *best);
-void iterativeDeepening(S_BOARD *pos, S_SEARCHINFO *info, Limits *limits, int *best);
+struct SearchInfo {
 
-int aspirationWindow(S_BOARD *pos, S_SEARCHINFO *info, int *best);
-int search(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
-int qsearch(int alpha, int beta, int depth, S_BOARD *pos, S_SEARCHINFO *info, PVariation *pv, int height);
+	double startTime, optimumTime, maximumTime;
+	double previousTimeReduction, bestMoveChanges;
+
+	uint64_t nodes;
+	float fh, fhf;
+
+	int depth, seldepth;
+	int quit, stop, timeset;
+
+	int values[MAX_PLY];
+	int currentMove[MAX_PLY];
+	int staticEval[MAX_PLY];
+
+	int nullCut, probCut, TTCut;
+};
+
+struct PVariation {
+    int line[MAX_PLY];
+    int length;
+};
+
+void getBestMove(SearchInfo *info, Board *pos, Limits *limits, int *best);
+void iterativeDeepening(Board *pos, SearchInfo *info, Limits *limits, int *best);
+
+int aspirationWindow(Board *pos, SearchInfo *info, int *best);
+int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariation *pv, int height);
+int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariation *pv, int height);
 
 void initLMRTable();
-int valueDraw(S_SEARCHINFO *info);
-void ClearForSearch(S_BOARD *pos, S_SEARCHINFO *info);
+int valueDraw(SearchInfo *info);
+void ClearForSearch(Board *pos, SearchInfo *info);
 
 static const int BetaPruningDepth     = 8;
 static const int BetaMargin           = 85;

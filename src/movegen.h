@@ -20,6 +20,6 @@
 
 #include "defs.h"
 
-void GenerateAllMoves(const S_BOARD *pos, S_MOVELIST *list);
-void GenerateAllCaps(const S_BOARD *pos, S_MOVELIST *list);
+void GenerateAllMoves(const Board *pos, MoveList *list);
+void GenerateAllCaps(const Board *pos, MoveList *list);
 void InitMvvLva();

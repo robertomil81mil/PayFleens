@@ -27,8 +27,8 @@ extern uint64_t SideKey;
 uint64_t rand64();
 void InitHashKeys();
 
-uint64_t GeneratePosKey(const S_BOARD *pos);
-uint64_t GenerateMaterialKey(const S_BOARD *pos);
+uint64_t GeneratePosKey(const Board *pos);
+uint64_t GenerateMaterialKey(const Board *pos);
 
 #define HASH_PCE(pce,sq) (pos->posKey ^= (PieceKeys[(pce)][(sq)]))
 #define HASH_CA (pos->posKey ^= (CastleKeys[(pos->castlePerm)]))

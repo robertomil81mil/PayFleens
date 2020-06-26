@@ -50,7 +50,7 @@ enum {
 };
 
 struct Material_Entry {
-    U64 key;
+    uint64_t key;
     int factor;
     int imbalance;
     int gamePhase;
@@ -61,37 +61,37 @@ struct Material_Table {
     Material_Entry entry[MT_SIZE];
 };
 
-int EndgameKXK(const S_BOARD *pos, int strongSide);
-int EndgameKPK(const S_BOARD *pos, int strongSide);
-int EndgameKBNK(const S_BOARD *pos, int strongSide);
-int EndgameKQKR(const S_BOARD *pos, int strongSide);
-int EndgameKQKP(const S_BOARD *pos, int strongSide);
-int EndgameKRKP(const S_BOARD *pos, int strongSide);
-int EndgameKRKB(const S_BOARD *pos, int strongSide);
-int EndgameKRKN(const S_BOARD *pos, int strongSide);
-int EndgameKNNK(const S_BOARD *pos, int strongSide);
-int EndgameKNNKP(const S_BOARD *pos, int strongSide);
+int EndgameKXK(const Board *pos, int strongSide);
+int EndgameKPK(const Board *pos, int strongSide);
+int EndgameKBNK(const Board *pos, int strongSide);
+int EndgameKQKR(const Board *pos, int strongSide);
+int EndgameKQKP(const Board *pos, int strongSide);
+int EndgameKRKP(const Board *pos, int strongSide);
+int EndgameKRKB(const Board *pos, int strongSide);
+int EndgameKRKN(const Board *pos, int strongSide);
+int EndgameKNNK(const Board *pos, int strongSide);
+int EndgameKNNKP(const Board *pos, int strongSide);
 
-int EndgameKPsK(const S_BOARD *pos, int strongSide);
-int EndgameKPKP(const S_BOARD *pos, int strongSide);
-int EndgameKBPsK(const S_BOARD *pos, int strongSide);
-int EndgameKBPKB(const S_BOARD *pos, int strongSide);
-int EndgameKBPPKB(const S_BOARD *pos, int strongSide);
-int EndgameKRPKB(const S_BOARD *pos, int strongSide);
-int EndgameKRPKR(const S_BOARD *pos, int strongSide);
-int EndgameKRPPKRP(const S_BOARD *pos, int strongSide);
+int EndgameKPsK(const Board *pos, int strongSide);
+int EndgameKPKP(const Board *pos, int strongSide);
+int EndgameKBPsK(const Board *pos, int strongSide);
+int EndgameKBPKB(const Board *pos, int strongSide);
+int EndgameKBPPKB(const Board *pos, int strongSide);
+int EndgameKRPKB(const Board *pos, int strongSide);
+int EndgameKRPKR(const Board *pos, int strongSide);
+int EndgameKRPPKRP(const Board *pos, int strongSide);
 
-bool is_KXK(const S_BOARD *pos, int strongSide);
-bool is_KPsK(const S_BOARD *pos, int strongSide);
-bool is_KBPsK(const S_BOARD *pos, int strongSide);
+bool is_KXK(const Board *pos, int strongSide);
+bool is_KPsK(const Board *pos, int strongSide);
+bool is_KBPsK(const Board *pos, int strongSide);
 
-void endgameInit(S_BOARD *pos);
-void endgameAdd(S_BOARD *pos, int eg, char *fen);
-int fixSquare(const S_BOARD *pos, int strongSide, int sq);
+void endgameInit(Board *pos);
+void endgameAdd(Board *pos, int eg, char *fen);
+int fixSquare(const Board *pos, int strongSide, int sq);
 
-Material_Entry* Material_probe(const S_BOARD *pos, Material_Table *materialTable);
-int EndgameValue_probe(const S_BOARD *pos, U64 key);
-int EndgameFactor_probe(const S_BOARD *pos, U64 key);
+Material_Entry* Material_probe(const Board *pos, Material_Table *materialTable);
+int EndgameValue_probe(const Board *pos, uint64_t key);
+int EndgameFactor_probe(const Board *pos, uint64_t key);
 
 static const int PushToEdges[64] = {
    55, 49, 44, 38, 38, 44, 49, 55,

@@ -96,22 +96,22 @@ struct EvalTrace {
 };
 
 struct evalInfo {
-    int Mob[2];
-    int attCnt[2];
-    int attckersCnt[2];
-    int attWeight[2];
-    U64 kingAreas[2];
-    int blockages[2];
-    int pkeval[2];
-    int passedCnt;
-    int pawns[2];
-    int knights[2];
-    int bishops[2];
-    int rooks[2];
-    int queens[2];
+    uint64_t kingAreas[COLOUR_NB];
+    int Mob[COLOUR_NB];
+    int attCnt[COLOUR_NB];
+    int attckersCnt[COLOUR_NB];
+    int attWeight[COLOUR_NB];
+    int blockages[COLOUR_NB];
+    int pkeval[COLOUR_NB];
+    int pawns[COLOUR_NB];
+    int knights[COLOUR_NB];
+    int bishops[COLOUR_NB];
+    int rooks[COLOUR_NB];
+    int queens[COLOUR_NB];
+    int imbalance[COLOUR_NB];
+    int KingDanger[COLOUR_NB];
     int Complexity;
-    int imbalance[2];
-    int KingDanger[2];
+    int passedCnt;
 };
 
 struct evalData {
@@ -119,31 +119,32 @@ struct evalData {
     int PSQT[13][120];
 };
 
-void blockedPiecesW(const S_BOARD *pos);
-void blockedPiecesB(const S_BOARD *pos);
+int to_cp(int v);
+void blockedPiecesW(const Board *pos);
+void blockedPiecesB(const Board *pos);
 void printEvalFactor( int WMG, int WEG, int BMG, int BEG );
-void printEval(const S_BOARD *pos);
+void printEval(const Board *pos);
 void setPcsq32();
-bool opposite_bishops(const S_BOARD *pos);
-int pawns_on_same_color_squares(const S_BOARD *pos, const int colour, const int sq);
+bool opposite_bishops(const Board *pos);
+int pawns_on_same_color_squares(const Board *pos, const int colour, const int sq);
 int getTropism(const int s1, const int s2);
-int king_proximity(const int c, const int s, const S_BOARD *pos);
-int isPiece(const int piece, const int sq, const S_BOARD *pos);
-int NonSlideMob(const S_BOARD *pos, int side, int pce, int sq);
-int SlideMob(const S_BOARD *pos, int side, int pce, int sq);
-int evaluateScaleFactor(const S_BOARD *pos, int egScore);
-int Pawns(const S_BOARD *pos, int side, int pce, int pceNum);
-int Knights(const S_BOARD *pos, int side, int pce, int pceNum);
-int Bishops(const S_BOARD *pos, int side, int pce, int pceNum);
-int Rooks(const S_BOARD *pos, int side, int pce, int pceNum);
-int Queens(const S_BOARD *pos, int side, int pce, int pceNum);
-int hypotheticalShelter(const S_BOARD *pos, int side, int KingSq);
-int evaluateShelter(const S_BOARD *pos, int side);
-int evaluateKings(const S_BOARD *pos, int side);
-int evaluatePieces(const S_BOARD *pos);
-int evaluateComplexity(const S_BOARD *pos, int score);
+int king_proximity(const int c, const int s, const Board *pos);
+int isPiece(const int piece, const int sq, const Board *pos);
+int NonSlideMob(const Board *pos, int side, int pce, int sq);
+int SlideMob(const Board *pos, int side, int pce, int sq);
+int evaluateScaleFactor(const Board *pos, int egScore);
+int Pawns(const Board *pos, int side, int pce, int pceNum);
+int Knights(const Board *pos, int side, int pce, int pceNum);
+int Bishops(const Board *pos, int side, int pce, int pceNum);
+int Rooks(const Board *pos, int side, int pce, int pceNum);
+int Queens(const Board *pos, int side, int pce, int pceNum);
+int hypotheticalShelter(const Board *pos, int side, int KingSq);
+int evaluateShelter(const Board *pos, int side);
+int evaluateKings(const Board *pos, int side);
+int evaluatePieces(const Board *pos);
+int evaluateComplexity(const Board *pos, int score);
 int imbalance(const int pieceCount[2][6], int side);
-int EvalPosition(const S_BOARD *pos, Material_Table *materialTable);
+int EvalPosition(const Board *pos, Material_Table *materialTable);
 
 #define ENDGAME_MAT (1 * PieceValue[EG][wR] + 2 * PieceValue[EG][wN] + 2 * PieceValue[EG][wP])
 #define makeScore(mg, eg) ((int)((unsigned int)(eg) << 16) + (mg))
