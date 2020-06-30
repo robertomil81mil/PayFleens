@@ -75,7 +75,7 @@ int CheckBoard(const Board *pos) {
 
 	int sq64, t_piece, t_pce_num, sq120, pcount, colour;
 
-	U64 t_pawns[3] = {0ULL, 0ULL, 0ULL};
+	uint64_t t_pawns[3] = {0ULL, 0ULL, 0ULL};
 
 	t_pawns[WHITE] = pos->pawns[WHITE];
 	t_pawns[BLACK] = pos->pawns[BLACK];
@@ -291,10 +291,8 @@ int ParseFen(char *fen, Board *pos) {
 
     fen += 2;
     if (*fen != ' ') {
-    	int ply = 0;
-		sscanf(fen, "%d", &ply);
-		pos->fiftyMove = ply;
-		ASSERT(pos->fiftyMove >= 0 && pos->fiftyMove <= 50);
+		sscanf(fen, "%d", &pos->fiftyMove);
+		ASSERT(pos->fiftyMove >= 0 && pos->fiftyMove <= 100);
     }
 
     fen += 2;
@@ -425,6 +423,12 @@ void MirrorBoard(Board *pos) {
 	pos->materialKey = GenerateMaterialKey(pos);
 
     ASSERT(CheckBoard(pos));
+}
+
+int pieceType(int piece) {
+    ASSERT(0 <= piece && piece < PIECE_NB);
+    ASSERT(0 <= PieceCol[piece] && PieceCol[piece] <= COLOUR_NB);
+    return PieceType[piece];
 }
 
 int IsRepetition(const Board *pos) {

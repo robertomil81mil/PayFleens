@@ -208,7 +208,7 @@ int GetBookMove(Board *board) {
 		if (polyKey == endian_swap_u64(entry->key)) {
 			move = endian_swap_u16(entry->move);
 			tempMove = ConvertPolyMoveToInternalMove(move, board);
-			if (tempMove != NOMOVE) {
+			if (tempMove != NONE_MOVE) {
 				bookMoves[count++] = tempMove;
 				if (count > MAXBOOKMOVES) break;
 			}
@@ -221,5 +221,5 @@ int GetBookMove(Board *board) {
 			return bookMoves[index];
 		}
 	} 
-	return NOMOVE;
+	return NONE_MOVE;
 }

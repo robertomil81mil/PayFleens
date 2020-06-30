@@ -19,8 +19,26 @@
 #pragma once
 
 #include "defs.h"
+#include "makemove.h"
+#include "search.h"
 
-void GenerateAllMoves(const Board *pos, MoveList *list);
-void genNoisyMoves(const Board *pos, MoveList *list);
-void genQuietMoves(const Board *pos, MoveList *list);
-void InitMvvLva();
+enum { NORMAL_PICKER, NOISY_PICKER };
+
+enum {
+    GENERATE_MOVES, TTABLE,
+    SCORE_NOISY, NOISY,
+    KILLER_1, KILLER_2, COUNTER_MOVE,
+    SCORE_QUIET, QUIET, DONE,
+};
+
+struct MovePicker {
+    int noisySize, split, quietSize;
+    int stage, height, type;
+    int ttMove, killer1, killer2, counter;
+    MoveList *list;
+    SearchInfo *info;
+};
+
+void initMovePicker(MovePicker *mp, Board *pos, SearchInfo *info, MoveList *list, int ttMove, int height);
+void initNoisyMovePicker(MovePicker *mp, SearchInfo *info, MoveList *list);
+int selectNextMove(MovePicker *mp, Board *pos, int skipQuiets);

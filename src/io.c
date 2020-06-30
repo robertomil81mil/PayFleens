@@ -77,22 +77,22 @@ int ParseMove(char *ptrChar, Board *pos) {
 
 	ASSERT(CheckBoard(pos));
 
-	if (ptrChar[1] > '8' || ptrChar[1] < '1') return NOMOVE;
-    if (ptrChar[3] > '8' || ptrChar[3] < '1') return NOMOVE;
-    if (ptrChar[0] > 'h' || ptrChar[0] < 'a') return NOMOVE;
-    if (ptrChar[2] > 'h' || ptrChar[2] < 'a') return NOMOVE;
+	if (ptrChar[1] > '8' || ptrChar[1] < '1') return NONE_MOVE;
+    if (ptrChar[3] > '8' || ptrChar[3] < '1') return NONE_MOVE;
+    if (ptrChar[0] > 'h' || ptrChar[0] < 'a') return NONE_MOVE;
+    if (ptrChar[2] > 'h' || ptrChar[2] < 'a') return NONE_MOVE;
 
     int from = FR2SQ(ptrChar[0] - 'a', ptrChar[1] - '1');
     int to = FR2SQ(ptrChar[2] - 'a', ptrChar[3] - '1');
 
 	ASSERT(SqOnBoard(from) && SqOnBoard(to));
 
-	MoveList list[1];
-    GenerateAllMoves(pos, list);
+	MoveList list = {0};
+    GenerateAllMoves(pos, &list);
     int move = 0, PromPce = EMPTY;
 
-	for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-		move = list->moves[MoveNum].move;
+	for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {
+		move = list.moves[MoveNum].move;
 		if (FROMSQ(move) == from && TOSQ(move) == to) {
 			PromPce = PROMOTED(move);
 
@@ -116,7 +116,7 @@ int ParseMove(char *ptrChar, Board *pos) {
 		}
     }
 
-    return NOMOVE;
+    return NONE_MOVE;
 }
 
 void PrintMoveList(const MoveList *list) {

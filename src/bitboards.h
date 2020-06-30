@@ -22,8 +22,6 @@
 
 #include "defs.h"
 
-enum { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
-
 enum {
     Rank1BB = 0x00000000000000FFull,
     Rank2BB = 0x000000000000FF00ull,

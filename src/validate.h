@@ -22,7 +22,7 @@ void MirrorEvalTest(Board *pos);
 
 #if defined(DEBUG)
 
-int MoveListOk(const S_MOVELIST *list, const Board *pos);
+int MoveListOk(const MoveList *list, const Board *pos);
 int SqIs120(const int sq);
 int PceValidEmptyOffbrd(const int pce);
 int SqOnBoard(const int sq);

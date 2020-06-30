@@ -41,8 +41,9 @@ struct SearchInfo {
 	int quit, stop, timeset;
 
 	int values[MAX_PLY];
-	int currentMove[MAX_PLY];
 	int staticEval[MAX_PLY];
+	int currentMove[MAX_PLY];
+	int currentPiece[MAX_PLY];
 
 	int nullCut, probCut, TTCut;
 };

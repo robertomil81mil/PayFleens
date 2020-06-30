@@ -28,7 +28,7 @@ struct Move {
 };
 
 struct MoveList {
-	Move moves[MAXPOSITIONMOVES];
+	Move moves[MAX_MOVES];
 	int count;
 	int quiets;
 };
@@ -43,10 +43,11 @@ int MakeMove(Board *pos, int move);
 void TakeMove(Board *pos);
 void MakeNullMove(Board *pos);
 void TakeNullMove(Board *pos);
-void PickNextMove(int moveNum, MoveList *list);
 
 int LegalMoveExist(Board *pos);
-int MoveExists(Board *pos, const int move);
+int MoveExists(MoveList *list, const int move);
+int moveIsPseudoLegal(Board *pos, int move);
+int moveIsQuiet(int move);
 
 int moveBestCaseValue(const Board *pos);
 int badCapture(int move, const Board *pos);

@@ -88,7 +88,7 @@ int hashfullTTable() {
     return cnt / TT_CLUSTER_NB;
 }
 
-int probeTTEntry(uint64_t key, uint16_t *move, int *value, int *eval, int *depth, int *bound) {
+int probeTTEntry(uint64_t key, int *move, int *value, int *eval, int *depth, int *bound) {
 
     const uint16_t key16 = key >> 48;
     TT_Entry *entry = TT.clusters[key & TT.hashMask].entry;
@@ -113,7 +113,7 @@ int probeTTEntry(uint64_t key, uint16_t *move, int *value, int *eval, int *depth
     return 0;
 }
 
-void storeTTEntry(uint64_t key, uint16_t move, int value, int eval, int depth, int bound) {
+void storeTTEntry(uint64_t key, int move, int value, int eval, int depth, int bound) {
 
     int i;
     const uint16_t key16 = key >> 48;
@@ -142,8 +142,8 @@ void storeTTEntry(uint64_t key, uint16_t move, int value, int eval, int depth, i
     replace->generation = (uint8_t)bound | TT.generation;
     replace->value      = (int16_t)value;
     replace->eval       = (int16_t)eval;
-    replace->move       = (uint16_t)move;
     replace->key16      = (uint16_t)key16;
+    replace->move       = (int)move;
 }
 
 int valueFromTT(int value, int ply) {

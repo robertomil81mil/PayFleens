@@ -28,6 +28,7 @@ static const int PieceValue[PHASE_NB][PIECE_NB] = {
 };
 
 static const int PieceCol[13] = { COLOUR_NB, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK };
+static const int PieceType[13] = { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 
 static const int PieceBig[13] = { false, false, true, true, true, true, true, false, true, true, true, true, true };
 static const int PiecePawn[13] = { false, true, false, false, false, false, false, true, false, false, false, false, false };
@@ -35,6 +36,7 @@ static const int PieceKnight[13] = { false, false, true, false, false, false, fa
 static const int PieceKing[13] = { false, false, false, false, false, false, true, false, false, false, false, false, true };
 static const int PieceBishop[13] = { false, false, false, true, false, false, false, false, false, true, false, false, false };
 static const int PieceRook[13] = { false, false, false, false, true, false, false, false, false, false, true, false, false };
+static const int PieceQueen[13] = { false, false, false, false, false, true, false, false, false, false, false, true, false };
 static const int PieceRookQueen[13] = { false, false, false, false, true, true, false, false, false, false, true, true, false };
 static const int PieceBishopQueen[13] = { false, false, false, true, false, true, false, false, false, true, false, true, false };
 static const int PieceSlides[13] = { false, false, false, true, true, true, false, false, false, true, true, true, false };

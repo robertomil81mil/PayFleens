@@ -188,7 +188,7 @@ void TimeManagementInit(SearchInfo *info, Limits *limits, int ply) {
 
 int TerminateTimeManagement(Board *pos, SearchInfo *info, double *timeReduction) {
 
-    int completedDepth, lastBestMoveDepth, lastBestMove = NOMOVE;
+    int completedDepth, lastBestMoveDepth, lastBestMove = NONE_MOVE;
     double TimeRdction = 1, totBestMoveChanges = 0;
 
     if (info->stop) 

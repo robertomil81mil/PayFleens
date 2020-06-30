@@ -36,9 +36,6 @@ struct Board {
 	int pieces[BRD_SQ_NUM];
 	int pawn_ctrl[COLOUR_NB][BRD_SQ_NUM];
 
-	int searchHistory[PIECE_NB][BRD_SQ_NUM];
-	int searchKillers[COLOUR_NB][MAX_PLY];
-
 	// piece list
 	int pList[PIECE_NB][10];
 	int pceNum[PIECE_NB];
@@ -48,6 +45,11 @@ struct Board {
 
 	PVariation pv;
 	Undo history[MAXGAMEMOVES];
+
+	KillerTable killers;
+    CounterMoveTable cmtable;
+    HistoryTable mainHistory;
+    ContinuationTable continuation;
 };
 
 int ParseFen(char *fen, Board *pos);
@@ -58,6 +60,7 @@ void PrintBoard(const Board *pos);
 
 int IsRepetition(const Board *pos);
 int posIsDrawn(const Board *pos, int ply);
+int pieceType(int piece);
 
 void InitFilesRanksBrd();
 void InitSq120To64();

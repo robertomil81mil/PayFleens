@@ -31,7 +31,9 @@
 #include "defs.h"
 #include "endgame.h"
 #include "evaluate.h"
+#include "history.h"
 #include "makemove.h"
+#include "movepicker.h"
 #include "movegen.h"
 #include "polybook.h"
 #include "search.h"
@@ -48,9 +50,10 @@ int valueDraw(SearchInfo *info) {
 
 void ClearForSearch(Board *pos, SearchInfo *info) {
 
-    for (int index = 0; index < 13; ++index)
-        for (int index2 = 0; index2 < BRD_SQ_NUM; ++index2)
-            pos->searchHistory[index][index2] = 0;
+    memset(pos->killers, 0, sizeof(KillerTable));
+    memset(pos->cmtable, 0, sizeof(CounterMoveTable));
+    memset(pos->mainHistory, 0, sizeof(HistoryTable));
+    memset(pos->continuation, 0, sizeof(ContinuationTable));
     
     pos->ply = 0;
 
@@ -86,7 +89,7 @@ void iterativeDeepening(Board *pos, SearchInfo *info, Limits *limits, int *best)
     // Return a book move if we have one
     if (Options.PolyBook) {
         int bookMove = GetBookMove(pos);
-        if (bookMove != NOMOVE) {
+        if (bookMove != NONE_MOVE) {
             *best = bookMove; return;
         }
     }
@@ -167,6 +170,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     ASSERT(CheckBoard(pos));
     ASSERT(beta>alpha);
 
+    MovePicker movePicker;
     PVariation lpv;
     pv->length = 0;
 
@@ -187,11 +191,12 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     const int RootNode = (pos->ply == 0);
     
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-    int MoveNum = 0, played = 0, singularExt = 0, LMRflag = 0;
+    int played = 0, quietsTried = 0, skipQuiets = 0;
+    int improving, extension, isQuiet, singularExt = 0, LMRflag = 0;
     int R, newDepth, rAlpha, rBeta;
-    int isQuiet, improving, extension;
     int eval, value = -INFINITE, best = -INFINITE;
-    uint16_t ttMove = NOMOVE; int move = NOMOVE, bestMove = NOMOVE, excludedMove = NOMOVE;
+    int move = NONE_MOVE, bestMove = NONE_MOVE, excludedMove = NONE_MOVE;
+    int ttMove = NONE_MOVE, quiets[MAX_MOVES];
 
     if (!RootNode) {
         if (info->stop || posIsDrawn(pos, pos->ply))
@@ -227,8 +232,8 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
     improving = height >= 2 && eval > info->staticEval[height-2];
 
-    pos->searchKillers[0][pos->ply+1] = NOMOVE;
-    pos->searchKillers[1][pos->ply+1] = NOMOVE;
+    pos->killers[height+1][0] = NONE_MOVE;
+    pos->killers[height+1][1] = NONE_MOVE;
 
     if (ttHit) {
 
@@ -288,20 +293,17 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
 
         MoveList list = {0};
-        GenerateAllCaps(pos, &list);
-
-        for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
-
-            PickNextMove(MoveNum, &list);
-            move = list.moves[MoveNum].move;
+        initNoisyMovePicker(&movePicker, info, &list);
+        while ((move = selectNextMove(&movePicker, pos, 1)) != NONE_MOVE) {
 
             if (move == excludedMove)
                 continue;
 
-            else if (!MakeMove(pos, move)) 
+            else if (!MakeMove(pos, move))
                 continue;
 
             info->currentMove[height] = move;
+            info->currentPiece[height] = pieceType(pos->pieces[TOSQ(move)]);
             value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
 
             TakeMove(pos);
@@ -312,33 +314,19 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                 return value;
             } 
         }
-    }   
-
-    MoveList list = {0};
-    GenerateAllMoves(pos, &list);
-
-    if (ttMove != NOMOVE) {
-        for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
-            if (list.moves[MoveNum].move == ttMove) {
-                list.moves[MoveNum].score = 2000000;
-                //printf("TT move found \n");
-                break;
-            }
-        }
     }
 
-    for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
-
-        PickNextMove(MoveNum, &list);
-        move = list.moves[MoveNum].move;
+    MoveList list = {0};
+    initMovePicker(&movePicker, pos, info, &list, ttMove, height);
+    while ((move = selectNextMove(&movePicker, pos, skipQuiets)) != NONE_MOVE) {
 
         if (move == excludedMove)
             continue;
 
-        if (    depth >= 6
-            &&  move == ttMove
-            && !RootNode
+        if (   !RootNode
             && !excludedMove // Avoid recursive singular search
+            &&  depth >= 6
+            &&  move == ttMove
             &&  abs(ttValue) < KNOWN_WIN
             && (ttBound & BOUND_LOWER)
             &&  ttDepth >= depth - 3) {
@@ -346,7 +334,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             rBeta = ttValue - 2 * depth;
             excludedMove = move;
             value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
-            excludedMove = NOMOVE;
+            excludedMove = NONE_MOVE;
 
             if (value < rBeta) {
                 singularExt = 1;
@@ -356,23 +344,33 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             }
 
             else if (   eval >= beta 
-                     && rBeta >= beta)
+                     && rBeta >= beta) {
+
+                if (moveIsQuiet(move))
+                    updateKillerMoves(pos, height, move);
+
+                movePicker.stage = DONE;
                 return rBeta;
+            }
         }
 
         if (!MakeMove(pos, move))
             continue;  
 
         played += 1;
-        info->currentMove[height] = move;
-
-        isQuiet =  !(move &  MFLAGCAP)
-                || !(move & (MFLAGPROM | MFLAGEP));
 
         if (RootNode && elapsedTime(info) > WindowTimerMS)
-            uciReportCurrentMove(move, played, depth);
+            uciReportCurrentMove(move, played, info->depth);
+
+        info->currentMove[height] = move;
+        info->currentPiece[height] = pieceType(pos->pieces[TOSQ(move)]);
+
+        isQuiet = moveIsQuiet(move);
+
+        if (isQuiet)
+            quiets[quietsTried++] = move;
         
-        if (isQuiet && list.quiets > 4 && depth > 2 && played > 1) {
+        if (isQuiet && depth > 2 && played > 1) {
 
             // Use the LMR Formula as a starting point
             R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];
@@ -433,15 +431,6 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                     if (played == 1)
                         info->fhf++;
                     info->fh++;
-
-                    if (!(move & MFLAGCAP)) {
-                        pos->searchHistory[pos->pieces[FROMSQ(bestMove)]][TOSQ(bestMove)] += depth;
-
-                        if (pos->searchKillers[0][pos->ply] != move) {
-                            pos->searchKillers[1][pos->ply] = pos->searchKillers[0][pos->ply];
-                            pos->searchKillers[0][pos->ply] = move;
-                        }
-                    }
                     break;
                 }
             }
@@ -452,10 +441,13 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         best =  excludedMove ?  alpha
               :      InCheck ? -INFINITE + pos->ply : VALUE_DRAW;
 
+    if (best >= beta && moveIsQuiet(bestMove))
+        updateHistoryStats(pos, info, quiets, quietsTried, height, depth*depth);
+
     if (!excludedMove) {
         ttBound =  best >= beta       ? BOUND_LOWER
                  : PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, depth, ttBound);
+        storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), eval, depth, ttBound);
     }
 
     return best;
@@ -466,6 +458,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
     ASSERT(CheckBoard(pos));
     ASSERT(beta>alpha);
 
+    MovePicker movePicker;
     PVariation lpv;
     pv->length = 0;
 
@@ -486,9 +479,9 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
     const int PvNode = (alpha != beta - 1);
 
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
-    int MoveNum = 0, played = 0, moveIsBadCapture, moveIsPruneable, PieceOnTo;
+    int played = 0, moveIsBadCapture, moveIsPruneable, PieceOnTo;
     int eval, value, best, futilityValue, futilityBase, oldAlpha = 0;
-    uint16_t ttMove = NOMOVE; int move = NOMOVE, bestMove = NOMOVE;
+    int ttMove = NONE_MOVE, move = NONE_MOVE, bestMove = NONE_MOVE;
 
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
@@ -527,15 +520,11 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
     futilityBase = best + QFutilityMargin;
 
     MoveList list = {0};
-    GenerateAllCaps(pos, &list);
+    initNoisyMovePicker(&movePicker, info, &list);
+    while ((move = selectNextMove(&movePicker, pos, 1)) != NONE_MOVE) {
 
-    for (MoveNum = 0; MoveNum < list.count; ++MoveNum) {
-
-        PickNextMove(MoveNum, &list);
-        move = list.moves[MoveNum].move;
-
-        moveIsBadCapture = (!see(pos, move, 1)
-                         || badCapture(move, pos));
+        moveIsBadCapture = (  !see(pos, move, 1)
+                            || badCapture(move, pos));
 
         moveIsPruneable = (    moveIsBadCapture
                            && !move_canSimplify(move, pos)
@@ -568,6 +557,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
         played += 1;
         info->currentMove[height] = move;
+        info->currentPiece[height] = pieceType(pos->pieces[TOSQ(move)]);
 
         value = -qsearch( -beta, -alpha, depth-1, pos, info, &lpv, height+1);
         TakeMove(pos);
@@ -603,7 +593,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
     ttBound = best >= beta              ? BOUND_LOWER
             : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-    storeTTEntry(pos->posKey, (uint16_t)(bestMove), valueToTT(best, pos->ply), eval, QSDepth, ttBound);
+    storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), eval, QSDepth, ttBound);
 
     return best;
 }

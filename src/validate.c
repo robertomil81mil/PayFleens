@@ -37,9 +37,9 @@ uint64_t leafNodes;
 
 #ifdef DEBUG
 
-int MoveListOk(const S_MOVELIST *list, const Board *pos) {
+int MoveListOk(const MoveList *list, const Board *pos) {
 
-	if (list->count < 0 || list->count >= MAXPOSITIONMOVES)
+	if (list->count < 0 || list->count >= MAX_MOVES)
 		return 0;
 
 	int from, to;
@@ -96,12 +96,12 @@ void Perft(int depth, Board *pos) {
         return;
     }   
 
-    S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);
+    MoveList list = {0};
+    GenerateAllMoves(pos, &list);
 
-    for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {   
+    for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {   
        
-        if (!MakeMove(pos, list->moves[MoveNum].move))
+        if (!MakeMove(pos, list.moves[MoveNum].move))
             continue;
 
         Perft(depth - 1, pos);
@@ -121,11 +121,11 @@ void PerftTest(int depth, Board *pos) {
     leafNodes = 0;
     int move;
     
-    S_MOVELIST list[1];
-    GenerateAllMoves(pos,list);         
+    MoveList list = {0};
+    GenerateAllMoves(pos, &list);         
 
-    for (int MoveNum = 0; MoveNum < list->count; ++MoveNum) {
-        move = list->moves[MoveNum].move;
+    for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {
+        move = list.moves[MoveNum].move;
         if (!MakeMove(pos, move))
             continue;
         

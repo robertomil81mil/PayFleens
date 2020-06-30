@@ -37,11 +37,13 @@ exit(1);}
 
 enum { WHITE, BLACK, COLOUR_NB };
 
-enum { NOMOVE = 0, NULL_MOVE = 22 };
+enum { NONE_MOVE = 0, NULL_MOVE = 22 };
 
 enum { MG = 0, EG = 1, PHASE_NB = 2 };
 
 enum { WKCA = 1, WQCA = 2, BKCA = 4, BQCA = 8 };
+
+enum { NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING, PIECE_TYPE_NB };
 
 enum { EMPTY, wP, wN, wB, wR, wQ, wK, bP, bN, bB, bR, bQ, bK, PIECE_NB };
 
@@ -57,12 +59,12 @@ enum {
 	A6 = 71, B6, C6, D6, E6, F6, G6, H6,
 	A7 = 81, B7, C7, D7, E7, F7, G7, H7,
 	A8 = 91, B8, C8, D8, E8, F8, G8, H8, NO_SQ, OFFBOARD,
-	BRD_SQ_NUM = 120
+	BRD_SQ_NUM = 120, SQUARE_NB = 64
 };
 
 enum {
 	MAX_PLY = 128, 
-	MAXPOSITIONMOVES = 256, 
+	MAX_MOVES = 256, 
 	MAXGAMEMOVES = 2048
 };
 
@@ -102,6 +104,7 @@ typedef struct EvalTrace EvalTrace;
 typedef struct KPKPos KPKPos;
 typedef struct Material_Entry Material_Entry;
 typedef struct Material_Table Material_Table;
+typedef struct MovePicker MovePicker;
 typedef struct Move Move;
 typedef struct MoveList MoveList;
 typedef struct Limits Limits;
@@ -111,3 +114,8 @@ typedef struct TT_Cluster TT_Cluster;
 typedef struct TT_Entry TT_Entry;
 typedef struct SearchInfo SearchInfo;
 typedef struct Undo Undo;
+
+typedef int KillerTable[MAX_PLY+1][2];
+typedef int CounterMoveTable[COLOUR_NB][PIECE_TYPE_NB][SQUARE_NB];
+typedef int16_t HistoryTable[COLOUR_NB][SQUARE_NB][SQUARE_NB];
+typedef int16_t ContinuationTable[COLOUR_NB][PIECE_TYPE_NB][SQUARE_NB][PIECE_TYPE_NB][SQUARE_NB];

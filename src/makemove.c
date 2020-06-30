@@ -387,7 +387,7 @@ void MakeNullMove(Board *pos) {
 
     if (pos->enPas != NO_SQ) HASH_EP;
 
-    pos->history[pos->hisPly].move = NOMOVE;
+    pos->history[pos->hisPly].move = NONE_MOVE;
     pos->history[pos->hisPly].fiftyMove = pos->fiftyMove;
     pos->history[pos->hisPly].enPas = pos->enPas;
     pos->history[pos->hisPly].castlePerm = pos->castlePerm;
@@ -428,30 +428,9 @@ void TakeNullMove(Board *pos) {
 	ASSERT(pos->ply >= 0 && pos->ply < MAX_PLY);
 }
 
-void PickNextMove(int moveNum, MoveList *list) {
-
-    Move temp;
-    int best = 0, bestNum = moveNum;
-
-    for (int index = moveNum; index < list->count; ++index) {
-        if (list->moves[index].score > best) {
-            best = list->moves[index].score;
-            bestNum = index;
-        }
-    }
-
-    ASSERT(moveNum >= 0 && moveNum < list->count);
-    ASSERT(bestNum >= 0 && bestNum < list->count);
-    ASSERT(bestNum >= moveNum);
-
-    temp = list->moves[moveNum];
-    list->moves[moveNum] = list->moves[bestNum];
-    list->moves[bestNum] = temp;
-}
-
 int LegalMoveExist(Board *pos) {
 
-	MoveList list;
+	MoveList list = {0};
     GenerateAllMoves(pos, &list);
 
     int played = 0;
@@ -470,23 +449,30 @@ int LegalMoveExist(Board *pos) {
 	return 0;
 }
 
-int MoveExists(Board *pos, const int move) {
+int MoveExists(MoveList *list, const int move) {
 
-	MoveList list;
-    GenerateAllMoves(pos, &list);
-
-	for (int MoveNum = 0; MoveNum < list.count; ++MoveNum) {
-
-        if (!MakeMove(pos, list.moves[MoveNum].move))
-            continue;
-
-        TakeMove(pos);
-
-		if (list.moves[MoveNum].move == move)
+	for (int i = 0; i < list->count; ++i)
+		if (list->moves[i].move == move)
 			return 1;
-    }
 
 	return 0;
+}
+
+int moveIsPseudoLegal(Board *pos, int move) {
+
+    int from = FROMSQ(move);
+
+    // Check against obvious illegal moves
+    if (   (move == NONE_MOVE || move == NULL_MOVE)
+        || (PieceCol[pos->pieces[from]] != pos->side))
+        return 0;
+
+    return 1;
+}
+
+int moveIsQuiet(int move) {
+	// Check for captures, promotions, or enpassant.
+	return !(move & (MFLAGCAP | MFLAGPROM | MFLAGEP));
 }
 
 int moveBestCaseValue(const Board *pos) {

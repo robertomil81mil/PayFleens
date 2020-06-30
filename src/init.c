@@ -146,7 +146,6 @@ void AllInit() {
 	InitHashKeys();
 	InitFilesRanksBrd();
 	InitEvalMasks();
-	InitMvvLva();
 	initLMRTable();
 	setSquaresNearKing();
 	KingAreaMask();

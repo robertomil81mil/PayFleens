@@ -39,7 +39,8 @@ struct TT_Entry {
     int8_t depth;
     uint8_t generation;
     int16_t eval, value;
-    uint16_t move, key16;
+    uint16_t key16;
+    int move;
 };
 
 struct TT_Cluster {
@@ -57,7 +58,7 @@ void clearTTable();
 void initTTable(uint64_t MB);
 void updateTTable();
 int hashfullTTable();
-int probeTTEntry(uint64_t key, uint16_t *move, int *value, int *eval, int *depth, int *bound);
-void storeTTEntry(uint64_t key, uint16_t move, int value, int eval, int depth, int bound);
+int probeTTEntry(uint64_t key, int *move, int *value, int *eval, int *depth, int *bound);
+void storeTTEntry(uint64_t key, int move, int value, int eval, int depth, int bound);
 int valueFromTT(int value, int ply);
 int valueToTT(int value, int ply);

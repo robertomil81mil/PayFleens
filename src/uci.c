@@ -117,7 +117,7 @@ void uciGo(char *str, SearchInfo *info, Board *pos) {
 
     Limits limits = {0};
 
-    int bestMove = NOMOVE;
+    int bestMove = NONE_MOVE;
     int depth = 0, infinite = 0, mtg = 0;
     double wtime = 0, btime = 0, movetime = 0;
     double winc = 0, binc = 0;
@@ -231,7 +231,7 @@ void uciPosition(char* str, Board *pos) {
         ptr += 6;
         while (*ptr) {
               move = ParseMove(ptr,pos);
-              if (move == NOMOVE) break;
+              if (move == NONE_MOVE) break;
               MakeMove(pos, move);
               pos->ply=0;
               while (*ptr && *ptr!= ' ') ptr++;
@@ -252,8 +252,8 @@ void uciReport(SearchInfo *info, Board *pos, int alpha, int beta, int value) {
     uint64_t nodes  = info->nodes;
     int nps         = (int)(1000 * (nodes / (1 + elapsed)));
 
-    // If the score is MATE or MATED in X, convert to X
-    // if not covert to cp.
+    // If the score is MATE or MATED in X, convert to X,
+    // if not covert the internal score to cp.
     int score   = value >=  MATE_IN_MAX ?  (INFINITE - value + 1) / 2
                 : value <= MATED_IN_MAX ? -(value + INFINITE)     / 2 : to_cp(value);
 
