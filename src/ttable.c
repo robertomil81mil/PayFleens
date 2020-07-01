@@ -62,6 +62,16 @@ void initTTable(uint64_t MB) {
     clearTTable(); // Clear the table and load everything into the cache
 }
 
+void prefetchTTable(uint64_t key) {
+
+    TT_Cluster *cluster = &TT.clusters[key & TT.hashMask];
+    __builtin_prefetch(cluster);
+}
+
+int hashSizeTTable() {
+    return ((TT.hashMask + 1) * sizeof(TT_Cluster)) / (1ull << 20);
+}
+
 void updateTTable() {
 
     // The two LSBs are used for storing the entry bound

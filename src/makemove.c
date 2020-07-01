@@ -47,6 +47,12 @@ const int CastlePerm[120] = {
     15, 15, 15, 15, 15, 15, 15, 15, 15, 15
 };
 
+static void prefetchMaterialEntry(uint64_t materialKey) {
+
+    Material_Entry *entry = &Table.entry[materialKey >> MT_HASH_SHIFT];
+    __builtin_prefetch(entry);
+}
+
 static void ClearPiece(const int sq, Board *pos) {
 
 	ASSERT(SqOnBoard(sq));
@@ -243,8 +249,7 @@ int MakeMove(Board *pos, int move) {
         ClearPiece(to, pos);
         // Update material hash key and prefetch access to materialTable
       	pos->materialKey ^= PieceKeys[captured][pos->pceNum[captured]];
-      	Material_Entry *entry = &Table.entry[pos->materialKey >> MT_HASH_SHIFT];
-      	__builtin_prefetch(entry);
+      	prefetchMaterialEntry(pos->materialKey);
         pos->fiftyMove = 0;
     }
 
@@ -281,8 +286,7 @@ int MakeMove(Board *pos, int move) {
         pos->materialKey ^=  PieceKeys[prPce][pos->pceNum[prPce]-1]
                            ^ PieceKeys[pos->pieces[to]][pos->pceNum[pos->pieces[to]]];
         
-        Material_Entry *entry = &Table.entry[pos->materialKey >> MT_HASH_SHIFT];
-      	__builtin_prefetch(entry);
+        prefetchMaterialEntry(pos->materialKey);
     }
 	
 	if (PieceKing[pos->pieces[to]])
@@ -456,18 +460,6 @@ int MoveExists(MoveList *list, const int move) {
 			return 1;
 
 	return 0;
-}
-
-int moveIsPseudoLegal(Board *pos, int move) {
-
-    int from = FROMSQ(move);
-
-    // Check against obvious illegal moves
-    if (   (move == NONE_MOVE || move == NULL_MOVE)
-        || (PieceCol[pos->pieces[from]] != pos->side))
-        return 0;
-
-    return 1;
 }
 
 int moveIsQuiet(int move) {

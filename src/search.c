@@ -179,11 +179,17 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if (depth <= 0 && !InCheck)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
+    // Prefetch TTable as early as possible
+    prefetchTTable(pos->posKey);
+
+    // Ensure positive depth
     depth = MAX(0, depth);
 
+    // Updates for UCI reporting
     info->nodes++;
     info->seldepth = (height == 0) ? 0 : MAX(info->seldepth, height);
 
+    // Do we have time left on the clock?
     if ((info->nodes & 1023) == 1023)
         CheckTime(info);
 
@@ -365,6 +371,11 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         info->currentMove[height] = move;
         info->currentPiece[height] = pieceType(pos->pieces[TOSQ(move)]);
 
+        extension =  (InCheck)
+                  || (singularExt);
+
+        newDepth = depth + (extension && !RootNode);
+
         isQuiet = moveIsQuiet(move);
 
         if (isQuiet)
@@ -384,22 +395,20 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             // Reduce if ttMove has been singularly extended
             R -= singularExt - LMRflag;
 
-            // Don't extend or drop into QS
-            R  = MIN(depth - 1, MAX(R, 1));
-
         } else R = 1;
 
-        extension =  (InCheck)
-                  || (singularExt);
-
-        newDepth = depth + (extension && !RootNode);
-
+        // Late Move Reduction (LMR). Perform a reduced search on the null alpha window, 
+        // if the move fails high it will be re-searched at full depth.
+        int d = clamp(newDepth-R, 1, newDepth);
         if (R != 1)
-            value = -search( -alpha-1, -alpha, newDepth-R, pos, info, &lpv, height+1);
-        
-        if ((R != 1 && value > alpha) || (R == 1 && !(PvNode && played == 1)))
+            value = -search( -alpha-1, -alpha, d, pos, info, &lpv, height+1);
+
+        // Do full depth search again on the null alpha window,
+        // if LMR is skipped or fails high.
+        if ((R != 1 && value > alpha && d != newDepth) || (R == 1 && (!PvNode || played > 1)))
             value = -search( -alpha-1, -alpha, newDepth-1, pos, info, &lpv, height+1);
         
+        // For PvNodes only, do a full PV search on the normal window.
         if (PvNode && (played == 1 || (value > alpha && (RootNode || value < beta))))
             value = -search( -beta, -alpha, newDepth-1, pos, info, &lpv, height+1);
         
@@ -437,6 +446,9 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         }
     }
 
+    // Prefetch TTable for store
+    prefetchTTable(pos->posKey);
+
     if (played == 0)
         best =  excludedMove ?  alpha
               :      InCheck ? -INFINITE + pos->ply : VALUE_DRAW;
@@ -462,9 +474,14 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
     PVariation lpv;
     pv->length = 0;
 
+    // Prefetch TTable as early as possible
+    prefetchTTable(pos->posKey);
+
+    // Updates for UCI reporting
     info->nodes++;
     info->seldepth = MAX(info->seldepth, height);
 
+    // Do we have time left on the clock?
     if ((info->nodes & 1023) == 1023)
         CheckTime(info);
 
@@ -590,6 +607,9 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
             }
         }
     }
+
+    // Prefetch TTable for store
+    prefetchTTable(pos->posKey);
 
     ttBound = best >= beta              ? BOUND_LOWER
             : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;

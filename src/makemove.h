@@ -46,7 +46,6 @@ void TakeNullMove(Board *pos);
 
 int LegalMoveExist(Board *pos);
 int MoveExists(MoveList *list, const int move);
-int moveIsPseudoLegal(Board *pos, int move);
 int moveIsQuiet(int move);
 
 int moveBestCaseValue(const Board *pos);

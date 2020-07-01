@@ -56,6 +56,8 @@ struct TTable {
 
 void clearTTable();
 void initTTable(uint64_t MB);
+void prefetchTTable(uint64_t key);
+int hashSizeTTable();
 void updateTTable();
 int hashfullTTable();
 int probeTTEntry(uint64_t key, int *move, int *value, int *eval, int *depth, int *bound);

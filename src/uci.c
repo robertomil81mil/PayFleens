@@ -173,8 +173,8 @@ void uciSetOption(char *str) {
     //  Slow Mover            : Lower values will make PayFleens think less time
 
     if (strStartsWith(str, "setoption name Hash value ")) {
-        int megabytes = atoi(str + strlen("setoption name Hash value "));
-        initTTable(megabytes); printf("info string set Hash to %dMB\n", megabytes);
+        int MB = atoi(str + strlen("setoption name Hash value "));
+        initTTable(MB); printf("info string set Hash to %dMB\n", hashSizeTTable());
     }
 
     if (strStartsWith(str, "setoption name Minimum Thinking Time value ")) {
