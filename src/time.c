@@ -97,7 +97,7 @@ void ReadInput(SearchInfo *info) {
     char input[256] = "", *endc;
 
     if (InputWaiting()) {
-        info->stop = TRUE;
+        info->stop = 1;
         do {
             bytes = read(fileno(stdin), input, 256);
         } while (bytes < 0);
