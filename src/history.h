@@ -30,6 +30,6 @@ static const int HistexLimit = 10000;
 void updateHistoryStats(Board *pos, SearchInfo *info, int *quiets, int quietsPlayed, int height, int bonus);
 void updateKillerMoves(Board *pos, int height, int move);
 
-void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hist, int *cmhist, int *fmhist);
+void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hist, int *cmhist, int *fmhist, int *gcmhist, int *gchmhist);
 void scoreQuietMoves(Board *pos, SearchInfo *info, MoveList *list, int start, int length, int height);
 void getRefutationMoves(Board *pos, SearchInfo *info, int height, int *killer1, int *killer2, int *counter);

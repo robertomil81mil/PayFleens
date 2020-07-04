@@ -39,6 +39,16 @@ void updateHistoryStats(Board *pos, SearchInfo *info, int *quiets, int quietsPla
     int fmPiece = info->currentPiece[height-2];
     int fmTo = SQ64(TOSQ(follow));
 
+    // Extract information from four moves ago.
+    int grandchild = info->currentMove[height-4];
+    int gcmPiece = info->currentPiece[height-4];
+    int gcmTo = SQ64(TOSQ(grandchild));
+
+    // Extract information from six moves ago.
+    int grandchildren = info->currentMove[height-6];
+    int gchmPiece = info->currentPiece[height-6];
+    int gchmTo = SQ64(TOSQ(grandchildren));
+
     // Avoid saturate history table
     bonus = MIN(bonus, HistoryMax);
 
@@ -64,11 +74,25 @@ void updateHistoryStats(Board *pos, SearchInfo *info, int *quiets, int quietsPla
             pos->continuation[0][cmPiece][cmTo][piece][to] = entry;
         }
 
-        // Update Followup Move History
+        // Update Follow Move History
         if (follow != NONE_MOVE && follow != NULL_MOVE) {
             entry = pos->continuation[1][fmPiece][fmTo][piece][to];
             entry += HistoryMultiplier * delta - entry * abs(delta) / HistoryDivisor;
             pos->continuation[1][fmPiece][fmTo][piece][to] = entry;
+        }
+
+        // Update Grandchild Move History
+        if (grandchild != NONE_MOVE && grandchild != NULL_MOVE) {
+            entry = pos->continuation[1][gcmPiece][gcmTo][piece][to];
+            entry += HistoryMultiplier * delta - entry * abs(delta) / HistoryDivisor;
+            pos->continuation[1][gcmPiece][gcmTo][piece][to] = entry;
+        }
+
+        // Update Grandchildren Move History
+        if (grandchildren != NONE_MOVE && grandchildren != NULL_MOVE) {
+            entry = pos->continuation[1][gchmPiece][gchmTo][piece][to];
+            entry += HistoryMultiplier * delta - entry * abs(delta) / HistoryDivisor;
+            pos->continuation[1][gchmPiece][gchmTo][piece][to] = entry;
         }
     }
 
@@ -89,7 +113,7 @@ void updateKillerMoves(Board *pos, int height, int move) {
     }
 }
 
-void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hist, int *cmhist, int *fmhist) {
+void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hist, int *cmhist, int *fmhist, int *gcmhist, int *gchmhist) {
 
     // Extract information from this move
     int to = SQ64(TOSQ(move));
@@ -106,6 +130,16 @@ void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hi
     int fmPiece = info->currentPiece[height-2];
     int fmTo = SQ64(TOSQ(follow));
 
+    // Extract information from four moves ago.
+    int grandchild = info->currentMove[height-4];
+    int gcmPiece = info->currentPiece[height-4];
+    int gcmTo = SQ64(TOSQ(grandchild));
+
+    // Extract information from six moves ago.
+    int grandchildren = info->currentMove[height-6];
+    int gchmPiece = info->currentPiece[height-6];
+    int gchmTo = SQ64(TOSQ(grandchildren));
+
     // Set basic Butterfly history
     *hist = pos->mainHistory[pos->side][from][to];
 
@@ -113,9 +147,17 @@ void getHistoryScore(Board *pos, SearchInfo *info, int move, int height, int *hi
     if (counter == NONE_MOVE || counter == NULL_MOVE) *cmhist = 0;
     else *cmhist = pos->continuation[0][cmPiece][cmTo][piece][to];
 
-    // Set Followup Move History if it exists
+    // Set Follow Move History if it exists
     if (follow == NONE_MOVE || follow == NULL_MOVE) *fmhist = 0;
     else *fmhist = pos->continuation[1][fmPiece][fmTo][piece][to];
+
+    // Set Grandchild Move History if it exists
+    if (grandchild == NONE_MOVE || grandchild == NULL_MOVE) *gcmhist = 0;
+    else *gcmhist = pos->continuation[1][gcmPiece][gcmTo][piece][to];
+
+    // Set Grandchildren Move History if it exists
+    if (grandchildren == NONE_MOVE || grandchildren == NULL_MOVE) *gchmhist = 0;
+    else *gchmhist = pos->continuation[1][gchmPiece][gchmTo][piece][to];
 }
 
 void scoreQuietMoves(Board *pos, SearchInfo *info, MoveList *list, int start, int length, int height) {
@@ -129,6 +171,16 @@ void scoreQuietMoves(Board *pos, SearchInfo *info, MoveList *list, int start, in
     int follow = info->currentMove[height-2];
     int fmPiece = info->currentPiece[height-2];
     int fmTo = SQ64(TOSQ(follow));
+
+    // Extract information from four moves ago.
+    int grandchild = info->currentMove[height-4];
+    int gcmPiece = info->currentPiece[height-4];
+    int gcmTo = SQ64(TOSQ(grandchild));
+
+    // Extract information from six moves ago.
+    int grandchildren = info->currentMove[height-6];
+    int gchmPiece = info->currentPiece[height-6];
+    int gchmTo = SQ64(TOSQ(grandchildren));
 
     for (int i = start; i < start + length; ++i) {
 
@@ -144,9 +196,17 @@ void scoreQuietMoves(Board *pos, SearchInfo *info, MoveList *list, int start, in
         if (counter != NONE_MOVE && counter != NULL_MOVE)
             list->moves[i].score += pos->continuation[0][cmPiece][cmTo][piece][to];
 
-        // Add Followup Move History if it exists
+        // Add Follow Move History if it exists
         if (follow != NONE_MOVE && follow != NULL_MOVE)
             list->moves[i].score += pos->continuation[1][fmPiece][fmTo][piece][to];
+
+        // Add Grandchild Move History if it exists
+        if (grandchild != NONE_MOVE && grandchild != NULL_MOVE)
+            list->moves[i].score += pos->continuation[1][gcmPiece][gcmTo][piece][to];
+
+        // Add Grandchildren Move History if it exists
+        if (grandchildren != NONE_MOVE && grandchildren != NULL_MOVE)
+            list->moves[i].score += pos->continuation[1][gchmPiece][gchmTo][piece][to];
     }
 }
 
