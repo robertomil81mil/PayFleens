@@ -376,12 +376,13 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
         newDepth = depth + (extension && !RootNode);
 
-        isQuiet = moveIsQuiet(move);
-
-        if (isQuiet)
+        if ((isQuiet = moveIsQuiet(move)))
             quiets[quietsTried++] = move;
         
-        if (isQuiet && depth > 2 && played > 1) {
+        if (    depth > 2 
+            &&  played > 1
+            && (   isQuiet
+                || info->staticEval[height] + PieceValue[EG][CAPTURED(move)] <= alpha)) {
 
             // Use the LMR Formula as a starting point
             R  = LMRTable[MIN(depth, 63)][MIN(played-1, 63)];

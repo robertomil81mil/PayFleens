@@ -64,16 +64,22 @@ void initLMRTable();
 int valueDraw(SearchInfo *info);
 void ClearForSearch(Board *pos, SearchInfo *info);
 
-static const int BetaPruningDepth     = 8;
-static const int BetaMargin           = 85;
-static const int FutilityMargin       = 9;
+static const int BetaPruningDepth = 8;
+static const int BetaMargin = 85;
+
+static const int FutilityMargin = 9;
 static const int FutilityPruningDepth = 8;
+
 static const int NullMovePruningDepth = 2;
-static const int ProbCutDepth         = 5;
-static const int ProbCutMargin        = 100;
-static const int QFutilityMargin      = 100;
-static const int RazorDepth           = 1;
-static const int RazorMargin          = 325;
-static const int WindowDepth          = 4;
-static const int WindowSize           = 11;
-static const int WindowTimerMS        = 2500;
+
+static const int ProbCutDepth = 5;
+static const int ProbCutMargin = 100;
+
+static const int QFutilityMargin = 100;
+
+static const int RazorDepth = 1;
+static const int RazorMargin = 325;
+
+static const int WindowDepth = 4;
+static const int WindowSize = 11;
+static const int WindowTimerMS = 2500;
