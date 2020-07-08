@@ -44,6 +44,7 @@ struct SearchInfo {
 	int staticEval[MAX_PLY];
 	int currentMove[MAX_PLY];
 	int currentPiece[MAX_PLY];
+	int historyScore[MAX_PLY];
 
 	int nullCut, probCut, TTCut;
 };

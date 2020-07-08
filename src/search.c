@@ -197,9 +197,10 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     const int RootNode = (pos->ply == 0);
     
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
+    int hist = 0, cmhist = 0, fmhist = 0, gcmhist = 0, gchmhist = 0;
     int played = 0, quietsTried = 0, skipQuiets = 0;
-    int improving, extension, isQuiet, singularExt = 0, LMRflag = 0;
-    int R, newDepth, rAlpha, rBeta;
+    int improving, extension, singularExt = 0, LMRflag = 0;
+    int R, newDepth, rAlpha, rBeta, isQuiet;
     int eval, value = -INFINITE, best = -INFINITE;
     int move = NONE_MOVE, bestMove = NONE_MOVE, excludedMove = NONE_MOVE;
     int ttMove = NONE_MOVE, quiets[MAX_MOVES];
@@ -240,6 +241,11 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
     pos->killers[height+1][0] = NONE_MOVE;
     pos->killers[height+1][1] = NONE_MOVE;
+
+    if (RootNode)
+        info->historyScore[height+4] = 0;
+    else
+        info->historyScore[height+2] = 0;
 
     if (ttHit) {
 
@@ -329,6 +335,10 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         if (move == excludedMove)
             continue;
 
+        // Get history scores for quiet moves
+        if ((isQuiet = moveIsQuiet(move)))
+            getHistoryScore(pos, info, move, height, &hist, &cmhist, &fmhist, &gcmhist, &gchmhist);
+
         if (   !RootNode
             && !excludedMove // Avoid recursive singular search
             &&  depth >= 6
@@ -352,7 +362,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             else if (   eval >= beta 
                      && rBeta >= beta) {
 
-                if (moveIsQuiet(move))
+                if (isQuiet)
                     updateKillerMoves(pos, height, move);
 
                 movePicker.stage = DONE;
@@ -376,7 +386,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
         newDepth = depth + (extension && !RootNode);
 
-        if ((isQuiet = moveIsQuiet(move)))
+        if (isQuiet)
             quiets[quietsTried++] = move;
         
         if (    depth > 2 
@@ -394,7 +404,23 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             R += InCheck && IsKi(pos->pieces[TOSQ(move)]);
 
             // Reduce if ttMove has been singularly extended
-            R -= singularExt - LMRflag;
+            R -= (singularExt + LMRflag);
+
+            if (isQuiet) {
+
+                // Decrease or increase based on historyScore
+                info->historyScore[height] = (hist   + cmhist 
+                                            + fmhist + gcmhist)
+                                            - 4608;
+
+                if (   info->historyScore[height] < 0
+                    && hist   >= 0
+                    && cmhist >= 0
+                    && fmhist >= 0)
+                    info->historyScore[height] = 0;
+
+                R -= info->historyScore[height] / 16384;
+            }
 
         } else R = 1;
 
@@ -441,6 +467,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                     if (played == 1)
                         info->fhf++;
                     info->fh++;
+                    info->historyScore[height] = 0;
                     break;
                 }
             }
