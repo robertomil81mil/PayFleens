@@ -198,7 +198,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
     int hist = 0, cmhist = 0, fmhist = 0, gcmhist = 0, gchmhist = 0;
-    int played = 0, quietsTried = 0, skipQuiets = 0;
+    int played = 0, quietsTried = 0, skipQuiets = 0, bonus = 0;
     int improving, extension, singularExt = 0, LMRflag = 0;
     int R, newDepth, rAlpha, rBeta, isQuiet;
     int eval, value = -INFINITE, best = -INFINITE;
@@ -232,9 +232,11 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         }
     }
 
+    bonus = -info->historyScore[height-1] / HistoryDivisor;
+
     eval = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
-         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos, &Table)
+         : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos, &Table) + bonus
                                                     : -info->staticEval[height-1] + 2 * TEMPO;
 
     improving = height >= 2 && eval > info->staticEval[height-2];
@@ -365,7 +367,6 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                 if (isQuiet)
                     updateKillerMoves(pos, height, move);
 
-                movePicker.stage = DONE;
                 return rBeta;
             }
         }
