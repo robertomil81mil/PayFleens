@@ -298,6 +298,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     }
 
     if (   !PvNode
+        && !InCheck
         &&  depth >= ProbCutDepth
         &&  abs(beta) < MATE_IN_MAX  
         &&  eval + moveBestCaseValue(pos) >= beta + ProbCutMargin) {
@@ -325,7 +326,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             if (value >= rBeta) {
                 //info->probCut++;
                 return value;
-            } 
+            }
         }
     }
 
@@ -350,7 +351,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
             rBeta = ttValue - 2 * depth;
             excludedMove = move;
-            value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height+1);
+            value = search( rBeta - 1, rBeta, depth / 2, pos, info, &lpv, height);
             excludedMove = NONE_MOVE;
 
             if (value < rBeta) {
