@@ -49,18 +49,17 @@ int valueDraw(SearchInfo *info) {
 }
 
 void ClearForSearch(Board *pos, SearchInfo *info) {
-
+    // Reset the tables used for move ordering
     memset(pos->killers, 0, sizeof(KillerTable));
     memset(pos->cmtable, 0, sizeof(CounterMoveTable));
     memset(pos->mainHistory, 0, sizeof(HistoryTable));
     memset(pos->continuation, 0, sizeof(ContinuationTable));
     
-    pos->ply = 0;
-
-    info->stop = 0;
-    info->nodes = 0;
-    info->fh = 0;
-    info->fhf = 0;
+    pos->ply      = 0;
+    info->stop    = 0;
+    info->nodes   = 0;
+    info->fh      = 0;
+    info->fhf     = 0;
     info->nullCut = 0;
     info->probCut = 0;
     info->previousTimeReduction = 1.0;
@@ -130,7 +129,7 @@ int aspirationWindow(Board *pos, SearchInfo *info, int *best) {
     int failedHighCnt = 0;
     while (1) {
 
-        int adjustedDepth = MAX(1, info->depth - (failedHighCnt / 2));
+        int adjustedDepth = MAX(1, info->depth - failedHighCnt);
 
         // Perform a search on the window, return if inside the window
         value = search(alpha, beta, adjustedDepth, pos, info, pv, 0);
@@ -459,7 +458,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                 if (PvNode) {
                     pv->length = 1 + lpv.length;
                     pv->line[0] = bestMove;
-                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                    memcpy(pv->line + 1, lpv.line, sizeof(int) * lpv.length);
                 }
 
                 if (PvNode && value < beta)
@@ -622,7 +621,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
                 if (PvNode) {
                     pv->length = 1 + lpv.length;
                     pv->line[0] = bestMove;
-                    memcpy(pv->line + 1, lpv.line, sizeof(bestMove) * lpv.length);
+                    memcpy(pv->line + 1, lpv.line, sizeof(int) * lpv.length);
                 }
 
                 if (PvNode && value < beta)
