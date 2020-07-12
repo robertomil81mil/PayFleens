@@ -347,8 +347,6 @@ void runBenchmark(int argc, char **argv) {
         scores[i] = info.values[depth];
         times[i] = getTimeMs() - limits.start;
         nodes[i] = info.nodes;
-
-        clearTTable(); // Reset TT between searches
     }
 
     printf("\n=================================================================================\n");

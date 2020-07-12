@@ -262,9 +262,10 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         improving = 0;
 
     if (   !PvNode 
-        && !InCheck 
-        &&  depth <= RazorDepth 
-        &&  eval + RazorMargin < alpha)
+        && !InCheck
+        && !RootNode
+        &&  depth <= RazorDepth
+        &&  eval + RazorMargin <= alpha)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
     if (   !PvNode
@@ -276,24 +277,40 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
     if (   !PvNode
         && !InCheck
-        &&  eval >= beta
-        &&  depth >= NullMovePruningDepth
-        &&  info->currentMove[height-1] != NULL_MOVE
-        &&  info->currentMove[height-2] != NULL_MOVE
         && !excludedMove
-        && (pos->bigPce[pos->side] > 0)
-        && (!ttHit || !(ttBound & BOUND_UPPER) || ttValue >= beta)) {
+        &&  eval >= beta
+        &&  eval >= info->staticEval[height]
+        &&  info->staticEval[height] >= beta - 18 * depth - 18 * improving + 121
+        &&  info->currentMove[height-1] != NULL_MOVE
+        &&  info->historyScore[height-1] < HistoryNMP
+        && (pos->bigPce[pos->side] > 1)
+        && (height >= info->nullMinPly || pos->side != info->nullColor)) {
 
-        R = 4 + depth / 6 + MIN(3, (eval - beta) / 200);
+        ASSERT(eval - beta >= 0);
+        R = (408 + 42 * depth) / 136 + MIN(3, (eval - beta) / 106);
 
         MakeNullMove(pos);
         info->currentMove[height] = NULL_MOVE;
         value = -search( -beta, -beta + 1, depth-R, pos, info, &lpv, height+1);
         TakeNullMove(pos);
 
-        if (value >= beta && abs(beta) < KNOWN_WIN) {
-            info->nullCut++;
-            return beta;
+        if (value >= beta) {
+
+            if (value >= MATE_IN_MAX)
+                value = beta;
+
+            if (info->nullMinPly || (abs(beta) < KNOWN_WIN && depth < 13))
+                return value;
+
+            info->nullMinPly = height + 3 * (depth-R) / 4;
+            info->nullColor = pos->side;
+
+            int value2 = search( beta - 1, beta, depth-R, pos, info, &lpv, height);
+
+            info->nullMinPly = 0;
+
+            if (value2 >= beta)
+                return value;
         }
     }
 
@@ -526,7 +543,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
     int played = 0, moveIsBadCapture, moveIsPruneable, PieceOnTo;
-    int eval, value, best, futilityValue, futilityBase, oldAlpha = 0;
+    int value, best, futilityValue, futilityBase, oldAlpha = 0;
     int ttMove = NONE_MOVE, move = NONE_MOVE, bestMove = NONE_MOVE;
 
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
@@ -546,23 +563,22 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
         }
     }
 
-    eval = info->staticEval[height] =
+    best = info->staticEval[height] =
            ttHit && ttEval != VALUE_NONE            ?  ttEval
          : info->currentMove[height-1] != NULL_MOVE ?  EvalPosition(pos, &Table)
                                                     : -info->staticEval[height-1] + 2 * TEMPO;
 
     if (ttHit) {
         if (   ttValue != VALUE_NONE
-            && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
-            eval = ttValue;
+            && (ttBound & (ttValue > best ? BOUND_LOWER : BOUND_UPPER)))
+            best = info->staticEval[height] = ttValue;
     }
 
     if (PvNode)
         oldAlpha = alpha;
 
-    best = eval;
     alpha = MAX(alpha, best);
-    if (alpha >= beta) return eval;
+    if (alpha >= beta) return best;
     futilityBase = best + QFutilityMargin;
 
     MoveList list = {0};
@@ -642,7 +658,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
     ttBound = best >= beta              ? BOUND_LOWER
             : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-    storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), eval, QSDepth, ttBound);
+    storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), info->staticEval[height], QSDepth, ttBound);
 
     return best;
 }

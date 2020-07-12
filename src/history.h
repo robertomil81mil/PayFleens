@@ -25,7 +25,7 @@
 static const int HistoryMax = 400;
 static const int HistoryMultiplier = 32;
 static const int HistoryDivisor = 512;
-static const int HistexLimit = 10000;
+static const int HistoryNMP = 23552;
 
 void updateHistoryStats(Board *pos, SearchInfo *info, int *quiets, int quietsPlayed, int height, int bonus);
 void updateKillerMoves(Board *pos, int height, int move);

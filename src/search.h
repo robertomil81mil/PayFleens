@@ -46,6 +46,8 @@ struct SearchInfo {
 	int currentPiece[MAX_PLY];
 	int historyScore[MAX_PLY];
 
+	int nullColor, nullMinPly;
+
 	int nullCut, probCut, TTCut;
 };
 
@@ -79,7 +81,7 @@ static const int ProbCutMargin = 100;
 static const int QFutilityMargin = 100;
 
 static const int RazorDepth = 1;
-static const int RazorMargin = 325;
+static const int RazorMargin = 326;
 
 static const int WindowDepth = 4;
 static const int WindowSize = 11;
