@@ -67,7 +67,7 @@ void initLMRTable();
 int valueDraw(SearchInfo *info);
 void ClearForSearch(Board *pos, SearchInfo *info);
 
-static const int BetaPruningDepth = 8;
+static const int BetaPruningDepth = 5;
 static const int BetaMargin = 85;
 
 static const int FutilityMargin = 9;

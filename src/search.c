@@ -271,7 +271,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if (   !PvNode
         && !InCheck
         &&  depth <= BetaPruningDepth
-        &&  eval - BetaMargin * depth > beta
+        &&  eval - BetaMargin * (depth - improving) > beta
         &&  eval < KNOWN_WIN)
         return eval;
 
