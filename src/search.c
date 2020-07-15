@@ -174,8 +174,8 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if (depth <= 0 && !InCheck)
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
-    const int PvNode   = alpha != beta - 1;
-    const int RootNode = pos->ply == 0;
+    const int PvNode   = (alpha != beta - 1);
+    const int RootNode = (pos->ply == 0);
     
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
     int hist = 0, cmhist = 0, fmhist = 0, gcmhist = 0, gchmhist = 0;
@@ -205,22 +205,22 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if ((info->nodes & 1023) == 1023)
         CheckTime(info);
 
-    // Check for early exit and immediate draw.
     if (!RootNode) {
+        if (   info->stop 
+            || posIsDrawn(pos, pos->ply))
+            return valueDraw(info);
 
-        if (   info->stop
-            || posIsDrawn(pos, pos->ply)
-            || pos->ply >= MAX_PLY)
-            return pos->ply >= MAX_PLY ? EvalPosition(pos, &Table) : valueDraw(info);
+        if (height >= MAX_PLY)
+            return EvalPosition(pos, &Table);
 
-        rAlpha = alpha > -INFINITE + pos->ply     ? alpha : -INFINITE + pos->ply;
-        rBeta  =  beta <  INFINITE - pos->ply - 1 ?  beta :  INFINITE - pos->ply - 1;
+        rAlpha = alpha > -INFINITE + height     ? alpha : -INFINITE + height;
+        rBeta  =  beta <  INFINITE - height - 1 ?  beta :  INFINITE - height - 1;
         if (rAlpha >= rBeta) return rAlpha;
     }
 
     if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
 
-        ttValue = valueFromTT(ttValue, pos->ply);
+        ttValue = valueFromTT(ttValue, height);
 
         if (ttDepth >= depth && (depth == 0 || !PvNode)) {
        
@@ -505,7 +505,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
     if (played == 0)
         best =  excludedMove ?  alpha
-              :      InCheck ? -INFINITE + pos->ply : VALUE_DRAW;
+              :      InCheck ? -INFINITE + height : VALUE_DRAW;
 
     if (best >= beta && moveIsQuiet(bestMove))
         updateHistoryStats(pos, info, quiets, quietsTried, height, depth*depth);
@@ -513,7 +513,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if (!excludedMove) {
         ttBound =  best >= beta       ? BOUND_LOWER
                  : PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER;
-        storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), eval, depth, ttBound);
+        storeTTEntry(pos->posKey, bestMove, valueToTT(best, height), eval, depth, ttBound);
     }
 
     return best;
@@ -524,37 +524,40 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
     ASSERT(CheckBoard(pos));
     ASSERT(beta>alpha);
 
+    MovePicker movePicker;
+    PVariation lpv;
+    pv->length = 0;
+
+    // Prefetch TTable as early as possible
+    prefetchTTable(pos->posKey);
+
     // Updates for UCI reporting
     info->nodes++;
     info->seldepth = MAX(info->seldepth, height);
-
-    // Check for early exit and immediate draw.
-    if (   posIsDrawn(pos, pos->ply)
-        || pos->ply >= MAX_PLY)
-        return pos->ply >= MAX_PLY ? EvalPosition(pos, &Table) : VALUE_DRAW;
 
     // Do we have time left on the clock?
     if ((info->nodes & 1023) == 1023)
         CheckTime(info);
 
-    // Prefetch TTable as early as possible
-    prefetchTTable(pos->posKey);
+    if (posIsDrawn(pos, pos->ply))
+        return VALUE_DRAW;
 
-    const int PvNode = alpha != beta - 1;
+    if (pos->ply >= MAX_PLY)
+        return EvalPosition(pos, &Table);
+
+    const int PvNode = (alpha != beta - 1);
 
     int InCheck = KingSqAttacked(pos);
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
     int played = 0, moveIsBadCapture, moveIsPruneable, PieceOnTo;
     int value, best, futilityValue, futilityBase, oldAlpha = 0;
     int ttMove = NONE_MOVE, move = NONE_MOVE, bestMove = NONE_MOVE;
+
     int QSDepth = (InCheck || depth >= DEPTH_QS_CHECKS) ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
-    MovePicker movePicker;
-    PVariation lpv;
-    pv->length = 0;
 
     if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound))) {
 
-        ttValue = valueFromTT(ttValue, pos->ply);
+        ttValue = valueFromTT(ttValue, height);
 
         if (ttDepth >= QSDepth && !PvNode) {
 
@@ -578,14 +581,11 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
             best = info->staticEval[height] = ttValue;
     }
 
-    if (best >= beta)
-        return best;
-
-    if (PvNode) {
+    if (PvNode)
         oldAlpha = alpha;
-        alpha = MAX(alpha, best);
-    }
 
+    alpha = MAX(alpha, best);
+    if (alpha >= beta) return best;
     futilityBase = best + QFutilityMargin;
 
     MoveList list = {0};
@@ -665,7 +665,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
     ttBound = best >= beta              ? BOUND_LOWER
             : PvNode && best > oldAlpha ? BOUND_EXACT : BOUND_UPPER;
-    storeTTEntry(pos->posKey, bestMove, valueToTT(best, pos->ply), info->staticEval[height], QSDepth, ttBound);
+    storeTTEntry(pos->posKey, bestMove, valueToTT(best, height), info->staticEval[height], QSDepth, ttBound);
 
     return best;
 }
