@@ -317,15 +317,17 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     if (   !PvNode
         && !InCheck
         &&  depth >= ProbCutDepth
-        &&  abs(beta) < MATE_IN_MAX  
-        &&  eval + moveBestCaseValue(pos) >= beta + ProbCutMargin) {
+        &&  abs(beta) < MATE_IN_MAX) {
 
         // Try tactical moves which maintain rBeta
-        rBeta = MIN(beta + ProbCutMargin, INFINITE - MAX_PLY - 1);
+        rBeta = MIN(beta + ProbCutMargin[improving], INFINITE - MAX_PLY - 1);
 
         MoveList list = {0};
         initNoisyMovePicker(&movePicker, info, &list);
-        while ((move = selectNextMove(&movePicker, pos, 1)) != NONE_MOVE) {
+        int ProbCutTried = 0;
+
+        while (  (move = selectNextMove(&movePicker, pos, 1)) != NONE_MOVE
+               && ProbCutTried < 2 + 2 * !PvNode) {
 
             if (move == excludedMove)
                 continue;
@@ -333,17 +335,22 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             else if (!MakeMove(pos, move))
                 continue;
 
+            ProbCutTried += 1;
             info->currentMove[height] = move;
             info->currentPiece[height] = pieceType(pos->pieces[TOSQ(move)]);
-            value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
+
+            // First perform the qsearch to verify that the move maintain rBeta, 
+            // if the qsearch held rBeta, perform the regular search.
+            value = -qsearch( -rBeta, -rBeta + 1, 0, pos, info, &lpv, height+1);
+
+            if (value >= rBeta)
+                value = -search( -rBeta, -rBeta + 1, depth-4, pos, info, &lpv, height+1);
 
             TakeMove(pos);
 
             // Probcut failed high
-            if (value >= rBeta) {
-                //info->probCut++;
+            if (value >= rBeta)
                 return value;
-            }
         }
     }
 
@@ -378,8 +385,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
                     LMRflag = 1;
             }
 
-            else if (   eval >= beta 
-                     && rBeta >= beta) {
+            else if (rBeta >= beta) {
 
                 if (isQuiet)
                     updateKillerMoves(pos, height, move);

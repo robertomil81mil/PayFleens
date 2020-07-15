@@ -70,13 +70,8 @@ void ClearForSearch(Board *pos, SearchInfo *info);
 static const int BetaPruningDepth = 5;
 static const int BetaMargin = 85;
 
-static const int FutilityMargin = 9;
-static const int FutilityPruningDepth = 8;
-
-static const int NullMovePruningDepth = 2;
-
 static const int ProbCutDepth = 5;
-static const int ProbCutMargin = 100;
+static const int ProbCutMargin[] = { 100, 72 };
 
 static const int QFutilityMargin = 100;
 
