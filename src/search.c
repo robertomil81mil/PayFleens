@@ -222,14 +222,12 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
         ttValue = valueFromTT(ttValue, height);
 
-        if (ttDepth >= depth && (depth == 0 || !PvNode)) {
-       
-            if (    ttBound == BOUND_EXACT
-                || (ttBound == BOUND_LOWER && ttValue >= beta)
-                || (ttBound == BOUND_UPPER && ttValue <= alpha)) {
-                info->TTCut++;
-                return ttValue;
-            }      
+        if (   !PvNode
+            &&  ttDepth >= depth
+            && (ttValue >= beta ? (ttBound & BOUND_LOWER)
+                                : (ttBound & BOUND_UPPER))) {
+            info->TTCut++;
+            return ttValue;
         }
     }
 
@@ -559,14 +557,12 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
         ttValue = valueFromTT(ttValue, height);
 
-        if (ttDepth >= QSDepth && !PvNode) {
-
-            if (    ttBound == BOUND_EXACT
-                || (ttBound == BOUND_LOWER && ttValue >= beta)
-                || (ttBound == BOUND_UPPER && ttValue <= alpha)) {
-                info->TTCut++;
-                return ttValue;
-            }     
+        if (   !PvNode
+            &&  ttDepth >= QSDepth
+            && (ttValue >= beta ? (ttBound & BOUND_LOWER)
+                                : (ttBound & BOUND_UPPER))) {
+            info->TTCut++;
+            return ttValue;
         }
     }
 
@@ -580,6 +576,9 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
             && (ttBound & (ttValue > best ? BOUND_LOWER : BOUND_UPPER)))
             best = info->staticEval[height] = ttValue;
     }
+
+    if (best >= beta)
+        return best;
 
     if (PvNode)
         oldAlpha = alpha;
