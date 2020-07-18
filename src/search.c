@@ -577,14 +577,13 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
             best = info->staticEval[height] = ttValue;
     }
 
-    if (best >= beta)
-        return best;
-
     if (PvNode)
         oldAlpha = alpha;
 
+    if (best >= beta)
+        return best;
+
     alpha = MAX(alpha, best);
-    if (alpha >= beta) return best;
     futilityBase = best + QFutilityMargin;
 
     MoveList list = {0};
