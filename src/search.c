@@ -224,6 +224,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
 
         if (   !PvNode
             &&  ttDepth >= depth
+            &&  ttValue != VALUE_NONE
             && (ttValue >= beta ? (ttBound & BOUND_LOWER)
                                 : (ttBound & BOUND_UPPER))) {
             info->TTCut++;
@@ -256,6 +257,9 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         if (    ttValue != VALUE_NONE
             && (ttBound & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
             eval = ttValue;
+    }
+    else {
+        storeTTEntry(pos->posKey, NONE_MOVE, VALUE_NONE, eval, DEPTH_NONE, BOUND_NONE);
     }
 
     if (InCheck)
@@ -352,6 +356,16 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             if (value >= rBeta)
                 return value;
         }
+    }
+
+    if (   !InCheck
+        && !ttMove
+        &&  depth >= IterativeDepth) {
+
+        search(alpha, beta, depth-7, pos, info, &lpv, height);
+
+        if ((ttHit = probeTTEntry(pos->posKey, &ttMove, &ttValue, &ttEval, &ttDepth, &ttBound)))
+            ttValue = valueFromTT(ttValue, height);
     }
 
     MoveList list = {0};
@@ -559,6 +573,7 @@ int qsearch(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVaria
 
         if (   !PvNode
             &&  ttDepth >= QSDepth
+            &&  ttValue != VALUE_NONE
             && (ttValue >= beta ? (ttBound & BOUND_LOWER)
                                 : (ttBound & BOUND_UPPER))) {
             info->TTCut++;
