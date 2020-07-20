@@ -181,7 +181,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
     int hist = 0, cmhist = 0, fmhist = 0, gcmhist = 0, gchmhist = 0;
     int played = 0, quietsTried = 0, skipQuiets = 0, bonus = 0;
     int improving, extension, singularExt = 0, LMRflag = 0;
-    int R, newDepth, rAlpha, rBeta, isQuiet;
+    int R, newDepth, rAlpha, rBeta, isQuiet, ttNoisy;
     int eval, value = -INFINITE, best = -INFINITE;
     int move = NONE_MOVE, bestMove = NONE_MOVE, excludedMove = NONE_MOVE;
     int ttMove = NONE_MOVE, quiets[MAX_MOVES];
@@ -368,6 +368,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             ttValue = valueFromTT(ttValue, height);
     }
 
+    ttNoisy = ttMove && !moveIsQuiet(ttMove);
     MoveList list = {0};
     initMovePicker(&movePicker, pos, info, &list, ttMove, height);
     while ((move = selectNextMove(&movePicker, pos, skipQuiets)) != NONE_MOVE) {
@@ -445,6 +446,9 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
             R -= (singularExt + LMRflag);
 
             if (isQuiet) {
+
+                // Increase if ttMove is noisy
+                R += ttNoisy;
 
                 // Decrease or increase based on historyScore
                 info->historyScore[height] = (hist   + cmhist 
