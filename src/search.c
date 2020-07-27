@@ -175,7 +175,7 @@ int search(int alpha, int beta, int depth, Board *pos, SearchInfo *info, PVariat
         return qsearch(alpha, beta, depth, pos, info, pv, height);
 
     const int PvNode   = (alpha != beta - 1);
-    const int RootNode = (pos->ply == 0);
+    const int RootNode = (PvNode && pos->ply == 0);
     
     int ttHit, ttValue = 0, ttEval = 0, ttDepth = 0, ttBound = 0;
     int hist = 0, cmhist = 0, fmhist = 0, gcmhist = 0, gchmhist = 0;

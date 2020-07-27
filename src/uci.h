@@ -21,7 +21,7 @@
 #include "defs.h"
 
 #define StartPosition "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-#define VERSION_ID "1.85" // Bench 9529876
+#define VERSION_ID "1.86" // Bench 9529876 9529876
 
 struct Limits {
     double start, time, inc, timeLimit;
